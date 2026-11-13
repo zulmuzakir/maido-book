@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1794086697764,
+      "tag": "0000_loose_jetstream",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1794095149426,
+      "tag": "0001_worried_purple_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1794095156068,
+      "tag": "0002_seed_defaults",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1794126105954,
+      "tag": "0003_closing_template_roove_price",
+      "breakpoints": true
+    }
+  ]
+}

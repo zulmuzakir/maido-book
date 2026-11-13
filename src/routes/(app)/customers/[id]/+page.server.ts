@@ -1,0 +1,83 @@
+import { error, fail } from '@sveltejs/kit';
+import type { Actions, PageServerLoad } from './$types';
+import { todayIso } from '#lib/domain/dates.ts';
+import { waLink } from '#lib/domain/phone.ts';
+import { addNote, getCustomerDetail } from '#lib/server/crm/customers.ts';
+import { parseForm } from '#lib/server/crm/form.ts';
+import { followUpActions } from '#lib/server/crm/follow-up-actions.ts';
+import { messageContext, messageFor, templateVars } from '#lib/server/crm/follow-ups.ts';
+import { deleteOrder } from '#lib/server/crm/orders.ts';
+import { noteSchema } from '#lib/server/crm/schemas.ts';
+import { getRules } from '#lib/server/crm/settings.ts';
+
+export const load: PageServerLoad = async ({ params, locals }) => {
+	const detail = await getCustomerDetail(locals.db, params.id);
+	if (!detail) error(404, 'Not found');
+
+	const { customer: c, openFollowUp, lastOrder, orders, activities } = detail;
+	const [rules, ctx] = await Promise.all([getRules(locals.db), messageContext(locals.db)]);
+	const today = todayIso();
+	const csName = locals.user!.name;
+
+	const message = openFollowUp ? messageFor(ctx, openFollowUp, c, lastOrder, csName) : '';
+	const panelItem = openFollowUp
+		? {
+				followUpId: openFollowUp.id,
+				kind: openFollowUp.kind,
+				dueDate: openFollowUp.dueDate,
+				attempt: openFollowUp.attempt,
+				contactedAt: openFollowUp.contactedAt,
+				message,
+				vars: templateVars(ctx, c, lastOrder, csName),
+				waUrl: waLink(c.phone, message),
+				customer: {
+					id: c.id,
+					name: c.name,
+					phone: c.phone,
+					dosePerDay: c.dosePerDay,
+					status: c.status
+				},
+				lastOrder
+			}
+		: null;
+
+	return {
+		title: c.name,
+		customer: {
+			id: c.id,
+			name: c.name,
+			phone: c.phone,
+			status: c.status,
+			dosePerDay: c.dosePerDay,
+			notes: c.notes
+		},
+		openFollowUp,
+		panelItem,
+		orders,
+		activities,
+		ordersTruncated: detail.ordersTruncated,
+		activitiesTruncated: detail.activitiesTruncated,
+		today,
+		rules
+	};
+};
+
+export const actions: Actions = {
+	...followUpActions,
+
+	note: async ({ params, request, locals }) => {
+		const parsed = parseForm(await request.formData(), noteSchema);
+		if (!parsed.ok) return fail(400, { action: 'note', errors: parsed.errors });
+		await addNote(locals.db, params.id, parsed.data.body, locals.user!.id);
+		return { ok: true, action: 'note' };
+	},
+
+	deleteOrder: async ({ request, locals }) => {
+		const orderId = (await request.formData()).get('orderId');
+		if (typeof orderId !== 'string' || !orderId) {
+			return fail(400, { action: 'deleteOrder', errors: { orderId: 'required' } });
+		}
+		await deleteOrder(locals.db, orderId);
+		return { ok: true, action: 'deleteOrder' };
+	}
+};

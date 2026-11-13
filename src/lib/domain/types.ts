@@ -1,0 +1,36 @@
+export const CUSTOMER_STATUSES = ['lead', 'active', 'dormant'] as const;
+export const FOLLOW_UP_KINDS = ['reorder', 'retry', 'lead', 'winback', 'closing'] as const;
+export const FOLLOW_UP_STATUSES = ['open', 'done', 'cancelled'] as const;
+export const FOLLOW_UP_OUTCOMES = [
+	'ordered',
+	'interested',
+	'replied',
+	'no_reply',
+	'not_interested'
+] as const;
+export const MANUAL_OUTCOMES = ['replied', 'interested', 'no_reply', 'not_interested'] as const;
+export const ACTIVITY_TYPES = [
+	'wa_sent',
+	'outcome',
+	'order',
+	'note',
+	'snooze',
+	'scheduled',
+	'customer_created',
+	'import'
+] as const;
+
+export type CustomerStatus = (typeof CUSTOMER_STATUSES)[number];
+export type FollowUpKind = (typeof FOLLOW_UP_KINDS)[number];
+export type FollowUpStatus = (typeof FOLLOW_UP_STATUSES)[number];
+export type FollowUpOutcome = (typeof FOLLOW_UP_OUTCOMES)[number];
+export type ManualOutcome = (typeof MANUAL_OUTCOMES)[number];
+export type ActivityType = (typeof ACTIVITY_TYPES)[number];
+export type TemplateKind = FollowUpKind;
+
+export interface RuleSettings {
+	leadDays: number;
+	retryDays: number;
+	maxAttempts: number;
+	winbackDays: number;
+}
