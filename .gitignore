@@ -30,3 +30,8 @@ project.inlang/cache/
 
 # Design tooling
 .impeccable/
+
+# Agent skills/tooling (local only)
+/.claude/
+/.omp/
+/.pi/

@@ -9,3 +9,7 @@ bun.lockb
 /static/
 /drizzle/
 /worker-configuration.d.ts
+
+# Inlang generated files
+/project.inlang/*
+!/project.inlang/settings.json
