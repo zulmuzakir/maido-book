@@ -1,16 +1,28 @@
+<script module lang="ts">
+	import type { ManualOutcome as Outcome } from '#lib/domain/types.ts';
+
+	/** What the card shows once an outcome is saved: the result and when the customer comes back. */
+	export interface SavedOutcome {
+		nextFollowUpId: string | null;
+		outcome: Outcome;
+		nextDate: string | null;
+	}
+</script>
+
 <script lang="ts">
 	import FieldError from '#lib/components/field-error.svelte';
 	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { toast } from 'svelte-sonner';
+	import ArrowUpRightIcon from '@lucide/svelte/icons/arrow-up-right';
 	import CalendarIcon from '@lucide/svelte/icons/calendar';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Textarea } from '#lib/components/ui/textarea/index.js';
 	import { addDays, formatDate } from '#lib/domain/dates.ts';
 	import type { ManualOutcome, RuleSettings } from '#lib/domain/types.ts';
 	import { FormAction } from '#lib/form-action.svelte.ts';
-	import { outcomeLabel } from '#lib/labels.ts';
+	import { fieldError, outcomeLabel } from '#lib/labels.ts';
 	import { UNDO_MS, undoFollowUp } from '#lib/follow-up-undo.ts';
 	import type { QueueRowItem } from '#lib/queue.ts';
 	import { m } from '#lib/paraglide/messages.js';
@@ -22,7 +34,6 @@
 		today,
 		rules,
 		choice = $bindable(null),
-		saved = false,
 		onsaved,
 		onundo
 	}: {
@@ -31,19 +42,18 @@
 		rules: RuleSettings;
 		/** The picked result. The card hides its message and snooze sections while one is picked. */
 		choice?: ManualOutcome | null;
-		/** The outcome is already saved: the grid stays for reference, but no result can be picked. */
-		saved?: boolean;
 		/** Reports a successful save so the page keeps this customer open. */
-		onsaved?: (result: { nextFollowUpId: string | null }) => void;
-		/** Runs when the user undoes the save from the toast. */
+		onsaved?: (result: SavedOutcome) => void;
+		/** Runs once an undo from the toast has finished and the customer is back in the queue. */
 		onundo?: () => void;
 	} = $props();
 
 	const locale = $derived(getLocale());
 	const OPTIONS: ManualOutcome[] = ['no_reply', 'replied', 'interested', 'not_interested'];
-	const DATE_OFFSETS = [2, 3, 7];
+	// The same offsets as the snooze chips, so a date chip means the same thing everywhere.
+	const DATE_OFFSETS = [1, 3, 7];
 	const cellClass =
-		'flex min-h-[38px] items-center justify-center rounded-lg border border-rule bg-card px-2 py-1.5 text-center text-ui leading-tight font-semibold text-foreground transition-colors hover:bg-muted';
+		'flex min-h-11 items-center justify-center gap-1 rounded-lg border border-rule bg-card px-2 py-1.5 text-center text-ui leading-tight font-semibold text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50 desk:min-h-[38px]';
 
 	let nextDate = $state(untrack(() => addDays(today, rules.retryDays)));
 	let errors = $state<Record<string, string>>({});
@@ -67,8 +77,9 @@
 		return null;
 	}
 
-	const save = new FormAction(async ({ result, update }) => {
+	const save = new FormAction(async ({ result, update, formData }) => {
 		if (result.type === 'success') {
+			const picked = String(formData.get('outcome') ?? '') as ManualOutcome;
 			const { nextDate: savedDate, undo: u } = result.data ?? {};
 			toast.success(
 				savedDate
@@ -76,19 +87,24 @@
 					: m.today_outcome_saved(),
 				{
 					duration: UNDO_MS,
-					position: 'bottom-center',
 					icon: null,
 					action: {
 						label: m.undo(),
-						onClick: () => {
-							undoFollowUp('undoOutcome', u);
+						// Wait for the reload, so the restored customer is back in the list before the page
+						// lets go of the saved card; otherwise the selection jumps to a neighbour.
+						onClick: async () => {
+							await undoFollowUp('undoOutcome', u);
 							onundo?.();
 						}
 					}
 				}
 			);
 			choice = null;
-			onsaved?.({ nextFollowUpId: u?.nextFollowUpId ?? null });
+			onsaved?.({
+				nextFollowUpId: u?.nextFollowUpId ?? null,
+				outcome: picked,
+				nextDate: savedDate ?? null
+			});
 			await update();
 		} else if (result.type === 'failure') {
 			errors = (result.data?.errors as Record<string, string> | undefined) ?? {};
@@ -104,29 +120,33 @@
 	class="flex flex-col gap-2 border-t border-rule px-5 py-4"
 >
 	<input type="hidden" name="followUpId" value={item.followUpId} />
-	<h3 class="text-ui font-semibold text-foreground">{m.today_outcome_choice()}</h3>
-
-	<div class="grid grid-cols-2 gap-2">
-		<!-- eslint-disable svelte/no-navigation-without-resolve -->
-		<a
-			href={resolve('/(app)/orders/new') + `?customer=${item.customer.id}`}
-			class={cn(cellClass, 'text-status-done')}>{m.card_outcome_ordered()}</a
-		>
-		<!-- eslint-enable svelte/no-navigation-without-resolve -->
-		{#each OPTIONS as o (o)}
-			<label
-				inert={saved}
-				class={cn(
-					cellClass,
-					choice === o && 'border-[1.5px] border-primary bg-accent text-primary-text'
-				)}
+	<fieldset class="flex flex-col gap-2">
+		<legend class="mb-2 text-ui font-semibold text-foreground">{m.today_outcome_choice()}</legend>
+		<div class="grid grid-cols-2 gap-2">
+			<!-- eslint-disable svelte/no-navigation-without-resolve -->
+			<a
+				href={resolve('/(app)/orders/new') + `?customer=${item.customer.id}&from=queue`}
+				class={cellClass}
+				>{m.card_outcome_ordered()}<ArrowUpRightIcon
+					class="size-3.5 text-muted-foreground"
+					aria-hidden="true"
+				/></a
 			>
-				<input type="radio" name="outcome" value={o} bind:group={choice} class="sr-only" />
-				{outcomeLabel(o)}
-			</label>
-		{/each}
-	</div>
-	<FieldError message={errors.outcome} />
+			<!-- eslint-enable svelte/no-navigation-without-resolve -->
+			{#each OPTIONS as o (o)}
+				<label
+					class={cn(
+						cellClass,
+						choice === o && 'border-[1.5px] border-primary bg-accent text-primary-text'
+					)}
+				>
+					<input type="radio" name="outcome" value={o} bind:group={choice} class="sr-only" />
+					{outcomeLabel(o)}
+				</label>
+			{/each}
+		</div>
+	</fieldset>
+	<FieldError message={fieldError('outcome', errors.outcome)} />
 
 	{#if choice}
 		{@const hint = hintFor(choice)}
@@ -155,16 +175,16 @@
 							type="button"
 							size="sm"
 							variant={nextDate === target ? 'default' : 'secondary'}
-							class="h-[36px] rounded-lg px-[14px]"
+							class="h-11 rounded-lg px-[14px] desk:h-9"
 							aria-pressed={nextDate === target}
 							onclick={() => (nextDate = target)}
 						>
-							{m.today_plus_days({ count: n })}
+							{n === 1 ? m.snooze_tomorrow() : m.today_plus_days({ count: n })}
 						</Button>
 					{/each}
 				</div>
 				<div
-					class="relative flex h-[40px] items-center gap-2 rounded-lg border border-input bg-card px-3 text-sm"
+					class="relative flex h-11 items-center gap-2 rounded-lg border border-input bg-card px-3 text-sm has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50 desk:h-10"
 				>
 					<CalendarIcon class="size-4 text-muted-foreground" aria-hidden="true" />
 					<span class="num">{nextDate ? formatDate(nextDate, locale, 'long') : ''}</span>
@@ -178,7 +198,7 @@
 						class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
 					/>
 				</div>
-				<FieldError message={errors.nextDate} />
+				<FieldError message={fieldError('nextDate', errors.nextDate)} />
 			</div>
 		{/if}
 

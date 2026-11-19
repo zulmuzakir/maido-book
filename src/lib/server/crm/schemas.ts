@@ -68,6 +68,16 @@ export const undoSnoozeSchema = v.object({
 	dueDate: isoDate,
 	previousDueDate: isoDate
 });
+export const undoSentSchema = v.object({
+	followUpId: str(100),
+	activityId: str(100),
+	previousContactedAt: v.pipe(
+		v.optional(v.string(), ''),
+		v.transform((s) => (s === '' ? null : Number(s))),
+		v.nullable(v.pipe(v.number(), v.integer(), v.minValue(0)))
+	)
+});
+export const undoResendSchema = v.object({ followUpId: str(100), activityId: str(100) });
 export const scheduleSchema = v.object({ customerId: str(100), dueDate: isoDate });
 export const sentSchema = v.object({ followUpId: str(100), body: optStr(1000) });
 export const resendSchema = v.object({ followUpId: str(100), body });

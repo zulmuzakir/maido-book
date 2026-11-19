@@ -18,6 +18,7 @@
 		leadDays,
 		size = 'sm',
 		label: showLabel = true,
+		decorative = false,
 		class: className
 	}: {
 		orderDate: string;
@@ -27,6 +28,8 @@
 		leadDays: number;
 		size?: 'sm' | 'lg';
 		label?: boolean;
+		/** Hides the track from assistive tech when the same state is already written next to it. */
+		decorative?: boolean;
 		class?: string;
 	} = $props();
 
@@ -63,7 +66,12 @@
 </script>
 
 {#snippet track(height: string)}
-	<div class={cn('relative w-full', height)} role="img" aria-label={text}>
+	<div
+		class={cn('relative w-full', height)}
+		role={decorative ? undefined : 'img'}
+		aria-label={decorative ? undefined : text}
+		aria-hidden={decorative || undefined}
+	>
 		<div class="absolute inset-0 flex overflow-hidden rounded-[2px]">
 			<div class="h-full bg-band-ok" style:width={okEnd}></div>
 			<div class="h-full bg-band-soon" style:width="calc({soonEnd} - {okEnd})"></div>

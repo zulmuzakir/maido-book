@@ -25,7 +25,8 @@
 
 	const row = $derived(
 		cn(
-			'flex h-9 w-full items-center gap-2 border-b border-row-rule bg-subtle px-5 text-left',
+			'flex w-full items-center gap-2 border-b border-row-rule bg-subtle px-5 text-left',
+			ontoggle ? 'h-11 desk:h-9' : 'h-9',
 			className
 		)
 	);

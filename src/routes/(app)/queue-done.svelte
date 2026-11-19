@@ -6,11 +6,11 @@
 	import type { PageData } from './$types';
 
 	let {
-		sentToday,
+		doneToday,
 		waitingCount,
 		next
 	}: {
-		sentToday: number;
+		doneToday: number;
 		waitingCount: number;
 		next: PageData['upcoming'][number] | undefined;
 	} = $props();
@@ -23,10 +23,13 @@
 		<CircleCheckIcon class="size-6 text-status-done" aria-hidden="true" />
 	</span>
 	<div class="space-y-1">
-		<p class="text-lg font-bold tracking-[-0.02em] text-foreground">{m.today_all_clear()}</p>
-		{#if sentToday > 0}
+		<p class="text-lg font-bold tracking-[-0.02em] text-foreground">
+			<!-- Nothing was due and nothing was done: "everyone contacted" would not be true. -->
+			{doneToday > 0 ? m.today_all_clear() : m.queue_nothing_due()}
+		</p>
+		{#if doneToday > 0}
 			<p class="text-sm text-muted-foreground num">
-				{m.today_done_sent({ count: sentToday })}
+				{m.today_done_sent({ count: doneToday })}
 			</p>
 		{/if}
 		{#if waitingCount > 0}
@@ -35,7 +38,7 @@
 			</p>
 		{/if}
 		{#if next}
-			<p class="text-sm text-muted-foreground">
+			<p class="text-sm text-muted-foreground num">
 				{m.today_next_up({
 					name: next.customer.name,
 					due: formatDate(next.dueDate, locale, 'short')

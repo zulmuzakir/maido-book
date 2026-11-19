@@ -3,7 +3,7 @@
 
 	export type SectionId = 'overdue' | 'today' | 'waiting' | 'winback' | 'upcoming';
 	export type Section = { id: SectionId; title: string; items: QueueRowItem[]; hint?: string };
-	export type Tab = 'all' | SectionId;
+	export type Tab = 'all' | 'todo' | 'waiting' | 'later';
 </script>
 
 <script lang="ts">
@@ -38,13 +38,6 @@
 </script>
 
 <section aria-labelledby="q-{section.id}">
-	{#if section.hint && open}
-		<p
-			class="border-b border-row-rule bg-subtle px-5 py-3.5 text-ui leading-[19px] text-subtle-foreground"
-		>
-			{section.hint}
-		</p>
-	{/if}
 	<GroupHeader
 		id="q-{section.id}"
 		label={section.title}
@@ -53,6 +46,13 @@
 		{ontoggle}
 	/>
 	{#if open}
+		{#if section.hint}
+			<p
+				class="border-b border-row-rule bg-subtle px-5 py-3.5 text-ui leading-[19px] text-subtle-foreground"
+			>
+				{section.hint}
+			</p>
+		{/if}
 		{#each rows as item (item.followUpId)}
 			<QueueRow
 				{item}
@@ -65,7 +65,7 @@
 		{#if hiddenCount > 0}
 			<button
 				type="button"
-				class="flex h-10 w-full items-center pr-5 pl-[70px] text-left text-ui font-semibold text-primary-text"
+				class="flex h-11 w-full items-center pr-5 pl-[70px] text-left text-ui font-semibold text-primary-text num desk:h-10"
 				onclick={onshowmore}
 			>
 				{m.queue_show_more({ count: hiddenCount })}

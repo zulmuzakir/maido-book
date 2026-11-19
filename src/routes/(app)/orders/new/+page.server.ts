@@ -12,6 +12,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const [options, rules] = await Promise.all([orderFormOptions(locals.db), getRules(locals.db)]);
 	const requested = url.searchParams.get('customer');
 	const preselected = options.customers.find((c) => c.id === requested) ?? null;
+	// Opened from the queue's "Sudah order": saving and going back both return to the queue.
+	const fromQueue = url.searchParams.get('from') === 'queue';
 
 	return {
 		customers: options.customers,
@@ -20,6 +22,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		today,
 		maxDate: maxOrderDate(today),
 		preselected,
+		fromQueue,
 		title: m.new_order()
 	};
 };
@@ -38,6 +41,7 @@ export const actions: Actions = {
 		}
 
 		await createOrder(locals.db, parsed.data, locals.user!.id);
+		if (formData.get('from') === 'queue') redirect(303, '/?toast=order_saved');
 		redirect(303, `/customers/${parsed.data.customerId}?toast=order_saved`);
 	}
 };

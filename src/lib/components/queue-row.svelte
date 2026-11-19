@@ -2,9 +2,12 @@
 	import { enhance } from '$app/forms';
 	import PersonSummary from '#lib/components/person-summary.svelte';
 	import StockText from '#lib/components/stock-text.svelte';
+	import SupplyTrack from '#lib/components/supply-track.svelte';
 	import WaIconButton from '#lib/components/wa-icon-button.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { FormAction } from '#lib/form-action.svelte.ts';
+	import { sentToast } from '#lib/follow-up-undo.ts';
+	import { firstName } from '#lib/format.ts';
 	import { formatDate } from '#lib/domain/dates.ts';
 	import type { RuleSettings } from '#lib/domain/types.ts';
 	import { dueState, type QueueRowItem } from '#lib/queue.ts';
@@ -28,7 +31,18 @@
 
 	const due = $derived(dueState(item, today, rules));
 	const locale = $derived(getLocale());
-	const sent = new FormAction();
+	// Supply only matters while the customer is still on their last order: a sent message is waiting
+	// on a reply, and a win-back ran out long ago.
+	const track = $derived(
+		item.lastOrder && due.bucket !== 'waiting' && item.kind !== 'winback' ? item.lastOrder : null
+	);
+	// The row's WhatsApp tap logs the send at once, so it always confirms and can be taken back.
+	const sent = new FormAction(async ({ result, update }) => {
+		if (result.type === 'success' && result.data?.action === 'sent') {
+			sentToast(firstName(item.customer.name), result.data.undo);
+		}
+		await update();
+	});
 	let form: HTMLFormElement | undefined = $state();
 
 	/** Opens WhatsApp and records the send. The waiting button opens the window itself. */
@@ -68,17 +82,37 @@
 					<StockText lastOrder={null} {today} leadDays={rules.leadDays} />
 				{/if}
 			</span>
+			{#if track}
+				<!-- The stock text above already names the state; the track is for the eye only. -->
+				<SupplyTrack
+					orderDate={track.orderDate}
+					daysSupply={track.daysSupply}
+					{today}
+					leadDays={rules.leadDays}
+					label={false}
+					class="mt-1 max-w-40 md:hidden"
+					decorative
+				/>
+			{/if}
 		</PersonSummary>
-		{#if item.lastOrder && due.bucket !== 'waiting' && item.kind !== 'winback'}
-			<span
-				class="hidden w-[150px] shrink-0 truncate text-right text-ui text-muted-foreground num md:block"
-			>
-				{m.queue_row_dose({
-					qty: item.lastOrder.qty,
-					unit: item.lastOrder.unitLabel,
-					dose: item.customer.dosePerDay
-				})}
-			</span>
+		{#if track}
+			<div class="hidden w-[150px] shrink-0 flex-col gap-1.5 md:flex">
+				<SupplyTrack
+					orderDate={track.orderDate}
+					daysSupply={track.daysSupply}
+					{today}
+					leadDays={rules.leadDays}
+					label={false}
+					decorative
+				/>
+				<span class="truncate text-right text-ui text-muted-foreground num">
+					{m.queue_row_dose({
+						qty: track.qty,
+						unit: track.unitLabel,
+						dose: item.customer.dosePerDay
+					})}
+				</span>
+			</div>
 		{/if}
 	</button>
 
@@ -89,7 +123,7 @@
 				type="button"
 				variant="outline"
 				size="sm"
-				class="h-8 px-3 text-ui font-semibold text-foreground"
+				class="h-11 px-3 text-ui font-semibold text-foreground desk:h-8"
 				disabled={sent.pending}
 				onclick={sendNow}
 			>
@@ -98,7 +132,8 @@
 		{:else}
 			<WaIconButton
 				href={item.waUrl}
-				label={m.queue_send_to({ name: item.customer.name })}
+				label={m.queue_send_log_to({ name: item.customer.name })}
+				disabled={sent.pending}
 				onclick={() => form?.requestSubmit()}
 			/>
 		{/if}

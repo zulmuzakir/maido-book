@@ -198,7 +198,7 @@
 								id={`product-${p.id}-active`}
 								name="active"
 								checked={p.active}
-								class="w-10 data-checked:bg-whatsapp dark:[&>[data-slot=switch-thumb]]:bg-card [&[data-checked]>[data-slot=switch-thumb]]:translate-x-4"
+								class="w-10 data-checked:bg-primary dark:[&>[data-slot=switch-thumb]]:bg-card [&[data-checked]>[data-slot=switch-thumb]]:translate-x-4"
 							/>
 						</div>
 						<FieldError message={errs.active} />

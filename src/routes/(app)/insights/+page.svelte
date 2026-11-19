@@ -60,7 +60,7 @@
 		'not_interested'
 	];
 	const outcomeBar: Record<FollowUpOutcome, string> = {
-		ordered: 'bg-whatsapp',
+		ordered: 'bg-status-done',
 		replied: 'bg-chart-2',
 		interested: 'bg-chart-1',
 		no_reply: 'bg-chart-4',

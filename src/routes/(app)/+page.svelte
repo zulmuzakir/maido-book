@@ -2,9 +2,9 @@
 	import type { PageProps } from './$types';
 	import QueueDone from './queue-done.svelte';
 	import QueueHandled from './queue-handled.svelte';
-	import QueueDaySummary from './queue-day-summary.svelte';
 	import QueueProgress from './queue-progress.svelte';
 	import QueueSection, { type Section, type SectionId, type Tab } from './queue-section.svelte';
+	import { untrack } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { resolve } from '$app/paths';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
@@ -12,6 +12,9 @@
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import XIcon from '@lucide/svelte/icons/x';
 	import UsersIcon from '@lucide/svelte/icons/users';
+	import InboxIcon from '@lucide/svelte/icons/inbox';
+	import UploadIcon from '@lucide/svelte/icons/upload';
+	import EmptyState from '#lib/components/empty-state.svelte';
 	import FilterTabs from '#lib/components/filter-tabs.svelte';
 	import FollowUpCard from '#lib/components/follow-up-card.svelte';
 	import HeaderSearch from '#lib/components/header-search.svelte';
@@ -19,7 +22,10 @@
 	import * as Drawer from '#lib/components/ui/drawer/index.js';
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
 	import { searchDigits } from '#lib/domain/phone.ts';
-	import type { QueueRowItem } from '#lib/queue.ts';
+	import type { SavedOutcome } from '#lib/components/follow-up-outcome.svelte';
+	import { formatDate } from '#lib/domain/dates.ts';
+	import { getLocale } from '#lib/paraglide/runtime.js';
+	import { dueState, type QueueRowItem } from '#lib/queue.ts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { cn } from '#lib/utils.js';
 
@@ -30,25 +36,35 @@
 
 	// Win-back customers lapsed long ago; they are worth a message but must not bury today's work.
 	const isWinback = (i: QueueRowItem) => i.kind === 'winback';
-	const overdue = $derived(data.overdue.filter((i) => !isWinback(i)));
+	// A message with no reply after the retry window is work again: it joins the overdue list
+	// instead of hiding under "Menunggu balasan" while the day reads as done.
+	const isStale = (i: QueueRowItem) => dueState(i, data.today, data.rules).stale;
+	const overdue = $derived([
+		...data.overdue.filter((i) => !isWinback(i)),
+		...data.waiting.filter(isStale)
+	]);
 	const dueToday = $derived(data.dueToday.filter((i) => !isWinback(i)));
+	const waiting = $derived(data.waiting.filter((i) => !isStale(i)));
 	const winback = $derived([...data.overdue, ...data.dueToday].filter(isWinback));
 	const workCount = $derived(overdue.length + dueToday.length);
-	// The day is done when nobody is left to contact, even if replies are still pending.
-	const dayDone = $derived(workCount === 0);
+	// Before the first import or customer there is no day to finish: the queue shows how to start.
+	const firstRun = $derived(!data.hasCustomers);
+	// The day is done when nobody is left to contact, even if fresh replies are still pending.
+	const dayDone = $derived(!firstRun && workCount === 0);
 
 	let tab = $state<Tab>('all');
+	// Tabs follow the job, not the five sections: who to contact now, who owes a reply, and later.
+	const TAB_SECTIONS: Record<Exclude<Tab, 'all'>, SectionId[]> = {
+		todo: ['overdue', 'today'],
+		waiting: ['waiting'],
+		later: ['winback', 'upcoming']
+	};
 	const tabItems = $derived([
-		{
-			key: 'all',
-			label: m.customers_filter_all(),
-			count: workCount + data.waiting.length + winback.length
-		},
-		{ key: 'overdue', label: m.bucket_overdue(), count: overdue.length },
-		{ key: 'today', label: m.bucket_today(), count: dueToday.length },
-		{ key: 'waiting', label: m.bucket_waiting(), count: data.waiting.length },
-		{ key: 'winback', label: m.bucket_winback(), count: winback.length },
-		{ key: 'upcoming', label: m.bucket_upcoming(), count: data.upcoming.length }
+		// "Semua" lists every section, the week ahead included, so it carries no count of its own.
+		{ key: 'all', label: m.customers_filter_all() },
+		{ key: 'todo', label: m.queue_tab_todo(), count: workCount },
+		{ key: 'waiting', label: m.queue_tab_waiting(), count: waiting.length },
+		{ key: 'later', label: m.queue_tab_later(), count: winback.length + data.upcoming.length }
 	]);
 
 	let query = $state('');
@@ -65,7 +81,7 @@
 			[
 				{ id: 'overdue', title: m.bucket_overdue(), items: overdue },
 				{ id: 'today', title: m.bucket_today(), items: dueToday },
-				{ id: 'waiting', title: m.bucket_waiting(), items: data.waiting },
+				{ id: 'waiting', title: m.bucket_waiting(), items: waiting },
 				{
 					id: 'winback',
 					title: m.bucket_winback(),
@@ -81,7 +97,11 @@
 			.map((s) => ({ ...s, items: s.items.filter(matches) }))
 			.filter((s) => s.items.length > 0)
 	);
-	const shown = $derived(tab === 'all' ? sections : sections.filter((s) => s.id === tab));
+	const shown = $derived.by(() => {
+		if (tab === 'all') return sections;
+		const ids = TAB_SECTIONS[tab];
+		return sections.filter((s) => ids.includes(s.id));
+	});
 
 	// Win-back and the week ahead stay folded while there is today's work to do. Folding only
 	// applies to the grouped "all" view; a single tab always shows its whole list.
@@ -89,30 +109,47 @@
 	const isFolded = (id: SectionId) =>
 		tab === 'all' && (folded[id] ?? ((id === 'winback' || id === 'upcoming') && !dayDone));
 
+	// Overdue and today are the work and always show in full; only the lists that wait get capped.
 	const COLLAPSED_ROWS = 3;
+	const collapses = (s: Section) =>
+		tab === 'all' && !expanded[s.id] && !TAB_SECTIONS.todo.includes(s.id);
 	let expanded = $state<Record<string, boolean>>({});
-	const visibleRows = (s: Section) =>
-		tab !== 'all' || expanded[s.id] ? s.items : s.items.slice(0, COLLAPSED_ROWS);
+	const visibleRows = (s: Section) => (collapses(s) ? s.items.slice(0, COLLAPSED_ROWS) : s.items);
 	const hiddenRows = (s: Section) =>
-		tab === 'all' && !expanded[s.id] ? Math.max(0, s.items.length - COLLAPSED_ROWS) : 0;
+		collapses(s) ? Math.max(0, s.items.length - COLLAPSED_ROWS) : 0;
 
-	const total = $derived(data.sentToday + workCount);
+	// Done counts every customer who left today's work, by message, outcome, snooze or order.
+	const total = $derived(data.doneToday + workCount);
 
-	// Selection follows the visible order. When the selected follow-up is closed, or snoozed out of
-	// the open sections, it leaves the list and the card moves on to whoever now sits in its place.
-	const flat = $derived(sections.filter((s) => !isFolded(s.id)).flatMap(visibleRows));
+	// Selection follows the list order, including rows behind "Lihat N lainnya": stepping must never
+	// skip a customer. When the selected follow-up is closed, or snoozed out of the open sections, it
+	// leaves the list and the card moves on to whoever now sits in its place.
+	const flat = $derived(shown.filter((s) => !isFolded(s.id)).flatMap((s) => s.items));
 	const pool = $derived(allSections.filter((s) => !isFolded(s.id)).flatMap((s) => s.items));
 	let selectedId = $state<string | null>(null);
-	let saved = $state<{ item: QueueRowItem; nextFollowUpId: string | null } | null>(null);
+	let saved = $state<(SavedOutcome & { item: QueueRowItem }) | null>(null);
 	let lastIndex = 0;
+	// A send moves the customer to the end of "Menunggu balasan", far from where the agent was
+	// working. Stepping then continues from the neighbours they had in the list when it was sent.
+	let sentFrom = $state<{ id: string; prev: string | null; next: string | null } | null>(null);
 	let sheetOpen = $state(false);
 	const selected = $derived(pool.find((i) => i.followUpId === selectedId) ?? null);
 	const position = $derived(selected ? flat.indexOf(selected) : -1);
 	// The customer whose outcome was just saved stays open ("Hasil tersimpan") until the user moves on.
 	const savedHere = $derived(saved && saved.item.followUpId === selectedId ? saved : null);
 	const displayed = $derived(selected ?? savedHere?.item ?? null);
-	const canPrev = $derived(position >= 0 ? position > 0 : lastIndex > 0);
-	const canNext = $derived(position >= 0 ? position < flat.length - 1 : lastIndex < flat.length);
+	const sentHere = $derived(sentFrom && sentFrom.id === selectedId ? sentFrom : null);
+	const inFlat = (id: string | null) => !!id && flat.some((i) => i.followUpId === id);
+	const canPrev = $derived(
+		sentHere ? inFlat(sentHere.prev) : position >= 0 ? position > 0 : lastIndex > 0
+	);
+	const canNext = $derived(
+		sentHere
+			? inFlat(sentHere.next)
+			: position >= 0
+				? position < flat.length - 1
+				: lastIndex < flat.length
+	);
 	// "Terlambat · 3 dari 13": the place within the list the user is looking at, so the number does
 	// not jump when a folded section is opened.
 	const place = $derived.by(() => {
@@ -130,28 +167,55 @@
 			if (savedHere) return;
 			// A finished day has no next follow-up to select; the summary aside takes its place.
 			const next = dayDone ? undefined : flat[Math.min(lastIndex, flat.length - 1)];
+			if (next) untrack(() => reveal(next));
 			selectedId = next?.followUpId ?? null;
 			if (!next) sheetOpen = false;
-		} else if (!selectedId && wide.current && tab === 'all' && !dayDone && flat.length > 0) {
+		} else if (!selectedId && wide.current && (tab !== 'all' || !dayDone) && flat.length > 0) {
 			selectedId = flat[0].followUpId;
 		}
 	});
 
+	/** Unfolds the rest of a section when the selection lands on one of its hidden rows. */
+	function reveal(item: QueueRowItem) {
+		const section = sections.find((s) => s.items.includes(item));
+		if (section && hiddenRows(section) > 0 && section.items.indexOf(item) >= COLLAPSED_ROWS) {
+			expanded = { ...expanded, [section.id]: true };
+		}
+	}
+
 	function select(item: QueueRowItem) {
+		reveal(item);
 		saved = null;
+		sentFrom = null;
 		selectedId = item.followUpId;
 		lastIndex = Math.max(0, flat.indexOf(item));
 		if (!wide.current) sheetOpen = true;
 	}
 
 	function step(by: 1 | -1) {
+		if (sentHere) {
+			const id = by > 0 ? sentHere.next : sentHere.prev;
+			const target = flat.find((i) => i.followUpId === id);
+			if (target) select(target);
+			return;
+		}
 		// Once the saved follow-up has left the list, step from the slot it occupied.
 		const next = position >= 0 ? flat[position + by] : flat[lastIndex + (by > 0 ? 0 : -1)];
 		if (next) select(next);
 	}
 
-	function outcomeSaved(result: { nextFollowUpId: string | null }) {
-		if (displayed) saved = { item: displayed, nextFollowUpId: result.nextFollowUpId };
+	/** Called before the reload that moves the customer to "Menunggu balasan". */
+	function cardSent() {
+		if (!selectedId || position < 0) return;
+		sentFrom = {
+			id: selectedId,
+			prev: flat[position - 1]?.followUpId ?? null,
+			next: flat[position + 1]?.followUpId ?? null
+		};
+	}
+
+	function outcomeSaved(result: SavedOutcome) {
+		if (displayed) saved = { ...result, item: displayed };
 	}
 
 	function clearSaved() {
@@ -163,6 +227,8 @@
 		if (e.metaKey || e.ctrlKey || e.altKey || !wide.current) return;
 		const t = e.target;
 		if (t instanceof HTMLElement && t.closest('input, textarea, select, [contenteditable]')) return;
+		// A dialog on top owns the keyboard; the queue underneath must not move.
+		if (document.querySelector('[role="alertdialog"], [role="dialog"]')) return;
 		if (e.key === 'j') step(1);
 		else if (e.key === 'k') step(-1);
 	}
@@ -171,7 +237,8 @@
 <svelte:window {onkeydown} />
 
 {#snippet meta()}
-	<span class="num">{m.today_summary({ count: workCount, waiting: data.waiting.length })}</span>
+	<!-- The counts live in the progress bar and the tabs; the header only dates the day. -->
+	<time class="num" datetime={data.today}>{formatDate(data.today, getLocale(), 'long')}</time>
 {/snippet}
 
 {#snippet search()}
@@ -191,10 +258,11 @@
 {/snippet}
 
 {#snippet stepper()}
-	{#if position >= 0 || savedHere}
+	{#if position >= 0 || savedHere || sentHere}
 		<div class="flex items-center gap-1">
-			{#if position >= 0}
-				<span class="mr-1 text-xs text-muted-foreground num">
+			<!-- After a send the customer sits in "Menunggu balasan"; its place there is not the agent's. -->
+			{#if position >= 0 && !sentHere}
+				<span class="mr-1 text-ui text-muted-foreground num">
 					{m.queue_position(place)}
 				</span>
 			{/if}
@@ -202,6 +270,8 @@
 				variant="ghost"
 				size="icon"
 				aria-label={m.queue_prev()}
+				aria-keyshortcuts={wide.current ? 'k' : undefined}
+				title={wide.current ? `${m.queue_prev()} (K)` : undefined}
 				disabled={!canPrev}
 				onclick={() => step(-1)}
 			>
@@ -211,6 +281,8 @@
 				variant="ghost"
 				size="icon"
 				aria-label={m.queue_next()}
+				aria-keyshortcuts={wide.current ? 'j' : undefined}
+				title={wide.current ? `${m.queue_next()} (J)` : undefined}
 				disabled={!canNext}
 				onclick={() => step(1)}
 			>
@@ -220,38 +292,59 @@
 	{/if}
 {/snippet}
 
-<div class="lg:grid lg:h-dvh lg:grid-cols-[minmax(0,1fr)_400px]">
+<div
+	class={cn('lg:grid lg:h-dvh', firstRun ? 'lg:grid-cols-1' : 'lg:grid-cols-[minmax(0,1fr)_400px]')}
+>
 	<div class="flex min-h-dvh flex-col bg-card lg:min-h-0 lg:overflow-y-auto">
 		<PageHeader title={m.queue_title()} metaInline="md" {meta} {search} {actions} />
 
-		<div
-			class="flex flex-col px-4 pb-3 md:h-11 md:flex-row md:items-center md:gap-5 md:border-b md:border-rule md:px-5 md:pb-0"
-		>
-			<div class="min-w-0 flex-1">
-				<FilterTabs
-					items={tabItems}
-					active={tab}
-					label={m.queue_title()}
-					onselect={(key) => {
-						tab = key as Tab;
-						saved = null;
-						selectedId = null;
-					}}
-				/>
-			</div>
-			{#if total > 0}
-				<div class="order-first md:order-last">
-					<QueueProgress sent={data.sentToday} {total} />
+		{#if !firstRun}
+			<div
+				class="flex flex-col px-4 pb-3 md:h-11 md:flex-row md:items-center md:gap-5 md:border-b md:border-rule md:px-5 md:pb-0"
+			>
+				<div class="min-w-0 flex-1">
+					<FilterTabs
+						items={tabItems}
+						active={tab}
+						label={m.queue_title()}
+						onselect={(key) => {
+							tab = key as Tab;
+							saved = null;
+							selectedId = null;
+						}}
+					/>
 				</div>
-			{/if}
-		</div>
+				{#if total > 0}
+					<div class="order-first md:order-last">
+						<QueueProgress sent={data.doneToday} {total} />
+					</div>
+				{/if}
+			</div>
+		{/if}
 
-		{#if dayDone && !query}
-			<QueueDone
-				sentToday={data.sentToday}
-				waitingCount={data.waiting.length}
-				next={data.upcoming[0]}
-			/>
+		{#if firstRun}
+			<EmptyState
+				icon={InboxIcon}
+				title={m.queue_first_run_title()}
+				description={m.queue_first_run_description()}
+				class="my-auto"
+			>
+				{#snippet actions()}
+					<Button href={resolve('/(app)/import')} class="text-ui desk:h-10">
+						<UploadIcon class="size-4" aria-hidden="true" />
+						{m.customers_import()}
+					</Button>
+					<Button variant="outline" href={resolve('/(app)/orders/new')} class="text-ui desk:h-10">
+						<PlusIcon class="size-4" aria-hidden="true" />
+						{m.new_order()}
+					</Button>
+				{/snippet}
+			</EmptyState>
+		{/if}
+
+		<!-- On wide screens the aside carries the day summary, so the list does not repeat it. -->
+		{#if dayDone && !query && !wide.current}
+			<QueueDone doneToday={data.doneToday} waitingCount={waiting.length} next={data.upcoming[0]} />
 		{/if}
 
 		{#if shown.length === 0 && (query || tab !== 'all')}
@@ -286,7 +379,7 @@
 		{/if}
 	</div>
 
-	{#if wide.current}
+	{#if wide.current && !firstRun}
 		<aside
 			class="flex min-h-0 flex-col overflow-hidden border-l border-rule bg-card"
 			aria-label={m.queue_card_label()}
@@ -297,15 +390,19 @@
 						item={displayed}
 						today={data.today}
 						rules={data.rules}
+						{stepper}
 						saved={savedHere}
 						onsaved={outcomeSaved}
 						onundo={clearSaved}
+						onnext={() => step(1)}
+						hasNext={canNext}
+						onsent={cardSent}
 					/>
 				</div>
 			{:else if dayDone && !query && tab === 'all'}
-				<QueueDaySummary
-					sentToday={data.sentToday}
-					waitingCount={data.waiting.length}
+				<QueueDone
+					doneToday={data.doneToday}
+					waitingCount={waiting.length}
 					next={data.upcoming[0]}
 				/>
 			{:else}
@@ -350,6 +447,9 @@
 						saved={savedHere}
 						onsaved={outcomeSaved}
 						onundo={clearSaved}
+						onnext={() => step(1)}
+						hasNext={canNext}
+						onsent={cardSent}
 					/>
 				{/if}
 			</div>

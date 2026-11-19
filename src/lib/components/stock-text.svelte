@@ -25,7 +25,7 @@
 		if (daysLeft === 0) return { text: m.stock_out_today(), tone: 'text-status-overdue' };
 		return {
 			text: m.stock_days_left({ count: daysLeft }),
-			tone: daysLeft <= leadDays ? 'text-status-today' : 'text-status-done'
+			tone: daysLeft <= leadDays ? 'text-status-today' : 'text-muted-foreground'
 		};
 	});
 </script>

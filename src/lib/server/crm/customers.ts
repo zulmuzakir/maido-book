@@ -12,6 +12,12 @@ import { searchDigits } from '#lib/domain/phone.ts';
 import type { CustomerStatus, FollowUpKind } from '#lib/domain/types.ts';
 import { runBatch } from './batch.ts';
 
+/** False only before the first import or customer: the queue shows how to get started instead. */
+export async function hasCustomers(db: Db): Promise<boolean> {
+	const row = await db.select({ id: customer.id }).from(customer).limit(1).get();
+	return !!row;
+}
+
 export interface OpenFollowUp {
 	id: string;
 	kind: FollowUpKind;

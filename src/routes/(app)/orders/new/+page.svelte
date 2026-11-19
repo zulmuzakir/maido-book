@@ -42,9 +42,11 @@
 	const save = new FormAction(({ update }) => update({ reset: false }));
 
 	const backHref = $derived(
-		data.preselected
-			? resolve('/(app)/customers/[id]', { id: data.preselected.id })
-			: resolve('/(app)/orders')
+		data.fromQueue
+			? resolve('/(app)')
+			: data.preselected
+				? resolve('/(app)/customers/[id]', { id: data.preselected.id })
+				: resolve('/(app)/orders')
 	);
 
 	// One-time prefill from the failed POST or the ?customer= preselection; later edits are the user's.
@@ -163,6 +165,7 @@
 								message={errors.customerId ? fieldError('customerId', errors.customerId) : null}
 							/>
 							<input type="hidden" name="customerId" value={customerId} />
+							{#if data.fromQueue}<input type="hidden" name="from" value="queue" />{/if}
 						</div>
 
 						{#if data.products.length > 1}

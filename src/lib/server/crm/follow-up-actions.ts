@@ -9,6 +9,8 @@ import {
 	schedule,
 	snooze,
 	undoOutcome,
+	undoSent,
+	undoResend,
 	undoSnooze
 } from './follow-ups.ts';
 import {
@@ -19,27 +21,34 @@ import {
 	saveTemplateSchema,
 	snoozeSchema,
 	undoOutcomeSchema,
+	undoSentSchema,
+	undoResendSchema,
 	undoSnoozeSchema
 } from './schemas.ts';
 
 const sent: Action = async ({ request, locals }) => {
 	const parsed = parseForm(await request.formData(), sentSchema);
 	if (!parsed.ok) return fail(400, { action: 'sent', errors: parsed.errors });
-	await markSent(
+	const undo = await markSent(
 		locals.db,
 		parsed.data.followUpId,
 		locals.user!.id,
 		locals.user!.name,
 		parsed.data.body ?? null
 	);
-	return { ok: true, action: 'sent' };
+	return { ok: true, action: 'sent', undo };
 };
 
 const resend: Action = async ({ request, locals }) => {
 	const parsed = parseForm(await request.formData(), resendSchema);
 	if (!parsed.ok) return fail(400, { action: 'resend', errors: parsed.errors });
-	await logResend(locals.db, parsed.data.followUpId, locals.user!.id, parsed.data.body);
-	return { ok: true, action: 'resend' };
+	const undo = await logResend(
+		locals.db,
+		parsed.data.followUpId,
+		locals.user!.id,
+		parsed.data.body
+	);
+	return { ok: true, action: 'resend', undo };
 };
 
 const outcome: Action = async ({ request, locals }) => {
@@ -81,6 +90,22 @@ const undoSnoozeAction: Action = async ({ request, locals }) => {
 	return { ok: true, action: 'undoSnooze' };
 };
 
+const undoSentAction: Action = async ({ request, locals }) => {
+	const parsed = parseForm(await request.formData(), undoSentSchema);
+	if (!parsed.ok) return fail(400, { action: 'undoSent', errors: parsed.errors });
+	const res = await undoSent(locals.db, parsed.data);
+	if (!res.ok) return fail(409, { action: 'undoSent', errors: {} });
+	return { ok: true, action: 'undoSent' };
+};
+
+const undoResendAction: Action = async ({ request, locals }) => {
+	const parsed = parseForm(await request.formData(), undoResendSchema);
+	if (!parsed.ok) return fail(400, { action: 'undoResend', errors: parsed.errors });
+	const res = await undoResend(locals.db, parsed.data);
+	if (!res.ok) return fail(409, { action: 'undoResend', errors: {} });
+	return { ok: true, action: 'undoResend' };
+};
+
 const scheduleAction: Action = async ({ request, locals }) => {
 	const parsed = parseForm(await request.formData(), scheduleSchema);
 	if (!parsed.ok) return fail(400, { action: 'schedule', errors: parsed.errors });
@@ -109,6 +134,8 @@ export const followUpActions = {
 	snooze: snoozeAction,
 	undoOutcome: undoOutcomeAction,
 	undoSnooze: undoSnoozeAction,
+	undoSent: undoSentAction,
+	undoResend: undoResendAction,
 	schedule: scheduleAction,
 	saveTemplate
 };

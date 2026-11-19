@@ -27,7 +27,7 @@
 			);
 		}
 		return cn(
-			'relative inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-ui whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:h-11 md:rounded-none md:px-0 md:py-3 md:focus-visible:ring-0 md:focus-visible:underline',
+			'relative inline-flex h-11 shrink-0 items-center gap-1.5 rounded-md px-3.5 text-ui whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:h-11 md:rounded-none md:px-0 md:py-3 md:focus-visible:ring-0 md:focus-visible:underline',
 			on
 				? 'bg-primary font-semibold text-primary-foreground md:bg-transparent md:text-foreground md:after:absolute md:after:inset-x-0 md:after:bottom-0 md:after:h-0.5 md:after:bg-primary'
 				: 'border border-input font-medium text-foreground md:border-0 md:text-muted-foreground md:hover:text-foreground'

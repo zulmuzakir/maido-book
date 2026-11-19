@@ -8,7 +8,7 @@ web
 
 ## Users
 
-A small Indonesian customer-service (CS) team following up with buyers of a consumable product, mostly over WhatsApp. They work from a daily follow-up queue, on desktop and phone. Access is internal only: Google sign-in limited to the `ALLOWED_EMAILS` allowlist. Owner/manager views of insights are not confirmed.
+A small Indonesian customer-service (CS) team following up with buyers of a consumable product, mostly over WhatsApp. They work from a daily follow-up queue, on desktop and phone. Access is internal only: Google sign-in limited to the `ALLOWED_EMAILS` allowlist. Whether owners or managers also use Insights is undecided.
 
 ## Product Purpose
 
@@ -33,10 +33,15 @@ Run-out prediction plus a WhatsApp-first workflow. The follow-up date is derived
 - Two locales, Indonesian (default) and English, via Paraglide. All UI strings go in `messages/{id,en}.json`.
 - shadcn-svelte components, Tailwind v4, light/dark/system theme.
 - Early stage. Multi-tenant or public use is not planned.
+- Open decision: whether an owner or manager uses Insights to oversee the team, or only the CS team reads it.
+
+## Brand Commitments
+
+The product name is **Maido Book** (confirmed; in `messages/{id,en}.json` as `app_name`). The worker `crm-app` and database `crm-db` keep their old internal names. No logo, voice guide, or other brand assets exist yet.
 
 ## Evidence on Hand
 
-No testimonials, customer logos, benchmarks, or brand assets are in the repo. App name is the placeholder "CRM". Do not fabricate any of these.
+No testimonials, customer logos, benchmarks, or brand assets are in the repo. Do not fabricate any of these.
 
 ## Product Principles
 

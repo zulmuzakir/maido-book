@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, isNotNull, isNull, lte, ne, or, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNotNull, isNull, lt, lte, ne, or, sql } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import type { Db } from '#lib/server/db/index.ts';
 import {
@@ -99,17 +99,27 @@ export async function getQueue(db: Db, today: string): Promise<Record<QueueBucke
 	return out;
 }
 
-/** Follow-ups due today or earlier and not yet sent, without win-backs (they wait in their own fold). */
-export async function queueCount(db: Db, today: string): Promise<number> {
+/**
+ * The queue's "Perlu dihubungi" count: follow-ups due today or earlier and not yet sent (win-backs
+ * wait in their own fold), plus messages left without a reply for `retryDays` calendar days.
+ */
+export async function queueCount(db: Db, today: string, retryDays: number): Promise<number> {
+	// A message sent on or before this Jakarta day has waited `retryDays` days by today.
+	const staleBefore = new Date(Date.parse(addDays(today, 1 - retryDays) + 'T00:00:00+07:00'));
 	const row = await db
 		.select({ n: sql<number>`count(*)` })
 		.from(followUp)
 		.where(
 			and(
 				eq(followUp.status, 'open'),
-				isNull(followUp.contactedAt),
-				lte(followUp.dueDate, today),
-				ne(followUp.kind, 'winback')
+				or(
+					and(
+						isNull(followUp.contactedAt),
+						lte(followUp.dueDate, today),
+						ne(followUp.kind, 'winback')
+					),
+					lt(followUp.contactedAt, staleBefore)
+				)
 			)
 		)
 		.get();
@@ -152,13 +162,22 @@ export async function handledToday(db: Db, today: string): Promise<HandledItem[]
 	}));
 }
 
-/** Number of `wa_sent` activities since Jakarta midnight of `today`. */
-export async function sentTodayCount(db: Db, today: string): Promise<number> {
+/**
+ * Customers who left the day's work since Jakarta midnight of `today`: messaged, given an outcome,
+ * snoozed or ordered. Each counts once, so a resend or a second tap does not move the progress, and
+ * a customer closed without a message still counts as done.
+ */
+export async function doneTodayCount(db: Db, today: string): Promise<number> {
 	const since = new Date(Date.parse(today + 'T00:00:00+07:00'));
 	const row = await db
-		.select({ n: sql<number>`count(*)` })
+		.select({ n: sql<number>`count(distinct ${activity.customerId})` })
 		.from(activity)
-		.where(and(eq(activity.type, 'wa_sent'), gte(activity.createdAt, since)))
+		.where(
+			and(
+				inArray(activity.type, ['wa_sent', 'outcome', 'snooze', 'order']),
+				gte(activity.createdAt, since)
+			)
+		)
 		.get();
 	return row?.n ?? 0;
 }
@@ -242,9 +261,11 @@ export async function markSent(
 		messageContext(db)
 	]);
 	if (!cust) error(404);
+	const activityId = crypto.randomUUID();
 	await runBatch(db, [
 		db.update(followUp).set({ contactedAt: new Date() }).where(eq(followUp.id, fu.id)),
 		db.insert(activity).values({
+			id: activityId,
 			customerId: fu.customerId,
 			type: 'wa_sent',
 			body: body ?? messageFor(ctx, fu, cust, last ?? null, csName),
@@ -252,19 +273,81 @@ export async function markSent(
 			userId
 		})
 	]);
+	const undo: SentUndo = {
+		followUpId: fu.id,
+		activityId,
+		previousContactedAt: fu.contactedAt ? fu.contactedAt.getTime() : null
+	};
+	return undo;
+}
+
+/** What the client sends back to reverse a send that was logged by mistake. */
+export interface SentUndo {
+	followUpId: string;
+	activityId: string;
+	/** Epoch ms of the earlier send when this was a resend; null when it was the first send. */
+	previousContactedAt: number | null;
+}
+
+/** Removes the logged send and puts the follow-up back where it was, if it is still open. */
+export async function undoSent(db: Db, u: SentUndo): Promise<{ ok: boolean }> {
+	const fu = await getOpen(db, u.followUpId);
+	const logged = await db
+		.select({ id: activity.id })
+		.from(activity)
+		.where(and(eq(activity.id, u.activityId), eq(activity.followUpId, fu.id)))
+		.get();
+	if (!logged) return { ok: false };
+	await runBatch(db, [
+		db
+			.update(followUp)
+			.set({ contactedAt: u.previousContactedAt === null ? null : new Date(u.previousContactedAt) })
+			.where(eq(followUp.id, fu.id)),
+		db.delete(activity).where(eq(activity.id, logged.id))
+	]);
+	return { ok: true };
 }
 
 /** Logs a re-sent message for a follow-up already closed, used by the queue's saved state. */
-export async function logResend(db: Db, followUpId: string, userId: string, body: string) {
+export async function logResend(
+	db: Db,
+	followUpId: string,
+	userId: string,
+	body: string
+): Promise<ResendUndo> {
 	const fu = await db.select().from(followUp).where(eq(followUp.id, followUpId)).get();
 	if (!fu) error(404);
+	const activityId = crypto.randomUUID();
 	await db.insert(activity).values({
+		id: activityId,
 		customerId: fu.customerId,
 		type: 'wa_sent',
 		body,
 		followUpId: fu.id,
 		userId
 	});
+	return { followUpId: fu.id, activityId };
+}
+
+/** What the client sends back to take a re-sent message out of the log. */
+export interface ResendUndo {
+	followUpId: string;
+	activityId: string;
+}
+
+/** Removes a logged resend. The follow-up itself is closed, so only the log entry changes. */
+export async function undoResend(db: Db, u: ResendUndo): Promise<{ ok: boolean }> {
+	const removed = await db
+		.delete(activity)
+		.where(
+			and(
+				eq(activity.id, u.activityId),
+				eq(activity.followUpId, u.followUpId),
+				eq(activity.type, 'wa_sent')
+			)
+		)
+		.returning({ id: activity.id });
+	return { ok: removed.length > 0 };
 }
 
 /** What the client sends back to reverse a just-saved outcome. */
