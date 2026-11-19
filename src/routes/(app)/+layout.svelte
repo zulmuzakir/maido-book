@@ -11,7 +11,12 @@
 	const title = $derived((page.data as { title?: string }).title ?? m.app_name());
 	// The order form has its own sticky save bar on phones; two bars would stack.
 	const hideBottomNav = $derived(
-		page.route.id === '/(app)/orders/new' || page.route.id === '/(app)/import'
+		[
+			'/(app)/orders/new',
+			'/(app)/customers/new',
+			'/(app)/customers/[id]/edit',
+			'/(app)/import'
+		].includes(page.route.id ?? '')
 	);
 </script>
 

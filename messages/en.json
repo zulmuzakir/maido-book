@@ -393,8 +393,8 @@
 		}
 	],
 	"customers_filter_label": "Filter by status",
-	"customer_form_dose_hint": "Used to work out when supply runs out.",
-	"customer_form_notes_hint": "Optional",
+	"dose_per_day_hint": "Used to work out when supply runs out.",
+	"optional": "Optional",
 	"order_qty_less": "Decrease quantity",
 	"order_qty_more": "Increase quantity",
 	"order_more_details": "Total and note",

@@ -3,10 +3,12 @@
 	import { resolve } from '$app/paths';
 	import { FormAction } from '#lib/form-action.svelte.ts';
 	import CustomerForm from '#lib/components/customer-form.svelte';
+	import FormActions from '#lib/components/form-actions.svelte';
 	import PageHeader from '#lib/components/page-header.svelte';
 	import ResponsiveDialog from '#lib/components/responsive-dialog.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import { formColumn } from '#lib/styles.ts';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -14,9 +16,6 @@
 	const save = new FormAction(({ update }) => update({ reset: false }));
 
 	let deleteOpen = $state(false);
-
-	// Paper draws the edit actions at 44px on every breakpoint.
-	const ACTION = 'h-11 px-3.5 text-sm font-semibold md:text-ui desk:h-11';
 
 	const detailHref = $derived(resolve('/(app)/customers/[id]', { id: data.customer.id }));
 
@@ -50,18 +49,21 @@
 			id="customer-edit-form"
 			method="post"
 			action="?/update"
-			class="space-y-[18px] md:max-w-[520px] desk:max-w-[560px]"
+			class={formColumn}
 			use:enhance={save.enhance}
 		>
 			<CustomerForm {values} {errors} {duplicateOf} idPrefix="edit-customer" />
 
-			<div class="flex flex-wrap items-center gap-2">
-				<Button type="submit" class={ACTION} disabled={save.pending}>{m.save()}</Button>
-				<Button variant="outline" class={ACTION} href={detailHref}>{m.cancel()}</Button>
+			<FormActions>
+				<Button type="submit" disabled={save.pending}>{m.save()}</Button>
+				<Button variant="outline" href={detailHref}>{m.cancel()}</Button>
+			</FormActions>
+
+			<div class="border-t border-rule pt-[18px]">
 				<Button
 					type="button"
 					variant="destructive-outline"
-					class="ml-auto border-destructive-border {ACTION}"
+					class="w-full border-destructive-border md:w-auto"
 					onclick={() => (deleteOpen = true)}
 				>
 					{m.customer_delete()}

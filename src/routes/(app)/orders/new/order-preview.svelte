@@ -25,10 +25,7 @@
 	} = $props();
 </script>
 
-<aside
-	aria-labelledby="order-preview"
-	class="space-y-4 rounded-lg border border-rule bg-card p-4 md:p-6"
->
+<aside aria-labelledby="order-preview" class="space-y-4">
 	<h2 id="order-preview" class="text-ui font-semibold">{m.order_preview_title()}</h2>
 	{#if plan}
 		<p class="text-sm">

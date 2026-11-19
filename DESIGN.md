@@ -435,6 +435,17 @@ Plain and firm: semibold text, a 6px corner, and a 1px press on `active`.
 
 Fields are 44px (36px at `desk`), 6px corner, 1px `input` border on `card`, 16px text below `desk`, with no shadow. Focus moves the border to `ring` with a 3px `ring/50` halo. Invalid fields take a `destructive` border and a 3px `destructive/20` halo. The date picker in the outcome form is a field-styled box with a calendar icon over a transparent native input.
 
+### Form pages
+
+New customer, edit customer and new order share one pattern. Build new form pages from the same pieces (`fieldLabel`, `fieldStack` and `formColumn` in `src/lib/styles.ts`, `DoseField`, `FormActions`) rather than restyling fields per page.
+
+- **Header**: `PageHeader` with `variant="centered"` and a `back` link that names the page it returns to.
+- **Column**: `page-frame md:px-7`, so the fields share the header's left edge; the form is at most 560px wide from `md` and is never centred.
+- **Fields**: 18px between fields, 6px between a label, its control and its hint or error. Labels are 13px semibold; hints are 13px muted; an optional field carries a 12px muted "Opsional" after its label. Controls keep their default sizes.
+- **Choices**: gapped `choiceChip` chips; the selected chip takes `accent`, a `primary` border and `primary-text`.
+- **Sections**: no boxed panels. A secondary group (a disclosure, the supply preview, a delete row) is set off by a 1px `rule`.
+- **Actions** (`FormActions`): primary first, then an outline secondary. Inline and left-aligned from `md`; on phones a bar pinned to the bottom with a `rule` top edge that replaces the bottom nav.
+
 ### Navigation
 
 - **Rail** (`md` and up): fixed, `sidebar` fill, 72px wide with 44px icon-only items, 232px at `xl` with 38px labelled items. Items use an 8px corner; hover is `sidebar-accent/70`; active is `sidebar-accent` with white semibold text. The queue count badge (4px, `primary`) shows at `xl`.

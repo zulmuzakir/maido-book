@@ -8,28 +8,17 @@
 	let {
 		name,
 		selected,
-		onselect,
-		segmented = false
+		onselect
 	}: {
 		name: string;
 		selected: string;
 		onselect: (opt: (typeof OPTIONS)[number]) => void;
-		segmented?: boolean;
 	} = $props();
 </script>
 
-<div class={cn('grid grid-cols-4', segmented ? 'gap-0' : 'gap-2')}>
+<div class="grid grid-cols-4 gap-2">
 	{#each OPTIONS as opt (opt)}
-		<label
-			class={cn(
-				choiceChip,
-				'cursor-pointer',
-				segmented ? 'has-[:checked]:border-selected-ring' : 'has-[:checked]:font-medium',
-				opt !== 'other' && 'num',
-				segmented &&
-					'-ml-px rounded-none first:ml-0 first:rounded-l-lg last:rounded-r-lg has-[:checked]:z-10'
-			)}
-		>
+		<label class={cn(choiceChip, 'cursor-pointer', opt !== 'other' && 'num')}>
 			<input
 				type="radio"
 				{name}
