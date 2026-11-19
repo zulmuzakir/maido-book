@@ -187,9 +187,7 @@
 	<div
 		class="page-frame {step === 3
 			? 'space-y-5 md:space-y-[22px]'
-			: 'space-y-[18px] md:space-y-5'} {step === 2 ? 'md:px-6' : 'md:px-7'} xl:px-0 {step === 2
-			? 'md:pt-6'
-			: 'md:pt-7'}"
+			: 'space-y-[18px] md:space-y-5'} {step === 2 ? 'md:pt-6' : 'md:pt-7'}"
 	>
 		{#if step !== 2}<ImportStepper {step} />{/if}
 
