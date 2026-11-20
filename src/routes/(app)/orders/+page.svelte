@@ -162,7 +162,7 @@
 			<section aria-labelledby="day-{day.date}">
 				<h2
 					id="day-{day.date}"
-					class="-mt-px flex h-[38px] items-center justify-between border-y border-rule bg-secondary px-4 text-[13px] font-bold text-avatar-foreground md:px-6 xl:px-8"
+					class="-mt-px flex h-[38px] items-center justify-between border-y border-rule bg-secondary px-4 text-[13px] font-bold text-avatar-foreground md:px-6 xl:px-8 dark:text-primary-text"
 				>
 					<span>
 						{dayFmt.format(new Date(`${day.date}T00:00:00Z`))}
