@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { online } from 'svelte/reactivity/window';
-	import CircleAlertIcon from '@lucide/svelte/icons/circle-alert';
+	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 	import SearchIcon from '@lucide/svelte/icons/search';
 	import WifiOffIcon from '@lucide/svelte/icons/wifi-off';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -11,7 +11,7 @@
 
 	const notFound = $derived(page.status === 404);
 	const offline = $derived(online.current === false);
-	const Icon = $derived(notFound ? SearchIcon : offline ? WifiOffIcon : CircleAlertIcon);
+	const Icon = $derived(notFound ? SearchIcon : offline ? WifiOffIcon : TriangleAlertIcon);
 	const title = $derived(
 		notFound
 			? m.error_page_not_found_title()
@@ -45,33 +45,43 @@
 	<title>{title} · {m.app_name()}</title>
 </svelte:head>
 
-<div class="flex flex-1 flex-col items-center justify-center gap-4 bg-card p-10 text-center">
+<!-- Centred a little above the middle; on phones the buttons stack at full width. -->
+<div
+	class="flex flex-1 flex-col items-center justify-center gap-4 px-[21px] pt-10 pb-[18vh] text-center md:px-10"
+>
 	<span
-		class="grid size-14 place-items-center rounded-full bg-alert text-status-overdue"
+		class={[
+			'grid size-16 place-items-center rounded-full',
+			notFound ? 'bg-secondary text-muted-foreground' : 'bg-alert text-status-overdue'
+		]}
 		aria-hidden="true"
 	>
 		<Icon class="size-6" />
 	</span>
-	<div class="flex max-w-[420px] flex-col items-center gap-1.5">
+	<div class="flex max-w-[300px] flex-col items-center gap-1.5">
 		<h2 class="text-xl leading-6 font-bold tracking-[-0.02em]">{title}</h2>
-		<p class="text-sm leading-[21px] text-muted-foreground">{description}</p>
+		<p class="text-[15px] leading-[22px] text-muted-foreground">{description}</p>
 	</div>
-	<div class="flex flex-wrap items-center justify-center gap-2">
+	<div class="flex w-full flex-col items-stretch gap-2 md:w-auto md:flex-row md:items-center">
 		{#if notFound}
-			<Button href={resolve('/(app)')} class="h-11 px-3.5 text-ui font-semibold md:h-10 desk:h-10"
+			<Button
+				href={resolve('/(app)')}
+				class="h-11 w-full px-[18px] text-sm font-semibold md:h-10 md:w-auto desk:h-10"
 				>{m.error_page_home()}</Button
 			>
 		{:else}
 			<Button
 				onclick={retry}
 				disabled={retrying}
-				class="h-11 px-3.5 text-ui font-semibold md:h-10 desk:h-10">{m.error_page_retry()}</Button
+				class="h-11 w-full px-[18px] text-sm font-semibold md:h-10 md:w-auto desk:h-10"
+				>{m.error_page_retry()}</Button
 			>
 			{#if !offline}
 				<Button
 					href={resolve('/(app)')}
 					variant="outline"
-					class="h-11 px-3.5 text-ui font-semibold md:h-10 desk:h-10">{m.error_page_home()}</Button
+					class="h-11 w-full px-[18px] text-sm font-semibold md:h-10 md:w-auto desk:h-10"
+					>{m.error_page_home()}</Button
 				>
 			{/if}
 		{/if}

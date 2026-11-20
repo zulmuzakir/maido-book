@@ -318,7 +318,7 @@
 	"error_page_not_found_body": "This page or record doesn't exist. It may have been deleted.",
 	"error_page_title": "Something went wrong",
 	"error_page_body": "This page couldn't load. Try again; if it keeps happening, tell the team.",
-	"error_page_offline": "You're offline. Reconnect, then try again.",
+	"error_page_offline": "Reconnect to the internet, then try again. Data you already opened stays safe.",
 	"error_page_retry": "Try again",
 	"error_page_home": "Back to the queue",
 	"action_error_network": "Couldn't reach the server, so nothing was saved. Check your connection and try again.",

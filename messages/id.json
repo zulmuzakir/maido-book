@@ -255,7 +255,7 @@
 	"error_page_not_found_body": "Halaman atau data ini tidak ada. Mungkin sudah dihapus.",
 	"error_page_title": "Terjadi kesalahan",
 	"error_page_body": "Halaman ini gagal dimuat. Coba lagi; jika terus terjadi, beri tahu tim.",
-	"error_page_offline": "Anda sedang offline. Sambungkan internet, lalu coba lagi.",
+	"error_page_offline": "Sambungkan internet, lalu coba lagi. Data yang sudah terbuka tetap aman.",
 	"error_page_retry": "Coba lagi",
 	"error_page_home": "Kembali ke Antrian",
 	"action_error_network": "Server tidak terjangkau, jadi belum ada yang tersimpan. Periksa koneksi lalu coba lagi.",
