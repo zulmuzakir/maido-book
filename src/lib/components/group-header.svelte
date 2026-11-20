@@ -11,6 +11,7 @@
 		ontoggle,
 		icon,
 		labelClass,
+		tone,
 		class: className
 	}: {
 		id: string;
@@ -20,12 +21,14 @@
 		ontoggle?: () => void;
 		icon?: Snippet;
 		labelClass?: string;
+		/** Colours the count by meaning: red for overdue, amber for due today, grey otherwise. */
+		tone?: 'overdue' | 'today';
 		class?: string;
 	} = $props();
 
 	const row = $derived(
 		cn(
-			'flex w-full items-center gap-2 border-b border-row-rule bg-subtle px-5 text-left',
+			'relative -mt-px flex w-full items-center gap-2 border-y border-rule bg-secondary px-4 text-left md:px-6 xl:px-8',
 			ontoggle ? 'h-11 desk:h-9' : 'h-9',
 			className
 		)
@@ -34,9 +37,20 @@
 
 {#snippet content()}
 	{#if icon}{@render icon()}{/if}
-	<span class={cn('text-xs font-semibold text-avatar-foreground', labelClass)}>{label}</span>
+	<span class={cn('text-ui font-bold text-accent-foreground dark:text-primary-text', labelClass)}
+		>{label}</span
+	>
 	{#if count !== undefined}
-		<span class="text-xs text-muted-foreground num">{count}</span>
+		<span
+			class={cn(
+				'text-ui font-semibold num',
+				tone === 'overdue'
+					? 'text-status-overdue'
+					: tone === 'today'
+						? 'text-status-today'
+						: 'text-muted-foreground'
+			)}>{count}</span
+		>
 	{/if}
 	{#if ontoggle}
 		<ChevronDownIcon

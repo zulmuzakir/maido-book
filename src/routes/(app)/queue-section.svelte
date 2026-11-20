@@ -42,13 +42,14 @@
 		id="q-{section.id}"
 		label={section.title}
 		count={section.items.length}
+		tone={section.id === 'overdue' || section.id === 'today' ? section.id : undefined}
 		expanded={open}
 		{ontoggle}
 	/>
 	{#if open}
 		{#if section.hint}
 			<p
-				class="border-b border-row-rule bg-subtle px-5 py-3.5 text-ui leading-[19px] text-subtle-foreground"
+				class="border-b border-row-rule bg-subtle px-4 py-3.5 text-ui leading-[19px] text-subtle-foreground md:px-6 xl:px-8"
 			>
 				{section.hint}
 			</p>
