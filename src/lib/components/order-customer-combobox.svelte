@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import SearchIcon from '@lucide/svelte/icons/search';
+	import UserIcon from '@lucide/svelte/icons/user';
 	import * as Command from '#lib/components/ui/command/index.js';
 	import * as Popover from '#lib/components/ui/popover/index.js';
 	import { buttonVariants } from '#lib/components/ui/button/index.js';
@@ -59,16 +60,20 @@
 		aria-invalid={invalid ? 'true' : undefined}
 		class={cn(
 			buttonVariants({ variant: 'outline', size: 'default' }),
-			'w-full justify-start gap-2 rounded-lg px-3 text-sm font-normal aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 desk:px-3 desk:text-ui'
+			'h-11 w-full justify-start gap-2.5 rounded-lg px-3 text-[15px] font-normal aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 desk:h-11 desk:px-3 desk:text-[15px]'
 		)}
 	>
-		<SearchIcon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
 		{#if selected}
-			<span class="flex min-w-0 items-baseline gap-3 text-left">
-				<span class="truncate font-medium">{selected.name}</span>
-				<span class="shrink-0 text-muted-foreground num">{formatPhone(selected.phone)}</span>
+			<UserIcon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+			<span class="min-w-0 flex-1 truncate text-left">
+				{selected.name}<span class="text-foreground num">&nbsp;· {formatPhone(selected.phone)}</span
+				>
 			</span>
+			<span class="shrink-0 text-[13.5px] font-semibold text-primary-text" aria-hidden="true"
+				>{m.order_customer_change()}</span
+			>
 		{:else}
+			<SearchIcon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
 			<span class="text-muted-foreground">{m.order_customer_choose()}</span>
 		{/if}
 	</Popover.Trigger>

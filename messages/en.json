@@ -149,8 +149,8 @@
 	"order_product": "Product",
 	"order_date": "Order date",
 	"order_qty": "Quantity ({unit})",
-	"order_total": "Total paid (optional)",
-	"order_total_hint": "Leave empty if not recorded yet.",
+	"order_total": "Total paid",
+	"order_total_hint": "Filled in from product price × quantity. Leave empty if not recorded yet.",
 	"order_note": "Note",
 	"order_summary": [
 		{
@@ -326,7 +326,7 @@
 	"action_error_server": "Something went wrong, so nothing was saved. Try again.",
 	"login_not_allowed": "This Google account doesn't have access. Sign in with an allowed account, or ask the admin to add it.",
 	"order_customer_more": "Showing {shown} of {total}. Type a name or number to narrow the list.",
-	"order_no_products": "There's no active product yet. Add or turn on a product in Settings before recording orders.",
+	"order_no_products": "Add or activate a product in Settings before recording an order.",
 	"order_no_products_action": "Open Settings",
 	"settings_products_empty": "No products yet. Add the product your customers reorder.",
 	"phone_copy_failed": "Couldn't copy. The number is {phone}.",
@@ -523,5 +523,19 @@
 	"customer_orders_recent": "Orders · last {count}",
 	"customer_supply_gap_days": "{count}d",
 	"customer_supply_gaps": "Out {count}×",
-	"customer_supply_gaps_avg": "Out {count}× · {days} days on average before the next order"
+	"customer_supply_gaps_avg": "Out {count}× · {days} days on average before the next order",
+	"order_customer_change": "Change",
+	"order_preview_days_left": "days of stock left",
+	"order_preview_today": "Today, {date}",
+	"order_preview_runs_out": "Runs out {date}",
+	"order_preview_due_marker": "Follow up {date}",
+	"order_preview_legend_due": "Time to follow up",
+	"saving": "Saving…",
+	"order_retry": "Try again",
+	"order_auto_note": "A follow-up is scheduled automatically when you save.",
+	"form_check_fields": "Check the {count} highlighted fields.",
+	"order_save_failed": "The server couldn't be reached, so nothing was saved. Check your connection and try again. Your entries are still here.",
+	"order_save_failed_short": "Not saved. Check your connection; your entries are safe.",
+	"order_no_products_title": "No active products yet",
+	"dose_per_day_suffix": "×/day"
 }

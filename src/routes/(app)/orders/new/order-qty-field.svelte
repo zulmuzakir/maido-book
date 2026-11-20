@@ -43,6 +43,7 @@
 				variant="outline"
 				size="icon"
 				aria-label={m.order_qty_less()}
+				class="desk:size-11"
 				disabled={(qty ?? 0) <= 1}
 				onclick={() => stepQty(-1)}
 			>
@@ -58,19 +59,22 @@
 				step="1"
 				aria-invalid={invalid ? 'true' : undefined}
 				bind:value={qty}
-				class="min-w-0 flex-1 [appearance:textfield] text-center num [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+				class="h-11 min-w-0 flex-1 [appearance:textfield] text-center text-[17px] font-bold num desk:h-11 desk:text-[17px] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
 			/>
 			<Button
 				type="button"
 				variant="outline"
 				size="icon"
 				aria-label={m.order_qty_more()}
+				class="desk:size-11"
 				disabled={(qty ?? 0) >= QTY_MAX}
 				onclick={() => stepQty(1)}
 			>
 				<PlusIcon />
 			</Button>
 		</div>
+		<!-- The error sits between the number and the presets, next to what it is about. -->
+		<FieldError message={error} />
 		<div class="grid grid-cols-5 gap-2">
 			{#each QTY_CHIPS as n (n)}
 				<button
@@ -78,12 +82,11 @@
 					aria-pressed={qty === n}
 					data-state={qty === n ? 'on' : 'off'}
 					onclick={() => (qty = n)}
-					class={cn(choiceChip, 'num')}
+					class={cn(choiceChip, 'px-2 num')}
 				>
 					{n}
 				</button>
 			{/each}
 		</div>
 	</div>
-	<FieldError message={error} />
 </div>

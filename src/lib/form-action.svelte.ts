@@ -25,10 +25,21 @@ export interface AfterSubmitInput {
  */
 export class FormAction {
 	pending = $state(false);
+	/** The last submit never reached the server. Only set with `inlineNetworkError`. */
+	networkFailed = $state(false);
 	#onResult?: (input: AfterSubmitInput) => void | Promise<void>;
+	#inlineNetworkError: boolean;
 
-	constructor(onResult?: (input: AfterSubmitInput) => void | Promise<void>) {
+	/**
+	 * `inlineNetworkError`: a long form shows its own "not saved" alert and retry button, so a
+	 * network failure sets `networkFailed` instead of raising a toast.
+	 */
+	constructor(
+		onResult?: (input: AfterSubmitInput) => void | Promise<void>,
+		{ inlineNetworkError = false }: { inlineNetworkError?: boolean } = {}
+	) {
 		this.#onResult = onResult;
+		this.#inlineNetworkError = inlineNetworkError;
 	}
 
 	enhance: SubmitFunction = ({ cancel }) => {
@@ -37,6 +48,7 @@ export class FormAction {
 			return;
 		}
 		this.pending = true;
+		this.networkFailed = false;
 		return async (raw) => {
 			// An action on this page (`?/sent` from `/?item=x`) differs from the current URL only by its
 			// query, which SvelteKit treats as another page and navigates to. Apply the result here
@@ -46,7 +58,9 @@ export class FormAction {
 				? { ...raw, update: (opts) => raw.update({ navigate: false, ...opts }) }
 				: raw;
 			try {
-				if (input.result.type === 'error') await reportActionError(input.result.status);
+				if (input.result.type === 'error' && !input.result.status && this.#inlineNetworkError) {
+					this.networkFailed = true;
+				} else if (input.result.type === 'error') await reportActionError(input.result.status);
 				else if (this.#onResult) await this.#onResult(input);
 				else await input.update();
 			} finally {
