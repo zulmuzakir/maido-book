@@ -57,6 +57,21 @@
 				? m.gauge_out_today()
 				: m.gauge_out_ago({ count: -s.daysLeft })
 	);
+	// Inline wording for the small bar ("habis 3 hari lalu"); the large one leads with a headline.
+	const smallText = $derived(
+		s.daysLeft > 0
+			? m.stock_days_left({ count: s.daysLeft })
+			: s.daysLeft === 0
+				? m.stock_out_today()
+				: m.stock_out_ago({ count: -s.daysLeft })
+	);
+	const BAR_DAYS = 14;
+	const barWidth = $derived(
+		s.daysLeft <= 0 ? '100%' : `${(Math.min(BAR_DAYS, s.daysLeft) / BAR_DAYS) * 100}%`
+	);
+	const barColour = $derived(
+		s.daysLeft > leadDays ? 'bg-band-ok' : s.daysLeft > 0 ? 'bg-band-soon' : 'bg-band-out'
+	);
 	const locale = $derived(getLocale());
 	const legend = $derived([
 		['bg-band-ok', m.track_legend_ok()],
@@ -102,12 +117,21 @@
 	</div>
 {/snippet}
 
+<!-- Small: one plain bar on the track. Its length is the days left (a full bar is 14 days or more,
+     and an out-of-stock bar is full); its colour is the band. -->
 {#if size === 'sm'}
-	<div class={cn('flex min-w-0 flex-col gap-1.5', className)}>
-		{@render track('h-1.5')}
+	<div class={cn('flex min-w-0 flex-col gap-[7px]', className)}>
 		{#if showLabel}
-			<span class="truncate text-xs leading-none num {tone}">{text}</span>
+			<span class="truncate text-ui leading-4 font-semibold num {tone}">{smallText}</span>
 		{/if}
+		<div
+			class="h-1.5 w-full overflow-hidden rounded-[3px] bg-track"
+			role={decorative ? undefined : 'img'}
+			aria-label={decorative ? undefined : smallText}
+			aria-hidden={decorative || undefined}
+		>
+			<div class="h-full rounded-[3px] {barColour}" style:width={barWidth}></div>
+		</div>
 	</div>
 {:else}
 	<div class={cn('space-y-2', className)}>

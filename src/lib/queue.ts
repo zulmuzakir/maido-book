@@ -51,7 +51,11 @@ export function dueState(item: QueueRowItem, today: string, rules: RuleSettings)
 					: days === 1
 						? m.today_waiting_day_one()
 						: m.today_waiting_days({ count: days }),
-			tone: stale ? 'text-status-overdue font-semibold' : 'font-semibold text-muted-foreground'
+			tone: stale
+				? 'font-semibold text-status-overdue'
+				: days === 0
+					? 'font-semibold text-foreground'
+					: 'font-semibold text-status-today'
 		};
 	}
 	return {
