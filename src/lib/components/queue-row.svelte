@@ -98,8 +98,8 @@
 			<p class="truncate text-[15px] leading-[18px] font-semibold">{item.customer.name}</p>
 			<p class="truncate text-[12.5px] leading-4 text-muted-foreground num md:text-ui">
 				{#if orderLine}
-					{orderLine}<span class="xl:hidden"
-						>&ensp;·&ensp;<span class="md:hidden">{qty}</span><span class="max-md:hidden"
+					{orderLine}<span class="xl:hidden">
+						· <span class="md:hidden">{qty}</span><span class="max-md:hidden"
 							>{waiting ? qty : dose}</span
 						></span
 					>

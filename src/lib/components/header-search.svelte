@@ -11,6 +11,7 @@
 		name,
 		label,
 		placeholder,
+		block = false,
 		oninput
 	}: {
 		value?: string;
@@ -18,13 +19,15 @@
 		name?: string;
 		label: string;
 		placeholder: string;
+		/** Always open at full width (the tablet search row) instead of collapsing to an icon. */
+		block?: boolean;
 		oninput?: (value: string) => void;
 	} = $props();
 
 	let open = $state(false);
 	let inputEl = $state<HTMLInputElement>();
 	// Below md the field collapses to an icon until opened, or stays open while a query is set.
-	const expanded = $derived(open || value !== '');
+	const expanded = $derived(block || open || value !== '');
 
 	async function focus() {
 		open = true;
@@ -51,15 +54,17 @@
 
 <div
 	class={cn(
-		'flex w-full items-center gap-2 md:w-auto',
-		expanded &&
+		'flex w-full items-center gap-2',
+		!block && 'md:w-auto',
+		!block &&
+			expanded &&
 			'max-md:absolute max-md:inset-x-0 max-md:top-full max-md:z-20 max-md:bg-card max-md:px-4 max-md:pb-3'
 	)}
 >
 	{#if !expanded}
 		<button
 			type="button"
-			class="inline-flex size-10 shrink-0 items-center justify-center rounded-[12px] border border-input bg-card md:hidden"
+			class="inline-flex size-11 shrink-0 items-center justify-center rounded-lg text-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring md:hidden"
 			aria-label={label}
 			onclick={() => void focus()}
 		>
@@ -67,7 +72,11 @@
 		</button>
 	{/if}
 	<div
-		class={cn('relative w-full items-center md:flex md:w-[220px]', expanded ? 'flex' : 'hidden')}
+		class={cn(
+			'relative w-full items-center',
+			!block && 'md:flex md:w-[240px]',
+			expanded ? 'flex' : 'hidden'
+		)}
 	>
 		<SearchIcon
 			class="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
@@ -87,7 +96,7 @@
 			onblur={() => {
 				if (!value) open = false;
 			}}
-			class="h-11 w-full rounded-lg border border-input bg-card pr-8 pl-9 text-base placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring desk:h-10 desk:text-ui"
+			class="h-11 w-full rounded-lg border border-input bg-card pr-8 pl-9 text-base placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-ring desk:h-10 desk:text-[15px]"
 		/>
 		{#if value}
 			<button

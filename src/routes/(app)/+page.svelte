@@ -3,7 +3,7 @@
 	import QueueDone from './queue-done.svelte';
 	import QueueHandled from './queue-handled.svelte';
 	import QueueProgress from './queue-progress.svelte';
-	import QueueSection, { type Section, type SectionId, type Tab } from './queue-section.svelte';
+	import QueueSection, { type Section, type Tab } from './queue-section.svelte';
 	import { untrack } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { resolve } from '$app/paths';
@@ -23,8 +23,6 @@
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
 	import { searchDigits } from '#lib/domain/phone.ts';
 	import type { SavedOutcome } from '#lib/components/follow-up-outcome.svelte';
-	import { formatDate } from '#lib/domain/dates.ts';
-	import { getLocale } from '#lib/paraglide/runtime.js';
 	import { dueState, type QueueRowItem } from '#lib/queue.ts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { cn } from '#lib/utils.js';
@@ -33,6 +31,7 @@
 
 	const wide = new MediaQuery('(min-width: 1024px)');
 	const tablet = new MediaQuery('(min-width: 768px)');
+	const tabletRow = $derived(tablet.current && !wide.current);
 
 	// Win-back customers lapsed long ago; they are worth a message but must not bury today's work.
 	const isWinback = (i: QueueRowItem) => i.kind === 'winback';
@@ -53,18 +52,17 @@
 	const dayDone = $derived(!firstRun && workCount === 0);
 
 	let tab = $state<Tab>('all');
-	// Tabs follow the job, not the five sections: who to contact now, who owes a reply, and later.
-	const TAB_SECTIONS: Record<Exclude<Tab, 'all'>, SectionId[]> = {
-		todo: ['overdue', 'today'],
-		waiting: ['waiting'],
-		later: ['winback', 'upcoming']
-	};
+	// One tab per section. The week ahead has no tab: it only closes the "Semua" list.
 	const tabItems = $derived([
-		// "Semua" lists every section, the week ahead included, so it carries no count of its own.
-		{ key: 'all', label: m.customers_filter_all() },
-		{ key: 'todo', label: m.queue_tab_todo(), count: workCount },
-		{ key: 'waiting', label: m.queue_tab_waiting(), count: waiting.length },
-		{ key: 'later', label: m.queue_tab_later(), count: winback.length + data.upcoming.length }
+		{
+			key: 'all',
+			label: m.customers_filter_all(),
+			count: workCount + waiting.length + winback.length
+		},
+		{ key: 'overdue', label: m.bucket_overdue(), count: overdue.length },
+		{ key: 'today', label: m.bucket_today(), count: dueToday.length },
+		{ key: 'waiting', label: m.bucket_waiting(), count: waiting.length },
+		{ key: 'winback', label: m.bucket_winback(), count: winback.length }
 	]);
 
 	let query = $state('');
@@ -99,20 +97,16 @@
 	);
 	const shown = $derived.by(() => {
 		if (tab === 'all') return sections;
-		const ids = TAB_SECTIONS[tab];
-		return sections.filter((s) => ids.includes(s.id));
+		return sections.filter((s) => s.id === tab);
 	});
 
-	// Win-back and the week ahead stay folded while there is today's work to do. Folding only
-	// applies to the grouped "all" view; a single tab always shows its whole list.
-	let folded = $state<Record<string, boolean>>({});
-	const isFolded = (id: SectionId) =>
-		tab === 'all' && (folded[id] ?? ((id === 'winback' || id === 'upcoming') && !dayDone));
+	// Only "Selesai hari ini" folds; the open sections always show.
+	let handledFolded = $state<boolean | null>(null);
 
-	// Overdue and today are the work and always show in full; only the lists that wait get capped.
+	// In "Semua" every section shows its first three rows, then "Lihat N lainnya". A single tab
+	// shows its whole list.
 	const COLLAPSED_ROWS = 3;
-	const collapses = (s: Section) =>
-		tab === 'all' && !expanded[s.id] && !TAB_SECTIONS.todo.includes(s.id);
+	const collapses = (s: Section) => tab === 'all' && !expanded[s.id];
 	let expanded = $state<Record<string, boolean>>({});
 	const visibleRows = (s: Section) => (collapses(s) ? s.items.slice(0, COLLAPSED_ROWS) : s.items);
 	const hiddenRows = (s: Section) =>
@@ -124,8 +118,8 @@
 	// Selection follows the list order, including rows behind "Lihat N lainnya": stepping must never
 	// skip a customer. When the selected follow-up is closed, or snoozed out of the open sections, it
 	// leaves the list and the card moves on to whoever now sits in its place.
-	const flat = $derived(shown.filter((s) => !isFolded(s.id)).flatMap((s) => s.items));
-	const pool = $derived(allSections.filter((s) => !isFolded(s.id)).flatMap((s) => s.items));
+	const flat = $derived(shown.flatMap((s) => s.items));
+	const pool = $derived(allSections.flatMap((s) => s.items));
 	let selectedId = $state<string | null>(null);
 	let saved = $state<(SavedOutcome & { item: QueueRowItem }) | null>(null);
 	let lastIndex = 0;
@@ -150,8 +144,7 @@
 				? position < flat.length - 1
 				: lastIndex < flat.length
 	);
-	// "Terlambat · 3 dari 13": the place within the list the user is looking at, so the number does
-	// not jump when a folded section is opened.
+	// "Terlambat · 3 dari 13": the place within the section the user is looking at.
 	const place = $derived.by(() => {
 		const section = selected ? sections.find((s) => s.items.includes(selected)) : undefined;
 		return {
@@ -170,7 +163,8 @@
 			if (next) untrack(() => reveal(next));
 			selectedId = next?.followUpId ?? null;
 			if (!next) sheetOpen = false;
-		} else if (!selectedId && wide.current && (tab !== 'all' || !dayDone) && flat.length > 0) {
+		} else if (!selectedId && wide.current && tab === 'all' && !dayDone && flat.length > 0) {
+			// Only "Semua" opens on its first customer; a single tab waits for a pick.
 			selectedId = flat[0].followUpId;
 		}
 	});
@@ -236,11 +230,6 @@
 
 <svelte:window {onkeydown} />
 
-{#snippet meta()}
-	<!-- The counts live in the progress bar and the tabs; the header only dates the day. -->
-	<time class="num" datetime={data.today}>{formatDate(data.today, getLocale(), 'long')}</time>
-{/snippet}
-
 {#snippet search()}
 	<HeaderSearch
 		id="queue-search"
@@ -296,29 +285,46 @@
 	class={cn('lg:grid lg:h-dvh', firstRun ? 'lg:grid-cols-1' : 'lg:grid-cols-[minmax(0,1fr)_400px]')}
 >
 	<div class="flex min-h-dvh flex-col bg-card lg:min-h-0 lg:overflow-y-auto">
-		<PageHeader title={m.queue_title()} metaInline="md" {meta} {search} {actions} />
+		<!-- Search sits in the header on phones (as an icon) and from lg up; on tablets it gets its
+		     own full-width row under the progress. -->
+		<PageHeader
+			title={m.queue_title()}
+			search={tabletRow ? undefined : search}
+			{actions}
+			class="md:border-b-0"
+		/>
 
 		{#if !firstRun}
-			<div
-				class="flex flex-col px-4 pb-3 md:h-11 md:flex-row md:items-center md:gap-5 md:border-b md:border-rule md:px-6 md:pb-0 xl:px-8"
-			>
-				<div class="min-w-0 flex-1">
-					<FilterTabs
-						items={tabItems}
-						active={tab}
-						label={m.queue_title()}
-						onselect={(key) => {
-							tab = key as Tab;
-							saved = null;
-							selectedId = null;
-						}}
-					/>
-				</div>
+			<div class="flex flex-col gap-2 px-4 pb-3.5 md:px-6 xl:px-8">
+				<p class="text-sm text-muted-foreground num">
+					{m.queue_summary({ todo: workCount, waiting: waiting.length })}
+				</p>
 				{#if total > 0}
-					<div class="order-first md:order-last">
-						<QueueProgress sent={data.doneToday} {total} />
+					<QueueProgress sent={data.doneToday} {total} />
+				{/if}
+				{#if tabletRow}
+					<div class="mt-1.5">
+						<HeaderSearch
+							id="queue-search"
+							bind:value={query}
+							label={m.queue_search_label()}
+							placeholder={m.customers_search_placeholder()}
+							block
+						/>
 					</div>
 				{/if}
+			</div>
+			<div class="px-4 pb-3 md:border-b md:border-rule md:px-6 md:pb-0 xl:px-8">
+				<FilterTabs
+					items={tabItems}
+					active={tab}
+					label={m.queue_title()}
+					onselect={(key) => {
+						tab = key as Tab;
+						saved = null;
+						selectedId = null;
+					}}
+				/>
 			</div>
 		{/if}
 
@@ -354,13 +360,12 @@
 		{/if}
 
 		{#each shown as section (section.id)}
-			{@const open = !isFolded(section.id)}
 			<QueueSection
 				{section}
-				{open}
+				open
 				rows={visibleRows(section)}
 				hiddenCount={hiddenRows(section)}
-				ontoggle={tab === 'all' ? () => (folded = { ...folded, [section.id]: open }) : undefined}
+				ontoggle={undefined}
 				onshowmore={() => (expanded = { ...expanded, [section.id]: true })}
 				today={data.today}
 				rules={data.rules}
@@ -370,12 +375,8 @@
 		{/each}
 
 		{#if tab === 'all' && data.handled.length > 0}
-			{@const open = !(folded.handled ?? !dayDone)}
-			<QueueHandled
-				items={data.handled}
-				{open}
-				ontoggle={() => (folded = { ...folded, handled: open })}
-			/>
+			{@const open = !(handledFolded ?? !dayDone)}
+			<QueueHandled items={data.handled} {open} ontoggle={() => (handledFolded = open)} />
 		{/if}
 	</div>
 

@@ -3,7 +3,8 @@
 
 	export type SectionId = 'overdue' | 'today' | 'waiting' | 'winback' | 'upcoming';
 	export type Section = { id: SectionId; title: string; items: QueueRowItem[]; hint?: string };
-	export type Tab = 'all' | 'todo' | 'waiting' | 'later';
+	/** One tab per section, plus Semua; the week ahead shows only at the end of Semua. */
+	export type Tab = 'all' | 'overdue' | 'today' | 'waiting' | 'winback';
 </script>
 
 <script lang="ts">
@@ -38,22 +39,22 @@
 </script>
 
 <section aria-labelledby="q-{section.id}">
+	{#if section.hint && open}
+		<p class="px-4 py-3 text-sm leading-5 text-muted-foreground md:px-6 xl:px-8">{section.hint}</p>
+	{/if}
 	<GroupHeader
 		id="q-{section.id}"
 		label={section.title}
 		count={section.items.length}
-		tone={section.id === 'overdue' || section.id === 'today' ? section.id : undefined}
+		tone={section.id === 'today'
+			? 'today'
+			: section.id === 'overdue' || section.id === 'winback'
+				? 'overdue'
+				: undefined}
 		expanded={open}
 		{ontoggle}
 	/>
 	{#if open}
-		{#if section.hint}
-			<p
-				class="border-b border-row-rule bg-subtle px-4 py-3.5 text-ui leading-[19px] text-subtle-foreground md:px-6 xl:px-8"
-			>
-				{section.hint}
-			</p>
-		{/if}
 		{#each rows as item (item.followUpId)}
 			<QueueRow
 				{item}
@@ -66,7 +67,7 @@
 		{#if hiddenCount > 0}
 			<button
 				type="button"
-				class="flex h-11 w-full items-center pr-5 pl-[70px] text-left text-ui font-semibold text-primary-text num desk:h-10"
+				class="flex h-12 w-full items-center border-b border-row-rule pr-4 pl-[72px] text-left text-[13.5px] font-semibold text-primary-text num hover:bg-muted md:pl-[84px] xl:pl-[92px]"
 				onclick={onshowmore}
 			>
 				{m.queue_show_more({ count: hiddenCount })}
