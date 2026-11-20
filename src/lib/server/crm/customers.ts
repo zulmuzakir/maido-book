@@ -8,8 +8,9 @@ import {
 	product,
 	user
 } from '#lib/server/db/schema.ts';
+import { todayIso } from '#lib/domain/dates.ts';
 import { searchDigits } from '#lib/domain/phone.ts';
-import type { CustomerStatus, FollowUpKind } from '#lib/domain/types.ts';
+import type { CustomerSnapshot, CustomerStatus, FollowUpKind } from '#lib/domain/types.ts';
 import { runBatch } from './batch.ts';
 
 /** False only before the first import or customer: the queue shows how to get started instead. */
@@ -362,4 +363,35 @@ export async function deleteCustomer(db: Db, id: string) {
 
 export async function addNote(db: Db, customerId: string, body: string, userId: string) {
 	await db.insert(activity).values({ customerId, type: 'note', body, userId });
+}
+
+export async function customerSnapshot(db: Db, id: string): Promise<CustomerSnapshot | null> {
+	const detail = await getCustomerDetail(db, id);
+	return detail ? snapshotOf(detail) : null;
+}
+
+export function snapshotOf(
+	detail: NonNullable<Awaited<ReturnType<typeof getCustomerDetail>>>
+): CustomerSnapshot {
+	const { customer: c, lastOrder, openFollowUp, orders } = detail;
+	return {
+		id: c.id,
+		name: c.name,
+		phone: c.phone,
+		dosePerDay: c.dosePerDay,
+		since: todayIso(c.createdAt),
+		orderCount: orders.length,
+		orderCountCapped: detail.ordersTruncated,
+		lastOrder: lastOrder
+			? {
+					qty: lastOrder.qty,
+					unitLabel: lastOrder.unitLabel,
+					orderDate: lastOrder.orderDate,
+					daysSupply: lastOrder.daysSupply
+				}
+			: null,
+		followUp: openFollowUp
+			? { dueDate: openFollowUp.dueDate, contacted: openFollowUp.contactedAt !== null }
+			: null
+	};
 }

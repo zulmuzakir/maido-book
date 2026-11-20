@@ -14,7 +14,7 @@
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
 	import InitialsAvatar from '#lib/components/initials-avatar.svelte';
-	import ResponsiveDialog from '#lib/components/responsive-dialog.svelte';
+	import CustomerDeleteDialog from '#lib/components/customer-delete-dialog.svelte';
 	import StockText from '#lib/components/stock-text.svelte';
 	import { customerStatusLabel } from '#lib/labels.ts';
 	import { supplyStatus } from '#lib/domain/follow-up.ts';
@@ -177,30 +177,4 @@
 	<input type="hidden" name="followUpId" value={panelItem?.followUpId ?? ''} />
 </form>
 
-<ResponsiveDialog
-	bind:open={deleteOpen}
-	confirm
-	title={m.customer_delete_title({ name: customer.name })}
->
-	<p class="text-sm leading-[21px] text-muted-foreground">{m.customer_delete_description()}</p>
-	{#snippet footer()}
-		<div class="flex w-full flex-col-reverse gap-2 md:flex-row md:justify-end">
-			<Button
-				variant="outline"
-				class="h-12 w-full text-sm font-semibold md:h-10 md:w-auto md:text-ui desk:h-10"
-				onclick={() => (deleteOpen = false)}
-			>
-				{m.cancel()}
-			</Button>
-			<form method="post" action="{editHref}?/delete" use:enhance class="contents">
-				<Button
-					type="submit"
-					variant="destructive-solid"
-					class="h-12 w-full text-sm font-semibold md:h-10 md:w-auto md:text-ui desk:h-10"
-				>
-					{m.customer_delete()}
-				</Button>
-			</form>
-		</div>
-	{/snippet}
-</ResponsiveDialog>
+<CustomerDeleteDialog bind:open={deleteOpen} name={customer.name} action="{editHref}?/delete" />

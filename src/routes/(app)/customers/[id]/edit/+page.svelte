@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
+	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import { FormAction } from '#lib/form-action.svelte.ts';
+	import CustomerDeleteDialog from '#lib/components/customer-delete-dialog.svelte';
 	import CustomerForm from '#lib/components/customer-form.svelte';
+	import CustomerSidePanel from '#lib/components/customer-side-panel.svelte';
 	import FormActions from '#lib/components/form-actions.svelte';
 	import PageHeader from '#lib/components/page-header.svelte';
-	import ResponsiveDialog from '#lib/components/responsive-dialog.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { m } from '#lib/paraglide/messages.js';
-	import { formColumn } from '#lib/styles.ts';
 	import type { ActionData, PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -37,66 +38,67 @@
 	<title>{data.title}</title>
 </svelte:head>
 
+<!-- Same frame as Pelanggan baru; the panel summarises the customer (or the one who already has the
+     typed number), and deleting sits in its own danger-zone card under the form. -->
 <div class="min-h-dvh bg-card">
 	<PageHeader
 		title={data.title}
 		variant="subpage"
 		back={{ href: detailHref, label: m.nav_customers(), mobileLabel: m.back() }}
+		class="md:px-[max(24px,calc((100%-600px)/2))] xl:px-[calc((100%-960px)/2)]"
 	/>
 
-	<div class="page-frame md:px-7">
-		<form
-			id="customer-edit-form"
-			method="post"
-			action="?/update"
-			class={formColumn}
-			use:enhance={save.enhance}
+	<div class="px-4 pt-3 pb-[96px] md:px-6 md:pt-7 md:pb-8">
+		<div
+			class="mx-auto max-w-[600px] xl:grid xl:w-fit xl:max-w-none xl:grid-cols-[560px_360px] xl:items-start xl:gap-x-10"
 		>
-			<CustomerForm {values} {errors} {duplicateOf} idPrefix="edit-customer" />
-
-			<FormActions>
-				<Button size="lg" type="submit" disabled={save.pending}>{m.save()}</Button>
-				<Button size="lg" variant="outline" href={detailHref}>{m.cancel()}</Button>
-			</FormActions>
-
-			<div class="border-t border-rule pt-[18px]">
-				<Button
-					type="button"
-					variant="destructive-outline"
-					class="w-full border-destructive-border md:w-auto"
-					onclick={() => (deleteOpen = true)}
+			<div class="flex flex-col gap-8">
+				<form
+					id="customer-edit-form"
+					method="post"
+					action="?/update"
+					class="flex flex-col gap-6"
+					use:enhance={save.enhance}
 				>
-					{m.customer_delete()}
-				</Button>
+					<CustomerForm {values} {errors} {duplicateOf} idPrefix="edit-customer" />
+
+					<FormActions>
+						<Button size="lg" type="submit" disabled={save.pending}>
+							{m.customer_save_changes()}
+						</Button>
+						<Button size="lg" variant="outline" href={detailHref}>{m.cancel()}</Button>
+					</FormActions>
+				</form>
+
+				<section
+					class="flex items-center justify-between gap-4 rounded-[8px] border border-alert-border px-4 py-3.5"
+				>
+					<div class="min-w-0">
+						<h2 class="text-[14.5px] leading-5 font-semibold">{m.customer_delete()}</h2>
+						<p class="text-[13.5px] leading-5 text-muted-foreground">
+							{m.customer_delete_zone_body()}
+						</p>
+					</div>
+					<Button
+						type="button"
+						variant="destructive-outline"
+						class="shrink-0 border-alert-border font-semibold desk:h-10"
+						onclick={() => (deleteOpen = true)}
+					>
+						<Trash2Icon class="size-4" aria-hidden="true" />
+						{m.customer_delete_short()}
+					</Button>
+				</section>
 			</div>
-		</form>
+
+			<CustomerSidePanel
+				kind={duplicateOf ? 'duplicate' : 'summary'}
+				customer={duplicateOf ?? data.summary}
+				today={data.today}
+				class="hidden xl:flex"
+			/>
+		</div>
 	</div>
 </div>
 
-<ResponsiveDialog
-	bind:open={deleteOpen}
-	confirm
-	title={m.customer_delete_title({ name: data.customer.name })}
->
-	<p class="text-sm leading-[21px] text-muted-foreground">{m.customer_delete_description()}</p>
-	{#snippet footer()}
-		<div class="flex w-full flex-col-reverse gap-2 md:flex-row md:justify-end">
-			<Button
-				variant="outline"
-				class="h-12 w-full text-sm font-semibold md:h-10 md:w-auto md:text-ui desk:h-10"
-				onclick={() => (deleteOpen = false)}
-			>
-				{m.cancel()}
-			</Button>
-			<form method="post" action="?/delete" use:enhance class="contents">
-				<Button
-					type="submit"
-					variant="destructive-solid"
-					class="h-12 w-full text-sm font-semibold md:h-10 md:w-auto md:text-ui desk:h-10"
-				>
-					{m.customer_delete()}
-				</Button>
-			</form>
-		</div>
-	{/snippet}
-</ResponsiveDialog>
+<CustomerDeleteDialog bind:open={deleteOpen} name={data.customer.name} action="?/delete" />

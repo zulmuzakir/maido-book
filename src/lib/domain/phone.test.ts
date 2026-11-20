@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatPhone, formatPhoneLocal, normalizePhone, waLink } from './phone.ts';
+import { formatPhone, formatPhoneNational, normalizePhone, waLink } from './phone.ts';
 
 describe('normalizePhone', () => {
 	it('normalizes common formats', () => {
@@ -21,10 +21,11 @@ describe('waLink', () => {
 	});
 });
 
-describe('formatPhoneLocal', () => {
-	it('shows a 62 number in local grouped form', () => {
-		expect(formatPhoneLocal('6281200000002')).toBe('0812 0000 0002');
-		expect(formatPhoneLocal('12345')).toBe('12345');
+describe('formatPhoneNational', () => {
+	it('shows a 62 number grouped, without the country code', () => {
+		expect(formatPhoneNational('6281113056420')).toBe('811 1305 6420');
+		expect(formatPhoneNational('628111305642')).toBe('811 1305 642');
+		expect(formatPhoneNational('12345')).toBe('12345');
 	});
 });
 

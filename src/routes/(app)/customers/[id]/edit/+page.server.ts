@@ -1,8 +1,15 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
-import { formatPhoneLocal, normalizePhone } from '#lib/domain/phone.ts';
+import { todayIso } from '#lib/domain/dates.ts';
+import { formatPhoneNational, normalizePhone } from '#lib/domain/phone.ts';
 import { resolveDose } from '#lib/server/crm/customer-form.ts';
-import { deleteCustomer, getCustomerDetail, updateCustomer } from '#lib/server/crm/customers.ts';
+import {
+	customerSnapshot,
+	deleteCustomer,
+	getCustomerDetail,
+	snapshotOf,
+	updateCustomer
+} from '#lib/server/crm/customers.ts';
 import { parseForm } from '#lib/server/crm/form.ts';
 import { customerSchema } from '#lib/server/crm/schemas.ts';
 import { m } from '#lib/paraglide/messages.js';
@@ -11,13 +18,15 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const detail = await getCustomerDetail(locals.db, params.id);
 	if (!detail) error(404, 'Not found');
 
-	const { customer: c } = detail;
+	const c = detail.customer;
 	return {
+		summary: snapshotOf(detail),
+		today: todayIso(),
 		title: m.customer_edit_title(),
 		customer: {
 			id: c.id,
 			name: c.name,
-			phone: formatPhoneLocal(c.phone),
+			phone: formatPhoneNational(c.phone),
 			dosePerDay: c.dosePerDay,
 			notes: c.notes ?? ''
 		}
@@ -35,15 +44,16 @@ export const actions: Actions = {
 
 		const result = await updateCustomer(locals.db, params.id, parsed.data);
 		if ('duplicateOf' in result) {
+			const existing = await customerSnapshot(locals.db, result.duplicateOf.id);
 			const phone = normalizePhone(fd.get('phone'));
 			return fail(400, {
 				action: 'update',
 				errors: { phone: 'duplicate' },
 				values: {
 					...(Object.fromEntries(fd) as Record<string, string>),
-					phone: phone ? formatPhoneLocal(phone) : String(fd.get('phone') ?? '')
+					phone: phone ? formatPhoneNational(phone) : String(fd.get('phone') ?? '')
 				},
-				duplicateOf: result.duplicateOf
+				duplicateOf: existing
 			});
 		}
 		redirect(303, `/customers/${params.id}?toast=customer_saved`);

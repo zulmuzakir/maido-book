@@ -7,6 +7,3 @@ export const fieldLabel = 'text-ui leading-4 font-semibold';
 
 /** One field: label, control, then hint or error. */
 export const fieldStack = 'space-y-1.5';
-
-/** The form column on form pages: left-aligned, 560px from md, 18px between fields. The phone bottom padding leaves room for the pinned `FormActions` bar. */
-export const formColumn = 'space-y-[18px] pb-[88px] md:max-w-[560px] md:pb-0';

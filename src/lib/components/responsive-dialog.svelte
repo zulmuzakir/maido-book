@@ -11,6 +11,7 @@
 		description,
 		children,
 		footer,
+		icon,
 		confirm = false
 	}: {
 		open?: boolean;
@@ -18,6 +19,8 @@
 		description?: string;
 		children: Snippet;
 		footer?: Snippet;
+		/** A 44px badge above the title (the delete confirmation's trash can). */
+		icon?: Snippet;
 		/** Phone bottom sheet for destructive confirmations: tighter body and 36px bottom padding. */
 		confirm?: boolean;
 	} = $props();
@@ -32,6 +35,7 @@
 		<!-- Centred dialog: 480px on tablet, 440px on desktop. -->
 		<Dialog.Content class="sm:max-w-[480px] xl:max-w-[440px]">
 			<Dialog.Header class="gap-2">
+				{#if icon}<div class="mb-1.5">{@render icon()}</div>{/if}
 				<Dialog.Title class={TITLE}>{title}</Dialog.Title>
 				{#if description}<Dialog.Description class={DESCRIPTION}>{description}</Dialog.Description
 					>{/if}
@@ -49,6 +53,7 @@
 					confirm && 'pb-0'
 				)}
 			>
+				{#if icon}<div class="mb-1">{@render icon()}</div>{/if}
 				<Drawer.Title class={TITLE}>{title}</Drawer.Title>
 				{#if description}<Drawer.Description class={DESCRIPTION}>{description}</Drawer.Description
 					>{/if}

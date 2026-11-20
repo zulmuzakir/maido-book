@@ -34,3 +34,18 @@ export interface RuleSettings {
 	maxAttempts: number;
 	winbackDays: number;
 }
+
+/** What the customer forms' side panel shows about one customer (the duplicate, or the one being edited). */
+export interface CustomerSnapshot {
+	id: string;
+	name: string;
+	phone: string;
+	dosePerDay: number;
+	/** Jakarta date the customer was added. */
+	since: string;
+	orderCount: number;
+	/** The count stopped at the order history cap. */
+	orderCountCapped: boolean;
+	lastOrder: { qty: number; unitLabel: string; orderDate: string; daysSupply: number } | null;
+	followUp: { dueDate: string; contacted: boolean } | null;
+}

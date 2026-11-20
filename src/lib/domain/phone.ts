@@ -28,8 +28,8 @@ export function searchDigits(q: string): string | null {
 	return d;
 }
 
-/** 6281200000002 → 0812 0000 0002 (the form's local-number input format). */
-export function formatPhoneLocal(p: string): string {
+/** 6281200000002 → 812 0000 0002: the form input, which shows +62 as a fixed prefix. */
+export function formatPhoneNational(p: string): string {
 	if (!p.startsWith('62')) return p;
-	return ('0' + p.slice(2)).replace(/(\d{4})(?=\d)/g, '$1 ');
+	return formatPhone(p).slice('+62 '.length);
 }
