@@ -383,9 +383,14 @@
 			</EmptyState>
 		{/if}
 
-		<!-- On wide screens the aside carries the day summary, so the list does not repeat it. -->
-		{#if dayDone && !query && !wide.current}
-			<QueueDone doneToday={data.doneToday} waitingCount={waiting.length} next={data.upcoming[0]} />
+		{#if dayDone && !query && tab === 'all'}
+			<QueueDone
+				variant="banner"
+				today={data.today}
+				doneToday={data.doneToday}
+				waitingCount={waiting.length}
+				next={data.upcoming[0]}
+			/>
 		{/if}
 
 		{#if shown.length === 0 && (query || tab !== 'all')}
@@ -432,6 +437,8 @@
 				</div>
 			{:else if dayDone && !query && tab === 'all'}
 				<QueueDone
+					variant="panel"
+					today={data.today}
 					doneToday={data.doneToday}
 					waitingCount={waiting.length}
 					next={data.upcoming[0]}

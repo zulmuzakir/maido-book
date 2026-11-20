@@ -10,14 +10,10 @@ import {
 	product
 } from '#lib/server/db/schema.ts';
 import { addDays } from '#lib/domain/dates.ts';
+import { pickHandled, type HandledOutcome } from '#lib/domain/handled.ts';
 import { planAfterOutcome, queueBucket, type QueueBucket } from '#lib/domain/follow-up.ts';
 import { renderTemplate, type TemplateVars } from '#lib/domain/template.ts';
-import type {
-	CustomerStatus,
-	FollowUpKind,
-	FollowUpOutcome,
-	ManualOutcome
-} from '#lib/domain/types.ts';
+import type { CustomerStatus, FollowUpKind, ManualOutcome } from '#lib/domain/types.ts';
 import { runBatch, type Stmt } from './batch.ts';
 import { latestOrderOn, toLastOrder, type LastOrder } from './customers.ts';
 import { getRules } from './settings.ts';
@@ -130,10 +126,15 @@ export interface HandledItem {
 	id: string;
 	customerId: string;
 	name: string;
-	outcome: FollowUpOutcome;
+	outcome: HandledOutcome;
+	lastOrder: LastOrder | null;
 }
 
-/** Outcomes and orders logged since Jakarta midnight, newest first: the queue's "done today" list. */
+/**
+ * Who was dealt with since Jakarta midnight, newest first, one row per customer: the queue's
+ * "Dihubungi hari ini" list. Plain sends count too ("contacted"); an outcome or order logged the
+ * same day says more and wins (see `pickHandled`).
+ */
 export async function handledToday(db: Db, today: string): Promise<HandledItem[]> {
 	const since = new Date(Date.parse(today + 'T00:00:00+07:00'));
 	const rows = await db
@@ -142,23 +143,36 @@ export async function handledToday(db: Db, today: string): Promise<HandledItem[]
 			customerId: activity.customerId,
 			name: customer.name,
 			type: activity.type,
-			outcome: activity.outcome
+			outcome: activity.outcome,
+			oDate: customerOrder.orderDate,
+			oQty: customerOrder.qty,
+			oDays: customerOrder.daysSupply,
+			pName: product.name,
+			pUnit: product.unitLabel
 		})
 		.from(activity)
 		.innerJoin(customer, eq(customer.id, activity.customerId))
+		.leftJoin(customerOrder, latestOrderOn)
+		.leftJoin(product, eq(product.id, customerOrder.productId))
 		.where(
-			and(
-				or(eq(activity.type, 'outcome'), eq(activity.type, 'order')),
-				gte(activity.createdAt, since)
-			)
+			and(inArray(activity.type, ['outcome', 'order', 'wa_sent']), gte(activity.createdAt, since))
 		)
 		.orderBy(sql`${activity.createdAt} desc`)
-		.limit(100);
-	return rows.map((r) => ({
+		.limit(300);
+	return pickHandled(
+		rows.map((r) => ({ ...r, type: r.type as 'outcome' | 'order' | 'wa_sent' }))
+	).map((r) => ({
 		id: String(r.id),
 		customerId: r.customerId,
 		name: r.name,
-		outcome: r.type === 'order' ? 'ordered' : (r.outcome ?? 'replied')
+		outcome: r.result,
+		lastOrder: toLastOrder({
+			orderDate: r.oDate,
+			qty: r.oQty,
+			daysSupply: r.oDays,
+			productName: r.pName,
+			unitLabel: r.pUnit
+		})
 	}));
 }
 
