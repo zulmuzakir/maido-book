@@ -55,8 +55,8 @@
 			<CustomerForm {values} {errors} {duplicateOf} idPrefix="edit-customer" />
 
 			<FormActions>
-				<Button type="submit" disabled={save.pending}>{m.save()}</Button>
-				<Button variant="outline" href={detailHref}>{m.cancel()}</Button>
+				<Button size="lg" type="submit" disabled={save.pending}>{m.save()}</Button>
+				<Button size="lg" variant="outline" href={detailHref}>{m.cancel()}</Button>
 			</FormActions>
 
 			<div class="border-t border-rule pt-[18px]">

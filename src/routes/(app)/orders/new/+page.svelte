@@ -274,8 +274,8 @@
 				<OrderPreview {plan} {orderDate} today={data.today} leadDays={data.rules.leadDays} />
 
 				<FormActions>
-					<Button type="submit" disabled={save.pending}>{m.order_submit()}</Button>
-					<Button href={backHref} variant="outline">{m.cancel()}</Button>
+					<Button size="lg" type="submit" disabled={save.pending}>{m.order_submit()}</Button>
+					<Button size="lg" href={backHref} variant="outline">{m.cancel()}</Button>
 				</FormActions>
 			</form>
 		{/if}

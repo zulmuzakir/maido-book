@@ -4,9 +4,12 @@
 	let { children }: { children: Snippet } = $props();
 </script>
 
-<!-- Phones: pinned above the safe area in place of the bottom nav (formColumn leaves room for it). From md: inline, left-aligned. Primary goes first. -->
+<!-- Pass the primary action first: it stays the form's default (Enter) button, and row-reverse
+     shows it last, on the right, as the design orders them.
+     Phone: a bar pinned just above the bottom nav, primary ~1.6× the secondary's width.
+     Tablet: a sticky bar at the bottom of the form. Desktop: inline, right-aligned. -->
 <div
-	class="fixed inset-x-0 bottom-0 z-20 flex gap-2 border-t border-rule bg-card px-4 pt-3 pb-[max(1.75rem,env(safe-area-inset-bottom))] *:flex-1 md:static md:flex-wrap md:border-0 md:bg-transparent md:p-0 md:*:flex-none"
+	class="fixed inset-x-0 bottom-[calc(72px+env(safe-area-inset-bottom))] z-20 flex flex-row-reverse gap-2 border-t border-rule bg-card px-4 py-2.5 shadow-[0_-6px_16px_color-mix(in_oklch,var(--shadow-tint)_5%,transparent)] *:flex-1 *:first:not-only:flex-[1.6] md:sticky md:bottom-0 md:justify-start md:px-0 md:py-3 md:shadow-none md:*:flex-none md:*:first:not-only:flex-none xl:static xl:border-0 xl:bg-transparent xl:pt-2 xl:pb-0"
 >
 	{@render children()}
 </div>

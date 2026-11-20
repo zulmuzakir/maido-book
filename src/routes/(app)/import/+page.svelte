@@ -222,7 +222,7 @@
 			<ImportReview {preview} rows={classified} {counts} onchangefile={reset} />
 
 			<div
-				class="sticky bottom-0 z-10 -mx-4 border-t border-rule bg-card px-4 pt-3 pb-[max(1.75rem,env(safe-area-inset-bottom))] md:hidden"
+				class="sticky bottom-[calc(72px+env(safe-area-inset-bottom))] z-10 -mx-4 border-t border-rule bg-card px-4 py-2.5 md:hidden"
 			>
 				<Button
 					type="submit"

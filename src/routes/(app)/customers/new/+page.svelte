@@ -39,11 +39,12 @@
 			<CustomerForm {values} {errors} {duplicateOf} idPrefix="new-customer" />
 
 			<FormActions>
-				<Button type="submit" name="next" value="order" disabled={save.pending}>
+				<Button size="lg" type="submit" name="next" value="order" disabled={save.pending}>
 					<PlusIcon />
 					{m.customer_form_save_order()}
 				</Button>
-				<Button type="submit" variant="outline" disabled={save.pending}>{m.save()}</Button>
+				<Button size="lg" type="submit" variant="outline" disabled={save.pending}>{m.save()}</Button
+				>
 			</FormActions>
 		</form>
 	</div>
