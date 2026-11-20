@@ -15,7 +15,9 @@
 	);
 
 	const slotClass =
-		'relative flex flex-col items-center gap-1 pt-0.5 text-[11px] leading-[14px] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset';
+		'relative flex h-full flex-col items-center justify-center gap-[3px] text-[11px] leading-[14px] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset';
+	const stateClass = (active: boolean) =>
+		active ? 'font-bold text-primary-text' : 'font-medium text-sidebar-muted';
 </script>
 
 {#snippet tab(item: NavItem)}
@@ -23,46 +25,48 @@
 	<a
 		href={resolve(item.route)}
 		aria-current={active ? 'page' : undefined}
-		class={cn(
-			slotClass,
-			active ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground'
-		)}
+		class={cn(slotClass, stateClass(active))}
 	>
-		<item.icon class="size-[22px]" aria-hidden="true" />
+		<span class="relative">
+			<item.icon class="size-[22px]" aria-hidden="true" />
+			{#if item.href === '/' && queueCount > 0}
+				<span
+					class="absolute -top-1 left-1/2 ml-1.5 inline-flex h-4 min-w-[18px] items-center justify-center rounded-lg bg-sidebar-primary px-1 text-[10px] leading-none font-extrabold text-sidebar-primary-foreground num"
+				>
+					{badgeCount(queueCount)}
+				</span>
+			{/if}
+		</span>
 		<span>{item.label()}</span>
-		{#if item.href === '/' && queueCount > 0}
-			<span
-				class="absolute top-0 left-1/2 ml-2 min-w-4 rounded-[4px] bg-primary px-1.5 py-px text-center text-xs leading-4 font-semibold text-primary-foreground num"
-			>
-				{badgeCount(queueCount)}
-			</span>
-		{/if}
 	</a>
 {/snippet}
 
+<!-- 72px bar plus the home-indicator inset; the centre "+" rises 24px above it. -->
 <nav
 	aria-label={m.nav_main_label()}
-	class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 items-start border-t border-rule bg-card px-2 pt-2 pb-[max(1.625rem,env(safe-area-inset-bottom))] md:hidden"
+	class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-sidebar-border bg-sidebar px-1.5 pb-[env(safe-area-inset-bottom)] md:hidden"
 >
-	{@render tab(tabs[0])}
-	{@render tab(tabs[1])}
-	<a
-		href={resolve('/(app)/orders/new')}
-		aria-label={m.new_order()}
-		class="mx-auto -mt-[18px] grid size-12 place-items-center rounded-[15px] bg-primary text-primary-foreground shadow-[0_6px_16px_color-mix(in_oklch,var(--primary)_30%,transparent)] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-	>
-		<Plus class="size-[22px]" aria-hidden="true" />
-	</a>
-	{@render tab(tabs[2])}
-	<a
-		href={resolve('/(app)/more')}
-		aria-current={moreActive ? 'page' : undefined}
-		class={cn(
-			slotClass,
-			moreActive ? 'font-semibold text-foreground' : 'font-medium text-muted-foreground'
-		)}
-	>
-		<Menu class="size-[22px]" aria-hidden="true" />
-		<span>{m.nav_more()}</span>
-	</a>
+	<div class="contents *:h-[66px]">
+		{@render tab(tabs[0])}
+		{@render tab(tabs[1])}
+		<div class="flex justify-center">
+			<a
+				href={resolve('/(app)/orders/new')}
+				aria-label={m.new_order()}
+				class="-mt-6 grid size-[52px] place-items-center rounded-2xl bg-sidebar-primary text-sidebar-primary-foreground shadow-[0_6px_16px_color-mix(in_oklch,var(--sidebar-primary)_35%,transparent)] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+			>
+				<Plus class="size-6" aria-hidden="true" />
+			</a>
+		</div>
+		{@render tab(tabs[2])}
+		<a
+			href={resolve('/(app)/more')}
+			aria-current={moreActive ? 'page' : undefined}
+			class={cn(slotClass, stateClass(moreActive))}
+		>
+			<Menu class="size-[22px]" aria-hidden="true" />
+			<span>{m.nav_more()}</span>
+		</a>
+	</div>
+	<div class="col-span-5 h-1.5" aria-hidden="true"></div>
 </nav>

@@ -28,8 +28,8 @@
 <SideNav queueCount={data.queueCount} user={data.user} />
 <main
 	class={[
-		'min-h-dvh md:pb-0 md:pl-[72px] xl:pl-[232px]',
-		!hideBottomNav && 'pb-[calc(3.125rem+max(1.625rem,env(safe-area-inset-bottom)))]'
+		'min-h-dvh md:pb-0 md:pl-[84px] xl:pl-[232px]',
+		!hideBottomNav && 'pb-[calc(72px+env(safe-area-inset-bottom))]'
 	]}
 >
 	{@render children()}

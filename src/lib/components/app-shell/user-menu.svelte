@@ -1,4 +1,5 @@
 <script lang="ts">
+	import Ellipsis from '@lucide/svelte/icons/ellipsis';
 	import { firstName } from '#lib/format.ts';
 	import InitialsAvatar from '#lib/components/initials-avatar.svelte';
 	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
@@ -11,17 +12,16 @@
 <DropdownMenu.Root>
 	<DropdownMenu.Trigger
 		aria-label={m.user_menu_label({ name: user.name })}
-		class="flex w-full items-center justify-center gap-2.5 rounded-lg p-0 text-left transition-colors outline-none hover:bg-sidebar-accent/70 focus-visible:ring-2 focus-visible:ring-sidebar-ring xl:justify-start xl:px-1.5 xl:py-2.5"
+		class="flex items-center gap-2.5 rounded-full text-left outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring xl:h-12 xl:w-full xl:rounded-lg xl:px-1.5 xl:transition-colors xl:hover:bg-sidebar-accent/60"
 	>
 		<InitialsAvatar
 			name={user.name}
-			size={30}
-			class="bg-sidebar-primary font-bold text-sidebar-primary-foreground xl:!size-7"
+			class="size-[34px] bg-sidebar-accent text-sm font-bold text-primary-text xl:size-[30px] xl:text-[13px]"
 		/>
-		<span
-			class="min-w-0 flex-1 truncate text-ui font-semibold text-sidebar-foreground max-xl:hidden"
+		<span class="min-w-0 flex-1 truncate text-sm font-medium text-sidebar-foreground max-xl:hidden"
 			>{firstName(user.name)}</span
 		>
+		<Ellipsis class="size-4 shrink-0 text-sidebar-muted/60 max-xl:hidden" aria-hidden="true" />
 	</DropdownMenu.Trigger>
 	<DropdownMenu.Content side="right" align="end" class="w-56 rounded-xl">
 		<DropdownMenu.Label>

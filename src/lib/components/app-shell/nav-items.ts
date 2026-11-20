@@ -1,5 +1,5 @@
 import type { Component } from 'svelte';
-import ListChecks from '@lucide/svelte/icons/list-checks';
+import TextAlignStart from '@lucide/svelte/icons/text-align-start';
 import Users from '@lucide/svelte/icons/users';
 import ReceiptText from '@lucide/svelte/icons/receipt-text';
 import ChartColumn from '@lucide/svelte/icons/chart-column';
@@ -32,7 +32,7 @@ const item = (href: string, route: AppRoute, icon: unknown, label: () => string)
 
 /** The daily work, in the order a CS agent reaches for it. */
 export const primaryNav: NavItem[] = [
-	item('/', '/(app)', ListChecks, () => m.nav_today()),
+	item('/', '/(app)', TextAlignStart, () => m.nav_today()),
 	item('/customers', '/(app)/customers', Users, () => m.nav_customers()),
 	item('/orders', '/(app)/orders', ReceiptText, () => m.nav_orders()),
 	item('/insights', '/(app)/insights', ChartColumn, () => m.nav_insights())
