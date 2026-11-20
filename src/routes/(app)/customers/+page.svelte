@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { MediaQuery } from 'svelte/reactivity';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import PlusIcon from '@lucide/svelte/icons/plus';
@@ -30,6 +31,8 @@
 		})[s]();
 
 	let q = $state(page.url.searchParams.get('q') ?? '');
+	// The search sits in the header from lg; below that it has its own full-width row.
+	const wide = new MediaQuery('(min-width: 1024px)');
 	let timer: ReturnType<typeof setTimeout> | undefined;
 
 	// A search still waiting to fire must not pull the user back here after they navigate away.
@@ -54,13 +57,13 @@
 
 	function scheduleSearch(value: string) {
 		clearTimeout(timer);
-		timer = setTimeout(() => go(listHref({ q: value.trim(), page: null })), 250);
+		timer = setTimeout(() => go(listHref({ q: value.trim(), page: null, n: null })), 250);
 	}
 
 	function onSearchSubmit(e: SubmitEvent) {
 		e.preventDefault();
 		clearTimeout(timer);
-		go(listHref({ q: q.trim(), page: null }));
+		go(listHref({ q: q.trim(), page: null, n: null }));
 	}
 
 	const pages = $derived(Math.max(1, Math.ceil(data.total / data.pageSize)));
@@ -68,13 +71,23 @@
 	const to = $derived(Math.min(data.total, data.page * data.pageSize));
 	const hasPrev = $derived(data.page > 1);
 	const hasNext = $derived(data.page * data.pageSize < data.total);
+	const moreHref = $derived(
+		data.page === 1 && hasNext
+			? listHref({ n: String(data.pageSize + data.step), page: null })
+			: null
+	);
+	const summary = $derived(
+		data.q
+			? m.customers_match({ count: data.total, q: data.q })
+			: m.customers_count({ count: data.total })
+	);
 
 	const tabItems = $derived(
 		STATUS_ITEMS.map((s) => ({
 			key: s,
 			label: statusLabel(s),
 			count: data.counts[s],
-			href: listHref({ status: s, page: null })
+			href: listHref({ status: s, page: null, n: null })
 		}))
 	);
 </script>
@@ -83,60 +96,71 @@
 	<title>{data.title}</title>
 </svelte:head>
 
+{#snippet searchField()}
+	<form
+		method="get"
+		action={resolve('/(app)/customers')}
+		onsubmit={onSearchSubmit}
+		role="search"
+		class="contents"
+	>
+		<input type="hidden" name="status" value={data.status} />
+		<HeaderSearch
+			id="customer-search"
+			name="q"
+			bind:value={q}
+			block={!wide.current}
+			label={m.customers_search_label()}
+			placeholder={m.customers_search_placeholder()}
+			oninput={scheduleSearch}
+		/>
+		<button type="submit" class="sr-only">{m.customers_search_button()}</button>
+	</form>
+{/snippet}
+
+<!-- Desktop: search and "Tambah pelanggan" in the header. Tablet/phone: the search is its own
+     full-width row under the title; the phone's add button is a purple "+ Tambah". -->
 <div class="flex min-h-dvh flex-col bg-card">
-	<PageHeader title={data.title} metaInline="md">
+	<PageHeader title={data.title} metaInline="md" class={wide.current ? '' : 'md:border-b-0'}>
 		{#snippet meta()}
-			<span class="num">{m.customers_count({ count: data.total })}</span>
+			<span class="num">
+				{data.total === 0 && data.q
+					? m.customers_no_results_meta({ q: data.q })
+					: m.customers_count({ count: data.total })}
+			</span>
 		{/snippet}
 		{#snippet search()}
-			<form
-				method="get"
-				action={resolve('/(app)/customers')}
-				onsubmit={onSearchSubmit}
-				role="search"
-				class="contents"
-			>
-				<input type="hidden" name="status" value={data.status} />
-				<HeaderSearch
-					id="customer-search"
-					name="q"
-					bind:value={q}
-					label={m.customers_search_label()}
-					placeholder={m.customers_search_placeholder()}
-					oninput={scheduleSearch}
-				/>
-				<button type="submit" class="sr-only">{m.customers_search_button()}</button>
-			</form>
+			{#if wide.current}{@render searchField()}{/if}
 		{/snippet}
 		{#snippet actions()}
-			<Button
-				href={resolve('/(app)/customers/new')}
-				class="hidden md:inline-flex md:h-9 md:rounded-lg md:px-3.5 md:text-ui md:font-semibold"
-			>
-				<PlusIcon class="size-4" aria-hidden="true" />
+			<Button href={resolve('/(app)/customers/new')} class="hidden font-semibold md:inline-flex">
+				<PlusIcon class="size-[18px]" aria-hidden="true" />
 				{m.customers_add()}
 			</Button>
 			<Button
-				variant="outline"
-				size="icon"
+				variant="ghost"
 				href={resolve('/(app)/customers/new')}
-				class="size-10 rounded-[12px] md:hidden"
-				aria-label={m.customers_add()}
+				class="px-3 font-semibold text-primary-text md:hidden"
 			>
-				<PlusIcon class="size-4" aria-hidden="true" />
+				<PlusIcon class="size-[18px]" aria-hidden="true" />
+				{m.customers_add_short()}
 			</Button>
 		{/snippet}
 	</PageHeader>
 
+	{#if !wide.current}
+		<div class="px-4 pb-3 md:px-6 md:pt-1">{@render searchField()}</div>
+	{/if}
+
 	<div class="flex flex-1 flex-col">
-		{#if data.total > 0 || data.status !== 'all'}
-			<div class="px-4 md:h-11 md:border-b md:border-rule md:px-6 xl:px-8">
+		{#if data.total > 0 || (data.status !== 'all' && !data.q)}
+			<div class="px-4 pb-3 md:border-b md:border-rule md:px-6 md:pb-0 xl:px-8">
 				<FilterTabs items={tabItems} active={data.status} label={m.customers_filter_label()} />
 			</div>
 		{/if}
 
 		{#if data.total === 0}
-			<div class="flex flex-1 items-center justify-center py-10">
+			<div class="flex flex-1 items-center justify-center pb-10">
 				{#if data.q !== ''}
 					<EmptyState
 						icon={SearchIcon}
@@ -144,11 +168,7 @@
 						description={m.customers_no_results({ q: data.q })}
 					>
 						{#snippet actions()}
-							<Button
-								variant="outline"
-								href={listHref({ q: null, page: null })}
-								class="text-ui desk:h-10"
-							>
+							<Button variant="outline" href={listHref({ q: null, page: null, n: null })}>
 								{m.customers_clear_search()}
 							</Button>
 						{/snippet}
@@ -156,11 +176,7 @@
 				{:else if data.status !== 'all'}
 					<EmptyState icon={UsersIcon} title={m.customers_no_status()}>
 						{#snippet actions()}
-							<Button
-								variant="outline"
-								href={listHref({ status: null, page: null })}
-								class="text-ui desk:h-10"
-							>
+							<Button variant="outline" href={listHref({ status: null, page: null, n: null })}>
 								{m.customers_show_all()}
 							</Button>
 						{/snippet}
@@ -168,20 +184,17 @@
 				{:else}
 					<EmptyState
 						icon={UsersIcon}
+						tone="brand"
 						title={m.customers_empty_title()}
 						description={m.customers_empty_description()}
 					>
 						{#snippet actions()}
-							<Button href={resolve('/(app)/import')} class="text-ui desk:h-10">
-								<UploadIcon class="size-4" aria-hidden="true" />
+							<Button href={resolve('/(app)/import')}>
+								<UploadIcon class="size-[18px]" aria-hidden="true" />
 								{m.customers_import()}
 							</Button>
-							<Button
-								variant="outline"
-								href={resolve('/(app)/customers/new')}
-								class="hidden text-ui md:inline-flex desk:h-10"
-							>
-								<PlusIcon class="size-4" aria-hidden="true" />
+							<Button variant="outline" href={resolve('/(app)/customers/new')}>
+								<PlusIcon class="size-[18px]" aria-hidden="true" />
 								{m.customers_add()}
 							</Button>
 						{/snippet}
@@ -189,7 +202,7 @@
 				{/if}
 			</div>
 		{:else}
-			<div class="mt-3 flex flex-1 flex-col md:mt-0">
+			<div class="flex flex-1 flex-col">
 				<CustomerList items={data.items} today={data.today} leadDays={data.leadDays} />
 
 				<CustomerPager
@@ -198,8 +211,11 @@
 					{from}
 					{to}
 					total={data.total}
+					{summary}
 					prevHref={hasPrev ? listHref({ page: String(data.page - 1) }) : null}
 					nextHref={hasNext ? listHref({ page: String(data.page + 1) }) : null}
+					{moreHref}
+					moreCount={Math.min(data.step, data.total - to)}
 				/>
 			</div>
 		{/if}

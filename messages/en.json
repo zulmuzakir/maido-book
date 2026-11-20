@@ -209,7 +209,7 @@
 	"customers_empty_title": "No customers yet",
 	"customers_empty_description": "Import from Excel or add your first customer.",
 	"customers_import": "Import from Excel",
-	"customers_no_results": "No customers match “{q}”.",
+	"customers_no_results": "No customers match “{q}”. Try another name or a WhatsApp number.",
 	"customers_clear_search": "Clear search",
 	"customer_new_title": "New customer",
 	"customer_form_name": "Name",
@@ -537,5 +537,13 @@
 	"order_save_failed": "The server couldn't be reached, so nothing was saved. Check your connection and try again. Your entries are still here.",
 	"order_save_failed_short": "Not saved. Check your connection; your entries are safe.",
 	"order_no_products_title": "No active products yet",
-	"dose_per_day_suffix": "×/day"
+	"dose_per_day_suffix": "×/day",
+	"customers_col_stock": "Stock",
+	"customers_row_order_short": "{qty} {unit}, {date}",
+	"customers_send_to": "Send WhatsApp to {name}",
+	"customers_load_more": "Load {count} more",
+	"customers_all_shown": "All results shown",
+	"customers_match": "{count} customers match “{q}”",
+	"customers_no_results_meta": "0 results for “{q}”",
+	"customers_add_short": "Add"
 }

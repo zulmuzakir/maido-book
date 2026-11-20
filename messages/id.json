@@ -155,7 +155,7 @@
 	"customers_empty_title": "Belum ada pelanggan",
 	"customers_empty_description": "Impor dari Excel atau tambahkan pelanggan pertama Anda.",
 	"customers_import": "Impor dari Excel",
-	"customers_no_results": "Tidak ada pelanggan yang cocok dengan “{q}”.",
+	"customers_no_results": "Tidak ada pelanggan yang cocok dengan “{q}”. Coba nama lain atau nomor WhatsApp.",
 	"customers_clear_search": "Hapus pencarian",
 	"customer_new_title": "Pelanggan baru",
 	"customer_form_name": "Nama",
@@ -447,5 +447,13 @@
 	"order_save_failed": "Server tidak terjangkau, jadi belum ada yang tersimpan. Periksa koneksi lalu coba lagi. Isian Anda tetap di sini.",
 	"order_save_failed_short": "Gagal menyimpan. Periksa koneksi, isian tetap aman.",
 	"order_no_products_title": "Belum ada produk aktif",
-	"dose_per_day_suffix": "×/hari"
+	"dose_per_day_suffix": "×/hari",
+	"customers_col_stock": "Stok",
+	"customers_row_order_short": "{qty} {unit}, {date}",
+	"customers_send_to": "Kirim WhatsApp ke {name}",
+	"customers_load_more": "Muat {count} lainnya",
+	"customers_all_shown": "Semua hasil sudah tampil",
+	"customers_match": "{count} pelanggan cocok dengan “{q}”",
+	"customers_no_results_meta": "0 hasil untuk “{q}”",
+	"customers_add_short": "Tambah"
 }
