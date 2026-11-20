@@ -1,5 +1,4 @@
 <script lang="ts">
-	import SectionHeading from '#lib/components/section-heading.svelte';
 	import FieldError from '#lib/components/field-error.svelte';
 	import type { PageProps } from './$types';
 	import { enhance } from '$app/forms';
@@ -21,12 +20,12 @@
 	import SettingsProductFields from '#lib/components/settings-product-fields.svelte';
 	import SettingsTemplateField from '#lib/components/settings-template-field.svelte';
 	import SettingsSectionNav from './settings-section-nav.svelte';
-	import Database from '@lucide/svelte/icons/database';
-	import MessageSquareText from '@lucide/svelte/icons/message-square-text';
-	import Package from '@lucide/svelte/icons/package';
+	import Clock from '@lucide/svelte/icons/clock';
+	import MessageCircle from '@lucide/svelte/icons/message-circle';
 	import Plus from '@lucide/svelte/icons/plus';
-	import SlidersHorizontal from '@lucide/svelte/icons/sliders-horizontal';
+	import Receipt from '@lucide/svelte/icons/receipt';
 	import Upload from '@lucide/svelte/icons/upload';
+	import { cn } from '#lib/utils.js';
 
 	let { data, form }: PageProps = $props();
 
@@ -99,6 +98,9 @@
 		cs: data.csName
 	});
 	let activeKind = $state<string>(FOLLOW_UP_KINDS[0]);
+	// "Closing" here; the queue keeps the longer "Closing (berminat)".
+	const templateTabLabel = (kind: (typeof FOLLOW_UP_KINDS)[number]) =>
+		kind === 'closing' ? m.settings_kind_closing() : followUpKindLabel(kind);
 
 	// One shared pending flag per form group; every submit carries the current values.
 	const productAction = new FormAction();
@@ -106,11 +108,11 @@
 	const templatesAction = new FormAction();
 
 	type SectionId = 'products' | 'rules' | 'templates' | 'data';
-	const sections: { id: SectionId; label: () => string; icon: typeof Package }[] = [
-		{ id: 'products', label: () => m.settings_products(), icon: Package },
-		{ id: 'rules', label: () => m.settings_rules(), icon: SlidersHorizontal },
-		{ id: 'templates', label: () => m.settings_templates(), icon: MessageSquareText },
-		{ id: 'data', label: () => m.settings_data(), icon: Database }
+	const sections: { id: SectionId; label: () => string; icon: typeof Receipt }[] = [
+		{ id: 'products', label: () => m.settings_products(), icon: Receipt },
+		{ id: 'rules', label: () => m.settings_rules(), icon: Clock },
+		{ id: 'templates', label: () => m.settings_templates(), icon: MessageCircle },
+		{ id: 'data', label: () => m.settings_data(), icon: Upload }
 	];
 	const sectionItems = $derived(sections.map((s) => ({ key: s.id, label: s.label() })));
 
@@ -138,13 +140,25 @@
 		document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
 	}
 
+	// One column: full width on phone, 600px on tablet, 720px centred beside the nav on desktop.
 	const sectionClass =
-		'scroll-mt-4 flex flex-col gap-3.5 border-b border-row-rule px-4 py-6 md:px-6 xl:px-10';
+		'scroll-mt-16 flex flex-col gap-[18px] border-b border-rule py-7 last:border-b-0 md:scroll-mt-4';
+	// Phone: full width. Tablet/desktop: right-aligned 40px, named per section.
+	const SAVE = 'h-12 w-full px-5 text-sm font-semibold md:h-10 md:w-auto desk:h-10';
+	const H2 = 'text-[17px] leading-[22px] font-bold tracking-[-0.01em]';
+	const HINT = 'mt-0.5 text-sm leading-5 text-muted-foreground';
 </script>
 
 <svelte:head>
 	<title>{m.nav_settings()}</title>
 </svelte:head>
+
+{#snippet heading(id: string, title: string, hint?: string)}
+	<div>
+		<h2 {id} class={H2}>{title}</h2>
+		{#if hint}<p class={HINT}>{hint}</p>{/if}
+	</div>
+{/snippet}
 
 <div class="min-h-dvh bg-card">
 	<PageHeader
@@ -153,178 +167,205 @@
 		variant="subpage"
 		backMobileOnly
 		metaInline="md"
+		class="md:px-[max(24px,calc((100%-600px)/2))] xl:px-8"
 	>
 		{#snippet meta()}{m.settings_subtitle()}{/snippet}
 	</PageHeader>
 
-	<div class="xl:grid xl:grid-cols-[232px_minmax(0,1fr)]">
+	<div class="xl:grid xl:grid-cols-[220px_minmax(0,1fr)]">
 		<SettingsSectionNav {sections} active={activeId} ongo={go} />
 
-		<div class="min-w-0 max-md:border-t max-md:border-rule">
-			<div class="hidden px-6 md:block md:border-b md:border-rule md:px-6 xl:hidden xl:px-8">
+		<div class="min-w-0">
+			<!-- Phone: pill chips that scroll to their section. -->
+			<nav
+				aria-label={m.nav_settings()}
+				class="sticky top-0 z-10 -mb-3 flex [scrollbar-width:none] gap-2 overflow-x-auto bg-card px-4 py-2 md:hidden"
+			>
+				{#each sections as sec (sec.id)}
+					<button
+						type="button"
+						aria-current={activeId === sec.id ? 'true' : undefined}
+						onclick={() => go(sec.id)}
+						class={cn(
+							'h-10 shrink-0 rounded-full border px-4 text-sm font-semibold whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-ring',
+							activeId === sec.id
+								? 'border-primary bg-primary text-primary-foreground'
+								: 'border-border bg-card text-foreground'
+						)}>{sec.label()}</button
+					>
+				{/each}
+			</nav>
+			<!-- Tablet: an underlined tab strip over the 600px column. -->
+			<div
+				class="sticky top-0 z-10 hidden border-b border-rule bg-card px-[max(24px,calc((100%-600px)/2))] md:block xl:hidden"
+			>
 				<FilterTabs items={sectionItems} active={activeId} onselect={go} label={m.nav_settings()} />
 			</div>
 
-			<section id="products" class={sectionClass} aria-labelledby="settings-products-heading">
-				<SectionHeading
-					id="settings-products-heading"
-					title={m.settings_products()}
-					description={m.settings_products_hint()}
-					size="sm"
-					class="items-center"
-				>
-					{#snippet actions()}
-						<Button variant="outline" onclick={() => (productDialogOpen = true)}>
-							<Plus />
-							{m.settings_product_add()}
-						</Button>
-					{/snippet}
-				</SectionHeading>
-
-				{#if data.products.length === 0}
-					<p class="text-ui text-muted-foreground">{m.settings_products_empty()}</p>
-				{/if}
-
-				{#each data.products as p (p.id)}
-					{@const errs = productErrorsFor(p.id)}
-					<form
-						method="post"
-						action="?/updateProduct"
-						use:enhance={productAction.enhance}
-						class="flex flex-col gap-3.5 border-t border-row-rule pt-4 first:border-t-0 first:pt-0"
-					>
-						<input type="hidden" name="productId" value={p.id} />
-						<SettingsProductFields idPrefix={`product-${p.id}`} product={p} errors={errs} />
-
-						<div class="flex h-10 items-center justify-between gap-4">
-							<Label for={`product-${p.id}-active`} class="text-ui leading-4 font-semibold"
-								>{m.settings_product_active()}</Label
-							>
-							<Switch
-								id={`product-${p.id}-active`}
-								name="active"
-								checked={p.active}
-								class="w-10 data-checked:bg-primary dark:[&>[data-slot=switch-thumb]]:bg-card [&[data-checked]>[data-slot=switch-thumb]]:translate-x-4"
-							/>
-						</div>
-						<FieldError message={errs.active} />
-
-						<div class="flex pt-1">
-							<Button type="submit" class="h-9 px-3.5 text-ui" disabled={productAction.pending}
-								>{m.save()}</Button
-							>
-						</div>
-					</form>
-				{/each}
-			</section>
-
-			<section id="rules" class={sectionClass} aria-labelledby="settings-rules-heading">
-				<SectionHeading
-					id="settings-rules-heading"
-					title={m.settings_rules()}
-					description={m.settings_rules_hint()}
-					size="sm"
-				/>
-
-				<form
-					method="post"
-					action="?/rules"
-					use:enhance={rulesAction.enhance}
-					class="flex flex-col"
-				>
-					<div class="grid grid-cols-2 gap-4">
-						{#each ruleFields as f (f.key)}
-							<div class="space-y-1.5">
-								<Label for={f.key} class="text-ui leading-4 font-semibold">{f.label}</Label>
-								<div class="relative">
-									<Input
-										id={f.key}
-										name={f.key}
-										inputmode="numeric"
-										autocomplete="off"
-										bind:value={rules[f.key]}
-										class="h-10 pr-12 text-base num md:text-sm desk:h-10"
-										aria-invalid={!!rulesErrors[f.key]}
-									/>
-									<span
-										class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-ui text-muted-foreground"
-										>{f.unit}</span
-									>
-								</div>
-								<FieldError message={rulesErrors[f.key]} />
-							</div>
-						{/each}
-					</div>
-
-					<div class="flex pt-1">
-						<Button type="submit" class="h-9 px-3.5 text-ui" disabled={rulesAction.pending}
-							>{m.settings_rules_save()}</Button
+			<div class="px-4 pb-8 md:mx-auto md:max-w-[648px] md:px-6 xl:max-w-[800px] xl:px-10">
+				<section id="products" class={sectionClass} aria-labelledby="settings-products-heading">
+					<div class="flex items-start justify-between gap-4">
+						{@render heading(
+							'settings-products-heading',
+							m.settings_products(),
+							m.settings_products_hint()
+						)}
+						<Button
+							variant="outline"
+							class="h-11 shrink-0 font-semibold desk:h-10"
+							onclick={() => (productDialogOpen = true)}
 						>
+							<Plus />
+							<span class="max-md:sr-only">{m.settings_product_add()}</span>
+						</Button>
 					</div>
-				</form>
-			</section>
 
-			<section id="templates" class={sectionClass} aria-labelledby="settings-templates-heading">
-				<SectionHeading
-					id="settings-templates-heading"
-					title={m.settings_templates()}
-					description={m.settings_templates_hint()}
-					size="sm"
-				/>
+					{#if data.products.length === 0}
+						<p class="text-ui text-muted-foreground">{m.settings_products_empty()}</p>
+					{/if}
 
-				<Tabs.Root bind:value={activeKind} class="gap-4">
-					<Tabs.List
-						variant="line"
-						class="h-auto w-full justify-start gap-3.5 overflow-x-auto p-0 group-data-horizontal/tabs:h-auto xl:gap-[18px] xl:group-data-horizontal/tabs:h-auto"
-					>
-						{#each FOLLOW_UP_KINDS as kind (kind)}
-							<Tabs.Trigger
-								value={kind}
-								class="flex-none px-0 py-2 group-data-horizontal/tabs:after:bottom-0 dark:after:bg-accent-foreground"
-								>{followUpKindLabel(kind)}</Tabs.Trigger
-							>
-						{/each}
-					</Tabs.List>
+					{#each data.products as p (p.id)}
+						{@const errs = productErrorsFor(p.id)}
+						<form
+							method="post"
+							action="?/updateProduct"
+							use:enhance={productAction.enhance}
+							class="flex flex-col gap-[18px] border-t border-rule pt-5 first-of-type:border-t-0 first-of-type:pt-0"
+						>
+							<input type="hidden" name="productId" value={p.id} />
+							<SettingsProductFields idPrefix={`product-${p.id}`} product={p} errors={errs} />
 
-					<!-- Every field stays in the form; inactive ones are hidden, so all five bodies post. -->
-					<form
-						method="post"
-						action="?/templates"
-						use:enhance={templatesAction.enhance}
-						class="flex flex-col gap-5"
-					>
-						{#each FOLLOW_UP_KINDS as kind (kind)}
-							<div hidden={activeKind !== kind}>
-								<SettingsTemplateField
-									id={`template-${kind}`}
-									name={kind}
-									label={followUpKindLabel(kind)}
-									bind:value={templates[kind]}
-									error={templateErrors[kind]}
-									{sample}
+							<div class="flex items-center justify-between gap-4">
+								<div>
+									<Label for={`product-${p.id}-active`} class="text-sm leading-[18px] font-semibold"
+										>{m.settings_product_active()}</Label
+									>
+									<p class="text-[13px] leading-[18px] text-muted-foreground">
+										{m.settings_product_active_hint()}
+									</p>
+								</div>
+								<Switch
+									id={`product-${p.id}-active`}
+									name="active"
+									checked={p.active}
+									class="dark:[&>[data-slot=switch-thumb]]:bg-card"
 								/>
 							</div>
-						{/each}
+							<FieldError message={errs.active} />
 
-						<div class="flex pt-1">
-							<Button type="submit" class="h-9 px-3.5 text-ui" disabled={templatesAction.pending}>
-								{m.settings_templates_save()}
-							</Button>
+							<div class="flex justify-end">
+								<Button type="submit" class={SAVE} disabled={productAction.pending}
+									>{m.settings_product_save()}</Button
+								>
+							</div>
+						</form>
+					{/each}
+				</section>
+
+				<section id="rules" class={sectionClass} aria-labelledby="settings-rules-heading">
+					{@render heading('settings-rules-heading', m.settings_rules(), m.settings_rules_hint())}
+
+					<form
+						method="post"
+						action="?/rules"
+						use:enhance={rulesAction.enhance}
+						class="flex flex-col gap-[18px]"
+					>
+						<div class="grid gap-x-4 gap-y-[18px] xl:grid-cols-2">
+							{#each ruleFields as f (f.key)}
+								<div class="space-y-1.5">
+									<Label for={f.key} class="text-ui leading-4 font-semibold">{f.label}</Label>
+									<div class="relative">
+										<Input
+											id={f.key}
+											name={f.key}
+											inputmode="numeric"
+											autocomplete="off"
+											bind:value={rules[f.key]}
+											class="h-11 pr-12 text-base num md:text-[15px] desk:h-11"
+											aria-invalid={!!rulesErrors[f.key]}
+										/>
+										<span
+											class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[13px] text-muted-foreground"
+											>{f.unit}</span
+										>
+									</div>
+									<FieldError message={rulesErrors[f.key]} />
+								</div>
+							{/each}
+						</div>
+
+						<div class="flex justify-end">
+							<Button type="submit" class={SAVE} disabled={rulesAction.pending}
+								>{m.settings_rules_save()}</Button
+							>
 						</div>
 					</form>
-				</Tabs.Root>
-			</section>
+				</section>
 
-			<section id="data" class={sectionClass} aria-labelledby="settings-data-heading">
-				<SectionHeading id="settings-data-heading" title={m.settings_data()} size="sm" />
-				<div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-					<p class="text-ui text-muted-foreground">{m.settings_data_hint()}</p>
-					<Button variant="outline" href={resolve('/(app)/import')} class="w-full sm:w-auto">
-						<Upload />
-						{m.settings_import()}
-					</Button>
-				</div>
-			</section>
+				<section id="templates" class={sectionClass} aria-labelledby="settings-templates-heading">
+					{@render heading(
+						'settings-templates-heading',
+						m.settings_templates(),
+						m.settings_templates_hint()
+					)}
+
+					<Tabs.Root bind:value={activeKind} class="gap-4">
+						<Tabs.List
+							variant="line"
+							class="h-auto w-full justify-start gap-[26px] overflow-x-auto border-b border-rule p-0 group-data-horizontal/tabs:h-auto xl:group-data-horizontal/tabs:h-auto"
+						>
+							{#each FOLLOW_UP_KINDS as kind (kind)}
+								<Tabs.Trigger
+									value={kind}
+									class="h-11 flex-none px-0 text-sm group-data-horizontal/tabs:after:bottom-0 dark:after:bg-accent-foreground data-active:font-bold"
+									>{templateTabLabel(kind)}</Tabs.Trigger
+								>
+							{/each}
+						</Tabs.List>
+
+						<!-- Every field stays in the form; inactive ones are hidden, so all five bodies post. -->
+						<form
+							method="post"
+							action="?/templates"
+							use:enhance={templatesAction.enhance}
+							class="flex flex-col gap-[18px]"
+						>
+							{#each FOLLOW_UP_KINDS as kind (kind)}
+								<div hidden={activeKind !== kind}>
+									<SettingsTemplateField
+										id={`template-${kind}`}
+										name={kind}
+										bind:value={templates[kind]}
+										error={templateErrors[kind]}
+										{sample}
+									/>
+								</div>
+							{/each}
+
+							<div class="flex justify-end">
+								<Button type="submit" class={SAVE} disabled={templatesAction.pending}>
+									{m.settings_templates_save()}
+								</Button>
+							</div>
+						</form>
+					</Tabs.Root>
+				</section>
+
+				<section id="data" class={sectionClass} aria-labelledby="settings-data-heading">
+					{@render heading('settings-data-heading', m.settings_data(), m.settings_data_hint())}
+					<div>
+						<Button
+							variant="outline"
+							href={resolve('/(app)/import')}
+							class="h-12 w-full font-semibold md:h-10 md:w-auto desk:h-10"
+						>
+							<Upload />
+							{m.settings_import()}
+						</Button>
+					</div>
+				</section>
+			</div>
 		</div>
 	</div>
 </div>

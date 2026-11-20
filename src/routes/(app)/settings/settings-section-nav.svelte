@@ -15,7 +15,7 @@
 
 <nav
 	aria-label={m.nav_settings()}
-	class="sticky top-4 hidden self-start border-r border-rule px-4 py-5 xl:block"
+	class="sticky top-0 hidden min-h-[calc(100dvh-68px)] self-start border-r border-rule px-3 py-5 xl:block"
 >
 	<ul class="flex flex-col gap-0.5">
 		{#each sections as s (s.id)}
@@ -25,9 +25,9 @@
 					type="button"
 					aria-current={active === s.id ? 'true' : undefined}
 					class={[
-						'flex h-[38px] w-full items-center gap-2.5 rounded-lg px-2.5 text-sm leading-[18px] transition-colors',
+						'flex h-[42px] w-full items-center gap-2.5 rounded-lg px-3 text-sm leading-[18px] transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring',
 						active === s.id
-							? 'bg-accent font-semibold text-foreground'
+							? 'bg-accent font-semibold text-accent-foreground'
 							: 'font-medium text-muted-foreground hover:bg-muted'
 					]}
 					onclick={() => ongo(s.id)}

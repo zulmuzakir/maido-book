@@ -52,6 +52,7 @@
 	--whatsapp: #2a6e50;
 	--whatsapp-foreground: #ffffff;
 	--whatsapp-text: #2a6e50;
+	--wa-bubble: #e4f3ea;
 	--row-rule: #e5e1e9;
 	--subtle: #f0edf2;
 	--selected: #f5f1fa;
@@ -129,6 +130,7 @@
 	--whatsapp: #2e6540;
 	--whatsapp-foreground: #ffffff;
 	--whatsapp-text: #7bc495;
+	--wa-bubble: #1f3a2a;
 	--row-rule: #28232d;
 	--subtle: #201b24;
 	--selected: #241a2e;
@@ -208,6 +210,7 @@
 	--color-whatsapp: var(--whatsapp);
 	--color-whatsapp-foreground: var(--whatsapp-foreground);
 	--color-whatsapp-text: var(--whatsapp-text);
+	--color-wa-bubble: var(--wa-bubble);
 	--color-row-rule: var(--row-rule);
 	--color-subtle: var(--subtle);
 	--color-selected: var(--selected);
