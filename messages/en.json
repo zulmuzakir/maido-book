@@ -163,8 +163,6 @@
 		}
 	],
 	"order_submit": "Save order",
-	"orders_empty": "No orders this month.",
-	"orders_col_date": "Date",
 	"orders_col_customer": "Customer",
 	"orders_col_total": "Total",
 	"orders_total_unrecorded": "Not recorded",
@@ -483,8 +481,6 @@
 	"customer_schedule_helper": "Pick today or a later date.",
 	"dose_other": "Other",
 	"orders_this_month": "This month",
-	"orders_today": "Today",
-	"orders_yesterday": "Yesterday",
 	"settings_products_hint": "Servings per unit are used to work out when a customer runs out of supply.",
 	"customer_stock_label": "Stock",
 	"month_picker_title": "Pick month",
@@ -564,5 +560,11 @@
 	"customer_save_only": "Save only",
 	"customer_save_changes": "Save changes",
 	"customer_delete_zone_body": "Their orders, follow-ups and history are deleted too.",
-	"customer_delete_short": "Delete"
+	"customer_delete_short": "Delete",
+	"orders_kpi_count": "Orders",
+	"orders_kpi_average": "Average per order",
+	"orders_day_count": "{count} orders",
+	"orders_empty_month": "No orders in {month} yet.",
+	"month_picker_current": "this month",
+	"month_picker_cap": "Months after {month} can’t be picked yet."
 }

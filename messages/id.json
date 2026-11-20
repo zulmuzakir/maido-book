@@ -118,8 +118,6 @@
 	"order_note": "Catatan",
 	"order_summary": "Cukup untuk {days} hari, habis sekitar {runsOut}. Follow up dijadwalkan {due}.",
 	"order_submit": "Simpan order",
-	"orders_empty": "Belum ada order di bulan ini.",
-	"orders_col_date": "Tanggal",
 	"orders_col_customer": "Pelanggan",
 	"orders_col_total": "Total",
 	"orders_total_unrecorded": "Belum dicatat",
@@ -393,8 +391,6 @@
 	"customer_schedule_helper": "Pilih hari ini atau tanggal setelahnya.",
 	"dose_other": "Lainnya",
 	"orders_this_month": "Bulan ini",
-	"orders_today": "Hari ini",
-	"orders_yesterday": "Kemarin",
 	"settings_products_hint": "Porsi per satuan dipakai untuk menghitung kapan persediaan pelanggan habis.",
 	"customer_stock_label": "Stok",
 	"month_picker_title": "Pilih bulan",
@@ -474,5 +470,11 @@
 	"customer_save_only": "Simpan saja",
 	"customer_save_changes": "Simpan perubahan",
 	"customer_delete_zone_body": "Order, follow up dan riwayatnya ikut terhapus.",
-	"customer_delete_short": "Hapus"
+	"customer_delete_short": "Hapus",
+	"orders_kpi_count": "Order",
+	"orders_kpi_average": "Rata-rata per order",
+	"orders_day_count": "{count} order",
+	"orders_empty_month": "Belum ada order di {month}.",
+	"month_picker_current": "bulan ini",
+	"month_picker_cap": "Bulan setelah {month} belum bisa dipilih."
 }

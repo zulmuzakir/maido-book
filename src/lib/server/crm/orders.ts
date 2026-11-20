@@ -145,6 +145,8 @@ export async function listOrders(db: Db, opts: { month: string }) {
 	return {
 		items,
 		count: items.length,
-		revenue: items.reduce((sum, o) => sum + (o.totalPaid ?? 0), 0)
+		revenue: items.reduce((sum, o) => sum + (o.totalPaid ?? 0), 0),
+		/** Orders with a total; the per-order average leaves out the ones not recorded yet. */
+		recorded: items.filter((o) => o.totalPaid !== null).length
 	};
 }

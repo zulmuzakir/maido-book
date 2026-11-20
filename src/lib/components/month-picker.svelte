@@ -4,6 +4,7 @@
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import CalendarIcon from '@lucide/svelte/icons/calendar';
+	import XIcon from '@lucide/svelte/icons/x';
 	import * as Drawer from '#lib/components/ui/drawer/index.js';
 	import * as Popover from '#lib/components/ui/popover/index.js';
 	import { formatMonth, maxOrderDate, monthKey } from '#lib/domain/dates.ts';
@@ -15,12 +16,14 @@
 		month,
 		today,
 		hrefFor,
-		variant = 'nav'
+		variant = 'nav',
+		class: className
 	}: {
 		month: string;
 		today: string;
 		hrefFor: (month: string) => string;
 		variant?: 'nav' | 'select';
+		class?: string;
 	} = $props();
 
 	const locale = $derived(getLocale());
@@ -54,16 +57,19 @@
 
 	const wide = new MediaQuery('(min-width: 768px)');
 	const navButton =
-		'inline-flex h-full w-11 shrink-0 items-center justify-center outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring desk:w-[34px]';
+		'inline-flex h-full w-11 shrink-0 items-center justify-center outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring';
 	const yearButton =
-		'inline-flex size-11 items-center justify-center rounded-md outline-none enabled:hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring desk:size-10';
+		'inline-flex size-11 items-center justify-center rounded-md border border-border bg-card outline-none enabled:hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring disabled:text-disabled-foreground desk:size-10';
+	const capName = $derived(formatMonth(cap, locale, 'longName'));
 </script>
 
 <!-- eslint-disable svelte/no-navigation-without-resolve -- callers pass already-resolved hrefs -->
 
+<!-- Bordered month tiles; the current month is labelled "bulan ini", months after the cap are
+     greyed out, and a note says why. -->
 {#snippet grid()}
-	<div class="flex flex-col gap-1.5">
-		<div class="flex h-11 items-center justify-between desk:h-10">
+	<div class="flex flex-col gap-2.5">
+		<div class="flex items-center justify-between">
 			<button
 				type="button"
 				class={yearButton}
@@ -72,10 +78,10 @@
 			>
 				<ChevronLeftIcon class="size-4" />
 			</button>
-			<span class="text-sm font-semibold num">{year}</span>
+			<span class="text-base font-bold num">{year}</span>
 			<button
 				type="button"
-				class={cn(yearButton, year >= capYear && 'text-muted-foreground/50')}
+				class={yearButton}
 				aria-label={m.next()}
 				disabled={year >= capYear}
 				onclick={() => (pagedYear = year + 1)}
@@ -83,11 +89,11 @@
 				<ChevronRightIcon class="size-4" />
 			</button>
 		</div>
-		<div class="grid grid-cols-3 gap-1">
+		<div class="grid grid-cols-3 gap-2">
 			{#each cells as cell (cell.key)}
 				{#if cell.disabled}
 					<span
-						class="inline-flex h-12 items-center justify-center rounded-lg border border-transparent text-sm font-medium text-disabled-foreground md:h-11 desk:h-10 desk:text-[13px]"
+						class="inline-flex h-12 items-center justify-center rounded-lg border border-rule bg-muted text-[15px] font-medium text-disabled-foreground md:h-11"
 						aria-disabled="true">{cell.label}</span
 					>
 				{:else}
@@ -96,17 +102,22 @@
 						onclick={() => setOpen(false)}
 						aria-current={cell.key === month ? 'true' : undefined}
 						class={cn(
-							'inline-flex h-12 items-center justify-center rounded-lg border text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring md:h-11 desk:h-10 desk:text-[13px]',
+							'inline-flex h-12 flex-col items-center justify-center rounded-lg border text-[15px] leading-4 font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring md:h-11',
 							cell.key === month
 								? 'border-primary bg-primary font-semibold text-primary-foreground'
 								: cell.key === current
-									? 'border-selected-ring font-semibold text-primary-text hover:bg-muted'
-									: 'border-transparent hover:bg-muted'
-						)}>{cell.label}</a
+									? 'border-foreground/70 font-semibold hover:bg-muted'
+									: 'border-border bg-card hover:bg-muted'
+						)}
+						>{cell.label}{#if cell.key === current && cell.key !== month}<span
+								class="text-[10.5px] leading-3 font-medium text-primary-text"
+								>{m.month_picker_current()}</span
+							>{/if}</a
 					>
 				{/if}
 			{/each}
 		</div>
+		<p class="text-[12.5px] text-muted-foreground">{m.month_picker_cap({ month: capName })}</p>
 	</div>
 {/snippet}
 
@@ -114,10 +125,11 @@
 	<button
 		type="button"
 		{...props}
-		class="inline-flex h-full items-center gap-1.5 px-1.5 text-sm font-semibold outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset desk:px-2 desk:text-ui"
+		class="inline-flex h-full min-w-[150px] flex-1 items-center justify-center gap-1.5 border-x border-rule px-3 text-[14.5px] font-semibold outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset"
 	>
+		<CalendarIcon class="size-4" aria-hidden="true" />
 		{formatMonth(month, locale, 'long')}
-		<ChevronDownIcon class="size-4 text-muted-foreground desk:size-3.5" aria-hidden="true" />
+		<ChevronDownIcon class="size-[15px]" aria-hidden="true" />
 	</button>
 {/snippet}
 
@@ -141,8 +153,8 @@
 					)}{/snippet}
 			</Popover.Trigger>
 			<Popover.Content
-				class="w-[340px] gap-1.5 rounded-[8px] border border-rule px-3 pt-2 pb-3 shadow-[0px_8px_24px_color-mix(in_oklch,var(--shadow-tint)_14%,transparent)] ring-0 desk:w-[300px]"
-				align="end">{@render grid()}</Popover.Content
+				class="w-[320px] rounded-[12px] border border-rule p-3.5 shadow-[0px_8px_24px_color-mix(in_oklch,var(--shadow-tint)_14%,transparent)] ring-0"
+				align="center">{@render grid()}</Popover.Content
 			>
 		</Popover.Root>
 	{:else}
@@ -155,17 +167,25 @@
 			<Drawer.Content class="data-[vaul-drawer-direction=bottom]:rounded-t-[16px]">
 				<div class="flex flex-col gap-2 px-4 pt-2 pb-[calc(1.75rem+env(safe-area-inset-bottom))]">
 					<div class="flex h-11 items-center justify-between">
-						<Drawer.Title class="text-base leading-5 font-semibold"
+						<Drawer.Title class="text-[18px] leading-[22px] font-bold"
 							>{m.month_picker_title()}</Drawer.Title
 						>
-						{#if month !== current}
-							<a
-								href={hrefFor(current)}
-								onclick={() => setOpen(false)}
-								class="inline-flex h-11 items-center text-sm font-semibold text-primary-text"
-								>{m.orders_this_month()}</a
+						<div class="flex items-center gap-1">
+							{#if month !== current}
+								<a
+									href={hrefFor(current)}
+									onclick={() => setOpen(false)}
+									class="inline-flex h-11 items-center px-2 text-sm font-semibold text-primary-text"
+									>{m.orders_this_month()}</a
+								>
+							{/if}
+							<Drawer.Close
+								class="grid size-11 place-items-center rounded-md outline-none focus-visible:ring-3 focus-visible:ring-ring"
+								aria-label={m.close()}
 							>
-						{/if}
+								<XIcon class="size-5" aria-hidden="true" />
+							</Drawer.Close>
+						</div>
 					</div>
 					{@render grid()}
 				</div>
@@ -174,33 +194,28 @@
 	{/if}
 {/snippet}
 
-<div class="flex items-center gap-1 text-foreground desk:gap-2">
-	{#if variant === 'nav' && month !== current}
-		<a
-			href={hrefFor(current)}
-			class="inline-flex h-11 items-center rounded-sm px-3 text-sm font-semibold text-primary-text outline-none focus-visible:ring-3 focus-visible:ring-ring max-md:order-last desk:h-10 desk:px-1.5 desk:text-ui"
-			>{m.orders_this_month()}</a
-		>
-	{/if}
-	{#if variant === 'nav'}
-		<div
-			class="inline-flex h-11 items-center overflow-hidden rounded-lg border border-input bg-card dark:border-border desk:h-10"
-		>
-			<a href={hrefFor(prev)} class={navButton} aria-label={m.previous()}>
-				<ChevronLeftIcon class="size-[18px] desk:size-[15px]" />
-			</a>
-			{@render picker()}
-			{#if nextDisabled}
-				<span class={cn(navButton, 'text-muted-foreground/50')} aria-disabled="true">
-					<ChevronRightIcon class="size-[18px] desk:size-[15px]" />
-				</span>
-			{:else}
-				<a href={hrefFor(next)} class={navButton} aria-label={m.next()}>
-					<ChevronRightIcon class="size-[18px] desk:size-[15px]" />
-				</a>
-			{/if}
-		</div>
-	{:else}
+<!-- ‹ | 📅 November 2026 ⌄ | ›, each a bordered cell. The page places "Bulan ini" itself. -->
+{#if variant === 'nav'}
+	<div
+		class={cn(
+			'inline-flex h-11 items-center overflow-hidden rounded-lg border border-border bg-card text-foreground desk:h-10',
+			className
+		)}
+	>
+		<a href={hrefFor(prev)} class={navButton} aria-label={m.previous()}>
+			<ChevronLeftIcon class="size-[18px]" />
+		</a>
 		{@render picker()}
-	{/if}
-</div>
+		{#if nextDisabled}
+			<span class={cn(navButton, 'text-disabled-foreground')} aria-disabled="true">
+				<ChevronRightIcon class="size-[18px]" />
+			</span>
+		{:else}
+			<a href={hrefFor(next)} class={navButton} aria-label={m.next()}>
+				<ChevronRightIcon class="size-[18px]" />
+			</a>
+		{/if}
+	</div>
+{:else}
+	<div class={className}>{@render picker()}</div>
+{/if}
