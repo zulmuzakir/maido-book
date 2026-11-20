@@ -23,21 +23,36 @@
 	import { formatRupiah } from '#lib/format.ts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
+	import { cn } from '#lib/utils.js';
 	import type { PageData } from './$types';
 
 	let {
 		orders,
 		today,
 		leadDays,
-		truncated
+		truncated,
+		class: className
 	}: {
 		orders: PageData['orders'];
 		today: string;
 		leadDays: number;
 		truncated: boolean;
+		class?: string;
 	} = $props();
 
 	const locale = getLocale() === 'id' ? 'id' : 'en';
+	const dayFmt = new Intl.DateTimeFormat(locale === 'id' ? 'id-ID' : 'en-GB', {
+		day: 'numeric',
+		timeZone: 'UTC'
+	});
+	const monthFmt = new Intl.DateTimeFormat(locale === 'id' ? 'id-ID' : 'en-GB', {
+		month: 'short',
+		timeZone: 'UTC'
+	});
+	const utc = (iso: string) => new Date(`${iso}T00:00:00Z`);
+	// Same grid for the desktop header row and every order row.
+	const cols =
+		'grid grid-cols-[44px_minmax(0,1fr)_auto_44px] items-center gap-x-3 xl:grid-cols-[90px_minmax(0,1fr)_130px_40px] xl:gap-x-4';
 
 	const latest = $derived(orders[0] ?? null);
 	const newest = $derived(
@@ -67,92 +82,108 @@
 	});
 </script>
 
-<h2
-	class="pb-2 text-[15px] leading-[18px] font-semibold md:pb-1.5 md:text-sm md:leading-[18px] md:font-bold"
->
-	{m.customer_tab_orders()}
-</h2>
-{#if orders.length === 0}
-	<p class="py-4 text-sm text-muted-foreground">{m.customer_no_orders()}</p>
-{:else}
-	<ul>
-		{#each orders as o, i (o.id)}
-			{@const gap = gapBefore(i)}
-			<li
-				class="flex min-h-14 items-center gap-3 border-b border-rule py-2 md:h-[52px] md:min-h-0 md:border-row-rule md:py-0"
-			>
-				<span class="w-14 shrink-0 text-ui font-semibold num">
-					{formatDate(o.orderDate, locale, 'short')}
-				</span>
-				<div class="min-w-0 flex-1">
-					<p
-						class="truncate text-[15px] leading-[18px] font-normal md:text-sm md:leading-[18px] md:font-medium"
-					>
-						{o.qty}
-						{o.unitLabel}
-						{o.productName}
-					</p>
-					{#if i === 0 && latest}
-						{#if outNow && newest}
-							<p class="text-xs text-status-overdue">
-								{m.customer_order_out({
-									date: formatDate(newest.runsOutOn, locale, 'medium'),
-									count: -newest.daysLeft
-								})}
-							</p>
-						{:else}
-							<p class="text-xs">
-								<StockText lastOrder={latest} {today} {leadDays} />
+<!-- Desktop: a Tanggal | Order | Total header and 56px rows. Tablet/phone: the date stacked as a
+     big day over the month. Each row keeps its ⋯ menu so a mistyped order can be deleted. -->
+<section class={cn('flex flex-col', className)}>
+	<h2 class="pb-2 text-[17px] leading-[22px] font-bold">
+		{truncated ? m.customer_orders_recent({ count: orders.length }) : m.customer_tab_orders()}
+	</h2>
+	{#if orders.length === 0}
+		<p class="py-4 text-sm text-muted-foreground">{m.customer_no_orders()}</p>
+	{:else}
+		<div
+			class="{cols} hidden h-9 border-b border-rule text-[12.5px] font-semibold text-muted-foreground xl:grid"
+			aria-hidden="true"
+		>
+			<span>{m.customer_order_col_date()}</span>
+			<span>{m.customer_tab_orders()}</span>
+			<span class="text-right">{m.customer_order_col_total()}</span>
+		</div>
+		<ul>
+			{#each orders as o, i (o.id)}
+				{@const gap = gapBefore(i)}
+				<li class="{cols} min-h-16 border-b border-rule py-2.5 xl:min-h-14 xl:py-2">
+					<span class="flex flex-col items-center leading-none num xl:hidden" aria-hidden="true">
+						<span class="text-[17px] leading-[22px] font-bold"
+							>{dayFmt.format(utc(o.orderDate))}</span
+						>
+						<span class="text-xs leading-4 text-muted-foreground">
+							{monthFmt.format(utc(o.orderDate))}
+						</span>
+					</span>
+					<span class="hidden text-[14.5px] font-semibold num xl:block">
+						{formatDate(o.orderDate, locale, 'short')}
+					</span>
+					<div class="min-w-0 self-center">
+						<p class="sr-only xl:hidden">{formatDate(o.orderDate, locale, 'medium')}</p>
+						<p class="truncate text-[14.5px] leading-5 font-semibold">
+							{o.qty}
+							{o.unitLabel}
+							{o.productName}
+						</p>
+						{#if i === 0 && latest}
+							{#if outNow && newest}
+								<p class="text-[13px] leading-[18px] text-status-overdue">
+									{m.customer_order_out({
+										date: formatDate(newest.runsOutOn, locale, 'short'),
+										count: -newest.daysLeft
+									})}
+								</p>
+							{:else}
+								<p class="text-[13px] leading-[18px]">
+									<StockText lastOrder={latest} {today} {leadDays} />
+								</p>
+							{/if}
+						{:else if gap > 0}
+							<p class="text-[13px] leading-[18px] text-muted-foreground">
+								{m.customer_order_gap({ count: gap })}
 							</p>
 						{/if}
-					{:else if gap > 0}
-						<p class="text-xs text-muted-foreground">
-							{m.customer_order_gap({ count: gap })}
-						</p>
-					{/if}
-					{#if o.note}
-						<p class="text-xs break-words whitespace-pre-line text-muted-foreground">
-							{o.note}
-						</p>
-					{/if}
-				</div>
-				<span class="shrink-0 text-ui font-semibold num">
-					{o.totalPaid != null ? formatRupiah(o.totalPaid) : m.customer_order_no_total()}
-				</span>
-				<DropdownMenu.Root>
-					<DropdownMenu.Trigger>
-						{#snippet child({ props })}
-							<Button
-								{...props}
-								variant="ghost"
-								size="icon"
-								aria-label={m.customer_action_more()}
-								class="size-11 shrink-0 text-muted-foreground desk:size-10"
+						{#if o.note}
+							<p class="text-[13px] break-words whitespace-pre-line text-muted-foreground">
+								{o.note}
+							</p>
+						{/if}
+					</div>
+					<span
+						class="self-start pt-0.5 text-right text-[14.5px] font-semibold num xl:self-center xl:pt-0"
+					>
+						{o.totalPaid != null ? formatRupiah(o.totalPaid) : m.customer_order_no_total()}
+					</span>
+					<DropdownMenu.Root>
+						<DropdownMenu.Trigger>
+							{#snippet child({ props })}
+								<Button
+									{...props}
+									variant="ghost"
+									size="icon"
+									aria-label={m.customer_order_menu({
+										date: formatDate(o.orderDate, locale, 'medium')
+									})}
+									class="size-11 justify-self-end text-muted-foreground desk:size-10"
+								>
+									<EllipsisIcon class="size-4" />
+								</Button>
+							{/snippet}
+						</DropdownMenu.Trigger>
+						<DropdownMenu.Content align="end">
+							<DropdownMenu.Item
+								variant="destructive"
+								onSelect={() => {
+									pendingOrderId = o.id;
+									orderDeleteOpen = true;
+								}}
 							>
-								<EllipsisIcon class="size-4" />
-							</Button>
-						{/snippet}
-					</DropdownMenu.Trigger>
-					<DropdownMenu.Content align="end">
-						<DropdownMenu.Item
-							variant="destructive"
-							onSelect={() => {
-								pendingOrderId = o.id;
-								orderDeleteOpen = true;
-							}}
-						>
-							<Trash2Icon class="size-4" />
-							{m.customer_order_delete()}
-						</DropdownMenu.Item>
-					</DropdownMenu.Content>
-				</DropdownMenu.Root>
-			</li>
-		{/each}
-	</ul>
-	{#if truncated}
-		<p class="mt-3 text-ui leading-[18px] text-muted-foreground">{m.customer_history_cap_body()}</p>
+								<Trash2Icon class="size-4" />
+								{m.customer_order_delete()}
+							</DropdownMenu.Item>
+						</DropdownMenu.Content>
+					</DropdownMenu.Root>
+				</li>
+			{/each}
+		</ul>
 	{/if}
-{/if}
+</section>
 
 <AlertDialog bind:open={orderDeleteOpen}>
 	<AlertDialogContent>

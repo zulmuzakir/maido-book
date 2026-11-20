@@ -266,11 +266,18 @@ export async function getCustomerDetail(db: Db, id: string) {
 				body: activity.body,
 				createdAt: activity.createdAt,
 				actorName: user.name,
-				attempt: followUp.attempt
+				attempt: followUp.attempt,
+				// "Order dicatat" rows say what was ordered: "20 sachet ROOVE · Rp 202.000".
+				orderQty: customerOrder.qty,
+				orderUnit: product.unitLabel,
+				orderProduct: product.name,
+				orderTotal: customerOrder.totalPaid
 			})
 			.from(activity)
 			.leftJoin(user, eq(user.id, activity.userId))
 			.leftJoin(followUp, eq(followUp.id, activity.followUpId))
+			.leftJoin(customerOrder, eq(customerOrder.id, activity.orderId))
+			.leftJoin(product, eq(product.id, customerOrder.productId))
 			.where(eq(activity.customerId, id))
 			.orderBy(desc(activity.createdAt), desc(activity.id))
 			.limit(ACTIVITY_HISTORY_CAP + 1)

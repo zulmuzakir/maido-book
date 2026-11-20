@@ -1,15 +1,22 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { toast } from 'svelte-sonner';
 	import { FormAction } from '#lib/form-action.svelte.ts';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 	import CopyIcon from '@lucide/svelte/icons/copy';
+	import EllipsisIcon from '@lucide/svelte/icons/ellipsis';
+	import MessageCircleIcon from '@lucide/svelte/icons/message-circle';
+	import PencilIcon from '@lucide/svelte/icons/pencil';
+	import PlusIcon from '@lucide/svelte/icons/plus';
+	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import { Button } from '#lib/components/ui/button/index.js';
+	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
 	import InitialsAvatar from '#lib/components/initials-avatar.svelte';
-	import { customerStatusLabel } from '#lib/labels.ts';
+	import ResponsiveDialog from '#lib/components/responsive-dialog.svelte';
 	import StockText from '#lib/components/stock-text.svelte';
-	import WhatsappIcon from '#lib/components/whatsapp-icon.svelte';
+	import { customerStatusLabel } from '#lib/labels.ts';
 	import { supplyStatus } from '#lib/domain/follow-up.ts';
 	import { formatPhone, waLink } from '#lib/domain/phone.ts';
 	import { m } from '#lib/paraglide/messages.js';
@@ -30,9 +37,12 @@
 	} = $props();
 
 	const daysLeft = $derived(latest ? supplyStatus({ ...latest, today }).daysLeft : null);
+	const editHref = $derived(resolve('/(app)/customers/[id]/edit', { id: customer.id }));
+	const backHref = resolve('/(app)/customers');
 
 	const sentAction = new FormAction();
 	let sentForm: HTMLFormElement | undefined = $state();
+	let deleteOpen = $state(false);
 
 	function openWhatsApp() {
 		if (!panelItem) {
@@ -54,75 +64,109 @@
 	}
 </script>
 
+{#snippet menu(triggerClass: string)}
+	<DropdownMenu.Root>
+		<DropdownMenu.Trigger>
+			{#snippet child({ props })}
+				<Button
+					{...props}
+					variant="ghost"
+					size="icon"
+					aria-label={m.customer_action_more()}
+					class={triggerClass}
+				>
+					<EllipsisIcon class="size-5" />
+				</Button>
+			{/snippet}
+		</DropdownMenu.Trigger>
+		<DropdownMenu.Content align="end" class="min-w-48">
+			<DropdownMenu.Item onSelect={() => goto(editHref)}>
+				<PencilIcon class="size-4" />
+				{m.customer_edit_title()}
+			</DropdownMenu.Item>
+			<DropdownMenu.Item onSelect={copyPhone}>
+				<CopyIcon class="size-4" />
+				{m.customer_action_copy()}
+			</DropdownMenu.Item>
+			<DropdownMenu.Separator />
+			<DropdownMenu.Item variant="destructive" onSelect={() => (deleteOpen = true)}>
+				<Trash2Icon class="size-4" />
+				{m.customer_delete()}
+			</DropdownMenu.Item>
+		</DropdownMenu.Content>
+	</DropdownMenu.Root>
+{/snippet}
+
+<!-- Phone: a bar with ‹ and ⋯, the identity block, and the two actions pinned above the bottom
+     nav. Tablet: back link, identity, actions as equal halves. Desktop: actions beside the name.
+     The ⋯ menu (edit, copy number, delete) sits on the back-link row from md up. -->
 <!-- eslint-disable svelte/no-navigation-without-resolve -- tel: link is built from the stored phone -->
-<header
-	class="flex flex-col gap-3.5 border-b border-rule px-4 pt-1.5 pb-4 md:px-6 md:pt-4 md:pb-[18px] xl:px-7"
->
-	<a
-		href={resolve('/(app)/customers')}
-		class="inline-flex items-center gap-1.5 text-ui font-medium text-ink"
+<header class="flex flex-col pb-5 md:gap-[22px] md:px-6 md:pt-[18px] md:pb-0 xl:px-8">
+	<div class="flex min-h-14 items-center justify-between pr-2 pl-1 md:hidden">
+		<a
+			href={backHref}
+			aria-label={m.back_to({ page: m.nav_customers() })}
+			class="grid size-11 place-items-center rounded-md text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring"
+		>
+			<ChevronLeftIcon class="size-[22px]" aria-hidden="true" />
+		</a>
+		{@render menu('size-11 text-foreground')}
+	</div>
+	<div class="hidden items-center justify-between md:flex">
+		<a
+			href={backHref}
+			class="inline-flex items-center gap-1 rounded-sm text-[13.5px] leading-[18px] font-semibold text-primary-text outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring"
+		>
+			<ChevronLeftIcon class="size-4" aria-hidden="true" />
+			{m.nav_customers()}
+		</a>
+		{@render menu('-my-2 size-10 text-muted-foreground desk:size-10')}
+	</div>
+
+	<div
+		class="flex flex-col gap-[22px] px-4 pt-1 md:px-0 md:pt-0 xl:flex-row xl:items-center xl:justify-between"
 	>
-		<ChevronLeftIcon class="size-4" aria-hidden="true" />
-		{m.nav_customers()}
-	</a>
-	<div class="flex flex-col gap-3.5 md:flex-row md:items-center md:justify-between">
-		<div class="flex min-w-0 items-center gap-3 md:gap-3.5">
-			<span class="block md:hidden">
-				<InitialsAvatar name={customer.name} size={48} class="text-ui font-semibold" />
-			</span>
-			<span class="hidden md:block">
-				<InitialsAvatar name={customer.name} size={56} class="text-ui font-semibold" />
-			</span>
+		<div class="flex min-w-0 items-center gap-3.5 md:gap-4">
+			<InitialsAvatar
+				name={customer.name}
+				size={56}
+				class="size-[52px] bg-avatar text-[19px] font-extrabold text-avatar-foreground md:size-14 md:text-xl"
+			/>
 			<div class="min-w-0">
 				<h1
-					class="truncate text-[20px] leading-6 font-bold tracking-[-0.03em] md:text-[22px] md:leading-[1.1] xl:text-2xl"
+					class="truncate text-[22px] leading-7 font-bold tracking-[-0.02em] md:text-[26px] md:leading-8"
 				>
 					{customer.name}
 				</h1>
-				<p
-					class="mt-1 flex flex-wrap items-center gap-x-1 text-[13px] leading-4 text-muted-foreground md:mt-[5px]"
-				>
-					<span class="inline-flex items-center gap-1 num">
-						<a href={`tel:+${customer.phone}`} class="hover:text-foreground hover:underline"
-							>{formatPhone(customer.phone)}</a
-						>
-						<button
-							type="button"
-							aria-label={m.customer_action_copy()}
-							title={m.customer_action_copy()}
-							onclick={copyPhone}
-							class="inline-flex size-8 items-center justify-center rounded-md text-muted-foreground hover:bg-subtle hover:text-foreground desk:size-6"
-						>
-							<CopyIcon class="size-3.5" aria-hidden="true" />
-						</button>
-					</span>
-					<span aria-hidden="true">·</span>
-					<span>{customerStatusLabel(customer.status)}</span>
-					<span aria-hidden="true">·</span>
-					{#if daysLeft !== null && daysLeft < 0}
-						<span class="font-semibold text-status-overdue"
-							>{m.customer_header_stock_out({ count: -daysLeft })}</span
-						>
-					{:else}
-						<StockText lastOrder={latest} {today} {leadDays} />
-					{/if}
+				<p class="mt-[3px] text-sm leading-[18px] text-muted-foreground num">
+					<a href={`tel:+${customer.phone}`} class="hover:text-foreground hover:underline"
+						>{formatPhone(customer.phone)}</a
+					>&nbsp;· {customerStatusLabel(customer.status)}
 				</p>
+				{#if daysLeft !== null && daysLeft < 0}
+					<p class="mt-0.5 text-sm leading-[18px] font-semibold text-status-overdue">
+						{m.customer_header_stock_out({ count: -daysLeft })}
+					</p>
+				{:else if latest}
+					<p class="mt-0.5 text-sm leading-[18px]">
+						<StockText lastOrder={latest} {today} {leadDays} />
+					</p>
+				{/if}
 			</div>
 		</div>
-		<div class="flex w-full items-center gap-2 md:w-auto md:shrink-0">
-			<Button
-				variant="whatsapp"
-				class="h-11 flex-1 text-sm font-semibold md:h-10 md:flex-none md:px-3.5 md:text-ui desk:h-10"
-				onclick={openWhatsApp}
-			>
-				<WhatsappIcon class="size-4" />
+		<div
+			class="fixed inset-x-0 bottom-[calc(72px+env(safe-area-inset-bottom))] z-10 flex gap-2 border-t border-rule bg-card px-4 py-2.5 shadow-[0_-6px_16px_rgb(36_20_32/0.05)] *:h-12 *:flex-1 md:static md:z-auto md:gap-2.5 md:border-0 md:p-0 md:shadow-none md:*:h-11 xl:shrink-0 xl:*:flex-none desk:*:h-11"
+		>
+			<Button variant="whatsapp" class="px-2 font-semibold md:px-4" onclick={openWhatsApp}>
+				<MessageCircleIcon class="size-[18px]" aria-hidden="true" />
 				{m.customer_action_wa()}
 			</Button>
 			<Button
 				variant="outline"
-				class="h-11 w-[120px] text-sm font-semibold md:h-10 md:w-auto md:px-3.5 md:text-ui desk:h-10"
+				class="px-2 font-semibold md:px-4"
 				href={resolve('/(app)/orders/new') + `?customer=${customer.id}`}
 			>
+				<PlusIcon class="size-[18px]" aria-hidden="true" />
 				{m.new_order()}
 			</Button>
 		</div>
@@ -132,3 +176,31 @@
 <form bind:this={sentForm} method="post" action="?/sent" use:enhance={sentAction.enhance} hidden>
 	<input type="hidden" name="followUpId" value={panelItem?.followUpId ?? ''} />
 </form>
+
+<ResponsiveDialog
+	bind:open={deleteOpen}
+	confirm
+	title={m.customer_delete_title({ name: customer.name })}
+>
+	<p class="text-sm leading-[21px] text-muted-foreground">{m.customer_delete_description()}</p>
+	{#snippet footer()}
+		<div class="flex w-full flex-col-reverse gap-2 md:flex-row md:justify-end">
+			<Button
+				variant="outline"
+				class="h-12 w-full text-sm font-semibold md:h-10 md:w-auto md:text-ui desk:h-10"
+				onclick={() => (deleteOpen = false)}
+			>
+				{m.cancel()}
+			</Button>
+			<form method="post" action="{editHref}?/delete" use:enhance class="contents">
+				<Button
+					type="submit"
+					variant="destructive-solid"
+					class="h-12 w-full text-sm font-semibold md:h-10 md:w-auto md:text-ui desk:h-10"
+				>
+					{m.customer_delete()}
+				</Button>
+			</form>
+		</div>
+	{/snippet}
+</ResponsiveDialog>

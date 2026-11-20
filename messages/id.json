@@ -360,7 +360,6 @@
 	"customer_supply_hint": "{qty} {unit} {product} pada {date}, takaran {dose}/hari. Garis merah: hari tanpa stok.",
 	"customer_order_out": "Stok habis {date} ({count} hari lalu)",
 	"customer_order_gap": "Stok kosong {count} hari sebelum order berikutnya",
-	"customer_history_cap_body": "Menampilkan 50 order terakhir. Order yang lebih lama tidak ditampilkan.",
 	"customer_next_auto": "Dijadwalkan otomatis {lead} hari sebelum stok habis ({date}).",
 	"customer_data_title": "Data pelanggan",
 	"customer_data_product": "Produk",
@@ -421,10 +420,15 @@
 	"handled_kind_contacted": "dihubungi",
 	"queue_done_contacted_today": "Selesai hari ini",
 	"customer_header_stock_out": "stok habis {count} hari lalu",
-	"customer_next_auto_short": "Otomatis, {lead} hari sebelum stok habis.",
 	"customer_supply_hint_short": "{qty} {unit} {product} pada {date}, takaran {dose}/hari",
 	"customer_activity_scheduled_sub": "Otomatis, {date}",
 	"insights_outcomes_sub_short": "Dari {count} hasil bulan ini",
 	"import_skipped_sub_short": "duplikat/nomor tak valid",
-	"import_status_phone_date_short": "No. WA berformat tanggal"
+	"import_status_phone_date_short": "No. WA berformat tanggal",
+	"customer_tab_summary": "Ringkasan",
+	"customer_open_in_queue": "Buka di antrian",
+	"customer_order_col_date": "Tanggal",
+	"customer_order_col_total": "Total",
+	"customer_order_menu": "Menu order {date}",
+	"customer_orders_recent": "Order · {count} terakhir"
 }

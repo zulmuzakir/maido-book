@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { Button } from '#lib/components/ui/button/index.js';
-	import SectionHeading from '#lib/components/section-heading.svelte';
 	import SupplyChart from '#lib/components/supply-chart.svelte';
 	import { formatDate } from '#lib/domain/dates.ts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
+	import { cn } from '#lib/utils.js';
 	import type { PageData } from './$types';
 
 	let {
@@ -14,7 +14,8 @@
 		orders,
 		today,
 		leadDays,
-		dueDate
+		dueDate,
+		class: className
 	}: {
 		customerId: string;
 		dosePerDay: number;
@@ -22,30 +23,24 @@
 		today: string;
 		leadDays: number;
 		dueDate: string | null;
+		class?: string;
 	} = $props();
 
 	const latest = $derived(orders[0] ?? null);
 	const locale = getLocale() === 'id' ? 'id' : 'en';
 </script>
 
-<section
-	class="md:col-span-2 md:row-start-1 xl:col-span-1 xl:col-start-1 xl:row-start-1 xl:px-7 xl:pt-6 {latest
-		? 'space-y-6'
-		: 'space-y-3'}"
->
+<section class={cn(latest ? 'space-y-5' : 'space-y-3', className)}>
 	<div class="space-y-1">
-		<SectionHeading
-			title={m.customer_supply_title()}
-			class="[&_h2]:text-[15px] [&_h2]:leading-[18px] md:[&_h2]:text-base md:[&_h2]:leading-5"
-		/>
+		<h2 class="text-[17px] leading-[22px] font-bold">{m.customer_supply_title()}</h2>
 		{#if latest}
-			<p class="text-xs text-muted-foreground md:text-ui">
+			<p class="text-[13.5px] leading-5 text-muted-foreground">
 				<span class="max-md:hidden">
 					{m.customer_supply_hint({
 						qty: latest.qty,
 						unit: latest.unitLabel,
 						product: latest.productName,
-						date: formatDate(latest.orderDate, locale, 'medium'),
+						date: formatDate(latest.orderDate, locale, 'short'),
 						dose: dosePerDay
 					})}
 				</span>
@@ -54,7 +49,7 @@
 						qty: latest.qty,
 						unit: latest.unitLabel,
 						product: latest.productName,
-						date: formatDate(latest.orderDate, locale, 'medium'),
+						date: formatDate(latest.orderDate, locale, 'short'),
 						dose: dosePerDay
 					})}
 				</span>

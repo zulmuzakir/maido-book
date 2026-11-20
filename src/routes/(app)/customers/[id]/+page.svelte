@@ -14,31 +14,21 @@
 	const c = $derived(data.customer);
 	const latest = $derived(data.orders[0] ?? null);
 
-	let tab = $state<'activity' | 'order'>('order');
+	let tab = $state<'summary' | 'activity'>('summary');
 	const tabItems = $derived([
-		{ key: 'activity', label: m.customer_tab_activity() },
-		{ key: 'order', label: m.customer_tab_orders() }
+		{ key: 'summary', label: m.customer_tab_summary() },
+		{ key: 'activity', label: m.customer_tab_activity() }
 	]);
-	const onOrder = $derived(tab === 'order');
-	// Supply chart spans the top row on tablet and sits in the left column on desktop, so the
-	// follow-up aside and the tab's main content shift up when the chart is absent.
-	const asideCell = $derived(
-		onOrder
-			? 'md:col-start-2 md:row-start-2 xl:col-start-2 xl:row-span-2 xl:row-start-1'
-			: 'md:col-start-2 md:row-start-1 xl:col-start-2 xl:row-span-2 xl:row-start-1'
-	);
-	const mainCell = $derived(
-		onOrder
-			? 'md:col-start-1 md:row-start-2 md:pt-6 xl:col-start-1 xl:row-start-2 xl:pt-6'
-			: 'md:col-start-1 md:row-start-1 md:pt-6 xl:col-start-1 xl:row-start-1 xl:pt-6'
-	);
+	const summary = $derived(tab === 'summary');
 </script>
 
 <svelte:head>
 	<title>{data.title}</title>
 </svelte:head>
 
-<div class="min-h-dvh bg-card">
+<!-- Phone/tablet: one column (follow-up first). Desktop: the tab's content on the left and a
+     360px aside with the follow-up card, customer data and notes, on both tabs. -->
+<div class="min-h-dvh bg-card pb-[72px] md:pb-0">
 	<CustomerHeader
 		customer={c}
 		{latest}
@@ -47,68 +37,69 @@
 		leadDays={data.rules.leadDays}
 	/>
 
-	<div class="border-b border-rule px-4 py-3 md:px-6 md:py-0 xl:px-7">
-		<FilterTabs
-			items={tabItems}
-			active={tab}
-			onselect={(key) => (tab = key === 'activity' ? 'activity' : 'order')}
-			label={m.customer_tabs_label()}
-			underline
-		/>
+	<div class="px-4 md:mt-[22px] md:px-6 xl:px-8">
+		<div class="md:border-b md:border-rule">
+			<FilterTabs
+				items={tabItems}
+				active={tab}
+				onselect={(key) => (tab = key === 'activity' ? 'activity' : 'summary')}
+				label={m.customer_tabs_label()}
+			/>
+		</div>
 	</div>
 
-	<!-- Phone stacks: chart, follow-up, orders or activity, data (order-* below). Desktop places by grid cell. -->
 	<div
-		class="grid gap-6 px-4 py-5 md:grid-cols-[minmax(0,1fr)_300px] md:gap-x-0 md:px-6 xl:grid-cols-[minmax(0,1fr)_340px] xl:grid-rows-[auto_1fr] xl:gap-0 xl:px-0 xl:py-0"
+		class="flex flex-col gap-7 px-4 pt-5 pb-6 md:px-6 md:pt-6 xl:grid xl:grid-cols-[minmax(0,1fr)_360px] xl:gap-0 xl:pt-0 xl:pr-0 xl:pb-0 xl:pl-8"
 	>
-		{#if onOrder}
-			<SupplySection
-				customerId={c.id}
-				dosePerDay={c.dosePerDay}
-				orders={data.orders}
-				today={data.today}
-				leadDays={data.rules.leadDays}
-				dueDate={data.openFollowUp?.dueDate ?? null}
-			/>
-		{/if}
+		<div class="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-8 xl:py-6 xl:pr-8">
+			{#if summary}
+				<SupplySection
+					class="order-2"
+					customerId={c.id}
+					dosePerDay={c.dosePerDay}
+					orders={data.orders}
+					today={data.today}
+					leadDays={data.rules.leadDays}
+					dueDate={data.openFollowUp?.dueDate ?? null}
+				/>
+				<OrderHistory
+					class="order-3"
+					orders={data.orders}
+					today={data.today}
+					leadDays={data.rules.leadDays}
+					truncated={data.ordersTruncated}
+				/>
+			{:else}
+				<ActivityTab
+					class="order-2"
+					activities={data.activities}
+					maxAttempts={data.rules.maxAttempts}
+					{form}
+					truncated={data.activitiesTruncated}
+				/>
+			{/if}
+		</div>
 
 		<aside
-			class="contents md:block md:space-y-[18px] md:pt-6 xl:space-y-[22px] xl:border-l xl:border-rule xl:px-6 xl:pt-6 {asideCell}"
+			class="contents xl:flex xl:flex-col xl:gap-7 xl:border-l xl:border-rule xl:px-6 xl:pt-6 xl:pb-8"
 		>
-			<div class="order-1 space-y-4">
-				<NextFollowUp
-					customerId={c.id}
-					openFollowUp={data.openFollowUp}
-					panelItem={data.panelItem}
-					{latest}
-					today={data.today}
-					rules={data.rules}
-					{form}
-				/>
-			</div>
-			<div class="order-3">
-				<CustomerData customer={c} {latest} today={data.today} showNotes={onOrder} />
-			</div>
+			<NextFollowUp
+				class="order-1"
+				customerId={c.id}
+				customerName={c.name}
+				openFollowUp={data.openFollowUp}
+				panelItem={data.panelItem}
+				{latest}
+				today={data.today}
+				rules={data.rules}
+				{form}
+			/>
+			<CustomerData
+				class="order-4 {summary ? '' : 'hidden xl:grid'}"
+				customer={c}
+				{latest}
+				today={data.today}
+			/>
 		</aside>
-
-		<div class="contents md:block md:min-w-0 md:space-y-8 xl:px-7 xl:pb-6 {mainCell}">
-			<div class="order-2 min-w-0">
-				{#if onOrder}
-					<OrderHistory
-						orders={data.orders}
-						today={data.today}
-						leadDays={data.rules.leadDays}
-						truncated={data.ordersTruncated}
-					/>
-				{:else}
-					<ActivityTab
-						activities={data.activities}
-						maxAttempts={data.rules.maxAttempts}
-						{form}
-						truncated={data.activitiesTruncated}
-					/>
-				{/if}
-			</div>
-		</div>
 	</div>
 </div>

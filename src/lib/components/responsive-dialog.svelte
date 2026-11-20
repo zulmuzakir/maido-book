@@ -43,7 +43,12 @@
 {:else}
 	<Drawer.Root bind:open>
 		<Drawer.Content class="data-[vaul-drawer-direction=bottom]:rounded-t-[16px]">
-			<Drawer.Header class={cn('gap-2 px-6 pt-4 text-left', confirm && 'pb-0')}>
+			<Drawer.Header
+				class={cn(
+					'gap-2 px-6 pt-4 text-left group-data-[vaul-drawer-direction=bottom]/drawer-content:text-left',
+					confirm && 'pb-0'
+				)}
+			>
 				<Drawer.Title class={TITLE}>{title}</Drawer.Title>
 				{#if description}<Drawer.Description class={DESCRIPTION}>{description}</Drawer.Description
 					>{/if}

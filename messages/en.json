@@ -450,7 +450,6 @@
 	"customer_supply_hint": "{qty} {unit} {product} on {date}, dose {dose}/day. Red line: days without stock.",
 	"customer_order_out": "Ran out {date} ({count} days ago)",
 	"customer_order_gap": "Out of stock {count} days before the next order",
-	"customer_history_cap_body": "Showing the latest 50 orders. Older orders are not shown.",
 	"customer_next_auto": "Scheduled automatically {lead} days before stock runs out ({date}).",
 	"customer_data_title": "Customer details",
 	"customer_data_product": "Product",
@@ -511,10 +510,15 @@
 	"handled_kind_contacted": "contacted",
 	"queue_done_contacted_today": "Done today",
 	"customer_header_stock_out": "out of stock {count} days ago",
-	"customer_next_auto_short": "Automatic, {lead} days before stock runs out.",
 	"customer_supply_hint_short": "{qty} {unit} {product} on {date}, dose {dose}/day",
 	"customer_activity_scheduled_sub": "Automatic, {date}",
 	"insights_outcomes_sub_short": "From {count} outcomes this month",
 	"import_skipped_sub_short": "duplicates/invalid numbers",
-	"import_status_phone_date_short": "WhatsApp is a date"
+	"import_status_phone_date_short": "WhatsApp is a date",
+	"customer_tab_summary": "Summary",
+	"customer_open_in_queue": "Open in queue",
+	"customer_order_col_date": "Date",
+	"customer_order_col_total": "Total",
+	"customer_order_menu": "Order menu, {date}",
+	"customer_orders_recent": "Orders · last {count}"
 }
