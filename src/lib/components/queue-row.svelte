@@ -54,7 +54,7 @@
 
 <div
 	class={cn(
-		'flex h-[68px] items-center gap-3 border-b border-row-rule px-4 transition-colors md:h-[60px] md:gap-3.5 md:px-5',
+		'flex h-[68px] items-center gap-3 border-b border-row-rule px-4 transition-colors md:h-[60px] md:gap-3.5 md:px-6 xl:px-8',
 		selected ? 'bg-accent ring-1 ring-selected-ring ring-inset' : 'hover:bg-muted'
 	)}
 >

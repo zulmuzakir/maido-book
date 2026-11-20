@@ -28,7 +28,7 @@
 <div class="min-h-dvh bg-card">
 	<PageHeader
 		title={data.title}
-		variant="centered"
+		variant="subpage"
 		back={{ href: resolve('/(app)/customers'), label: m.nav_customers(), mobileLabel: m.back() }}
 	/>
 

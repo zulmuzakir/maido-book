@@ -115,7 +115,13 @@
 {/snippet}
 
 <div class="min-h-dvh bg-card">
-	<PageHeader title={data.title} metaInline="md">
+	<PageHeader
+		title={data.title}
+		back={{ href: resolve('/(app)/more'), label: m.nav_more() }}
+		variant="subpage"
+		backMobileOnly
+		metaInline="md"
+	>
 		{#snippet meta()}
 			<span class="hidden xl:inline">{m.insights_intro({ month: monthName })}</span>
 			<span class="xl:hidden">{monthName}</span>

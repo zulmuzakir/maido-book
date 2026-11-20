@@ -59,6 +59,7 @@
 	"cancel": "Cancel",
 	"edit": "Edit",
 	"back": "Back",
+	"back_to": "Back to {page}",
 	"previous": "Previous",
 	"next": "Next",
 	"toast_order_saved": "Order saved",

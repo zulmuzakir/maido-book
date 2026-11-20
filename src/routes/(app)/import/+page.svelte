@@ -165,7 +165,7 @@
 	<PageHeader
 		title={m.import_title()}
 		back={{ href: resolve('/(app)/more'), label: m.nav_more() }}
-		variant="centered"
+		variant="subpage"
 		backMobileOnly
 	>
 		{#snippet actions()}

@@ -33,7 +33,7 @@
 		count={items.length}
 		expanded={open}
 		{ontoggle}
-		class="gap-2 px-4 md:px-5"
+		class="gap-2 px-4 md:px-6 xl:px-8"
 	>
 		{#snippet icon()}
 			<CircleCheckIcon class="size-3.5 text-status-done" aria-hidden="true" />
@@ -42,7 +42,7 @@
 	{#if open}
 		<ul>
 			{#each items as h (h.id)}
-				<li class="border-b border-row-rule px-4 py-2.5 md:px-5">
+				<li class="border-b border-row-rule px-4 py-2.5 md:px-6 xl:px-8">
 					<PersonSummary
 						name={h.name}
 						href={resolve('/(app)/customers/[id]', { id: h.customerId })}

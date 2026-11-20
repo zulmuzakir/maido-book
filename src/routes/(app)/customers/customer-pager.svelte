@@ -32,7 +32,7 @@
 <!-- eslint-disable svelte/no-navigation-without-resolve -- callers pass already-resolved hrefs -->
 
 <nav
-	class="mt-auto flex flex-col items-center gap-3 px-4 pt-4 text-ui md:h-[52px] md:flex-row md:justify-between md:border-t md:border-rule md:px-5 md:pt-0"
+	class="mt-auto flex flex-col items-center gap-3 px-4 pt-4 text-ui md:h-[52px] md:flex-row md:justify-between md:border-t md:border-rule md:px-6 md:pt-0 xl:px-8"
 	aria-label={m.pagination_label()}
 >
 	<p class="text-center text-muted-foreground num md:text-left">

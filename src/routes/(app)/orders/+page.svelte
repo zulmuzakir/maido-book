@@ -138,7 +138,7 @@
 							label={dayLabel(day.date)}
 							labelClass="num"
 							count={day.items.length}
-							class="px-4 md:px-5"
+							class="px-4 md:px-6 xl:px-8"
 						/>
 						<ul>
 							{#each day.items as item (item.id)}

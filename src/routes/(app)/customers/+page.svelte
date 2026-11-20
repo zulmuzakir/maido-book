@@ -130,7 +130,7 @@
 
 	<div class="flex flex-1 flex-col">
 		{#if data.total > 0 || data.status !== 'all'}
-			<div class="px-4 md:h-11 md:border-b md:border-rule md:px-5">
+			<div class="px-4 md:h-11 md:border-b md:border-rule md:px-6 xl:px-8">
 				<FilterTabs items={tabItems} active={data.status} label={m.customers_filter_label()} />
 			</div>
 		{/if}

@@ -300,7 +300,7 @@
 
 		{#if !firstRun}
 			<div
-				class="flex flex-col px-4 pb-3 md:h-11 md:flex-row md:items-center md:gap-5 md:border-b md:border-rule md:px-5 md:pb-0"
+				class="flex flex-col px-4 pb-3 md:h-11 md:flex-row md:items-center md:gap-5 md:border-b md:border-rule md:px-6 md:pb-0 xl:px-8"
 			>
 				<div class="min-w-0 flex-1">
 					<FilterTabs

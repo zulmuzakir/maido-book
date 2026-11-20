@@ -50,6 +50,7 @@
 	"cancel": "Batal",
 	"edit": "Edit",
 	"back": "Kembali",
+	"back_to": "Kembali ke {page}",
 	"previous": "Sebelumnya",
 	"next": "Berikutnya",
 	"toast_order_saved": "Order tersimpan",

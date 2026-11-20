@@ -129,7 +129,7 @@
 <div class="min-h-dvh bg-card">
 	<PageHeader
 		title={m.new_order()}
-		variant="centered"
+		variant="subpage"
 		back={{ href: backHref, label: backLabel, mobileLabel: m.back() }}
 	/>
 

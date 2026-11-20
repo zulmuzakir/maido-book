@@ -51,7 +51,7 @@
 <ul class="divide-y divide-row-rule">
 	{#each items as item (item.id)}
 		<li
-			class="flex min-h-16 items-center gap-3 px-4 transition-colors hover:bg-muted/70 md:min-h-[60px] md:gap-4 md:px-5"
+			class="flex min-h-16 items-center gap-3 px-4 transition-colors hover:bg-muted/70 md:min-h-[60px] md:gap-4 md:px-6 xl:px-8"
 		>
 			<a
 				href={resolve('/(app)/customers/[id]', { id: item.id })}

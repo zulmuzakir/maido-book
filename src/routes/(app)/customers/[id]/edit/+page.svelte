@@ -40,7 +40,7 @@
 <div class="min-h-dvh bg-card">
 	<PageHeader
 		title={data.title}
-		variant="centered"
+		variant="subpage"
 		back={{ href: detailHref, label: m.nav_customers(), mobileLabel: m.back() }}
 	/>
 

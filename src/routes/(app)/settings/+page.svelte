@@ -147,7 +147,13 @@
 </svelte:head>
 
 <div class="min-h-dvh bg-card">
-	<PageHeader title={m.nav_settings()} metaInline="md">
+	<PageHeader
+		title={m.nav_settings()}
+		back={{ href: resolve('/(app)/more'), label: m.nav_more() }}
+		variant="subpage"
+		backMobileOnly
+		metaInline="md"
+	>
 		{#snippet meta()}{m.settings_subtitle()}{/snippet}
 	</PageHeader>
 
@@ -155,7 +161,7 @@
 		<SettingsSectionNav {sections} active={activeId} ongo={go} />
 
 		<div class="min-w-0 max-md:border-t max-md:border-rule">
-			<div class="hidden px-6 md:block md:border-b md:border-rule md:px-5 xl:hidden">
+			<div class="hidden px-6 md:block md:border-b md:border-rule md:px-6 xl:hidden xl:px-8">
 				<FilterTabs items={sectionItems} active={activeId} onselect={go} label={m.nav_settings()} />
 			</div>
 
