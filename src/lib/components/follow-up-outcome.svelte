@@ -17,6 +17,9 @@
 	import { toast } from 'svelte-sonner';
 	import ArrowUpRightIcon from '@lucide/svelte/icons/arrow-up-right';
 	import CalendarIcon from '@lucide/svelte/icons/calendar';
+	import CheckIcon from '@lucide/svelte/icons/check';
+	import InfoIcon from '@lucide/svelte/icons/info';
+	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Textarea } from '#lib/components/ui/textarea/index.js';
 	import { addDays, formatDate } from '#lib/domain/dates.ts';
@@ -40,7 +43,7 @@
 		item: QueueRowItem;
 		today: string;
 		rules: RuleSettings;
-		/** The picked result. The card hides its message and snooze sections while one is picked. */
+		/** The picked result. The card hides its message and snooze while one is picked. */
 		choice?: ManualOutcome | null;
 		/** Reports a successful save so the page keeps this customer open. */
 		onsaved?: (result: SavedOutcome) => void;
@@ -49,20 +52,31 @@
 	} = $props();
 
 	const locale = $derived(getLocale());
-	const OPTIONS: ManualOutcome[] = ['no_reply', 'replied', 'interested', 'not_interested'];
-	// The same offsets as the snooze chips, so a date chip means the same thing everywhere.
-	const DATE_OFFSETS = [1, 3, 7];
-	const cellClass =
-		'flex min-h-11 items-center justify-center gap-1 rounded-lg border border-rule bg-card px-2 py-1.5 text-center text-ui leading-tight font-semibold text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring desk:min-h-[38px]';
+	// The order the boards list them in; "Sudah order" (a link to the order form) comes first.
+	const OPTIONS: ManualOutcome[] = ['replied', 'interested', 'no_reply', 'not_interested'];
+	// Next-contact chips: the retry window, then +3 and +7 days.
+	const DATE_OFFSETS = $derived(
+		[...new Set([rules.retryDays, 3, 7])].filter((n) => n > 0).sort((a, b) => a - b)
+	);
+	/** Berminat comes back sooner than a plain reply: +3 days; everything else uses the retry window. */
+	const defaultOffset = (o: ManualOutcome | null) => (o === 'interested' ? 3 : rules.retryDays);
+	const optionClass =
+		'flex h-[46px] w-full items-center justify-between gap-2 rounded-lg border border-border bg-card px-3.5 text-left text-sm font-semibold text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring';
 
 	let nextDate = $state(untrack(() => addDays(today, rules.retryDays)));
 	let errors = $state<Record<string, string>>({});
+	// Each pick starts from its own default date.
+	$effect(() => {
+		const o = choice;
+		untrack(() => (nextDate = addDays(today, defaultOffset(o))));
+	});
 
 	const lastAttempt = $derived(item.attempt >= rules.maxAttempts);
 	const showDate = $derived(
 		choice === 'replied' || choice === 'interested' || (choice === 'no_reply' && !lastAttempt)
 	);
 	const minDate = $derived(addDays(today, 1));
+	const warn = $derived(choice === 'no_reply' && lastAttempt);
 
 	function hintFor(o: ManualOutcome): string | null {
 		if (o === 'interested') return m.today_interested_hint();
@@ -113,22 +127,19 @@
 	});
 </script>
 
-<form
-	method="post"
-	action="?/outcome"
-	use:enhance={save.enhance}
-	class="flex flex-col gap-2 border-t border-rule px-5 py-4"
->
+<form method="post" action="?/outcome" use:enhance={save.enhance} class="flex flex-col">
 	<input type="hidden" name="followUpId" value={item.followUpId} />
-	<fieldset class="flex flex-col gap-2">
-		<legend class="mb-2 text-ui font-semibold text-foreground">{m.today_outcome_choice()}</legend>
-		<div class="grid grid-cols-2 gap-2">
+	<fieldset class="flex flex-col gap-3 border-t border-rule px-6 py-[18px]">
+		<legend class="float-left mb-3 text-ui font-semibold text-foreground">
+			{m.today_outcome_choice()}
+		</legend>
+		<div class="clear-left flex flex-col gap-2">
 			<!-- eslint-disable svelte/no-navigation-without-resolve -->
 			<a
 				href={resolve('/(app)/orders/new') + `?customer=${item.customer.id}&from=queue`}
-				class={cellClass}
+				class={optionClass}
 				>{m.card_outcome_ordered()}<ArrowUpRightIcon
-					class="size-3.5 text-muted-foreground"
+					class="size-4 text-muted-foreground"
 					aria-hidden="true"
 				/></a
 			>
@@ -136,98 +147,108 @@
 			{#each OPTIONS as o (o)}
 				<label
 					class={cn(
-						cellClass,
-						choice === o && 'border-[1.5px] border-primary bg-accent text-primary-text'
+						optionClass,
+						choice === o &&
+							'border-primary bg-accent text-accent-foreground shadow-[inset_0_0_0_1px_var(--primary)] hover:bg-accent'
 					)}
 				>
 					<input type="radio" name="outcome" value={o} bind:group={choice} class="sr-only" />
 					{outcomeLabel(o)}
+					{#if choice === o}<CheckIcon class="size-[18px]" aria-hidden="true" />{/if}
 				</label>
 			{/each}
 		</div>
+		<FieldError message={fieldError('outcome', errors.outcome)} />
 	</fieldset>
-	<FieldError message={fieldError('outcome', errors.outcome)} />
 
 	{#if choice}
 		{@const hint = hintFor(choice)}
-		{#if hint}
-			<p
-				class={cn(
-					'rounded-[8px] px-3.5 py-3 text-ui leading-[19px]',
-					choice === 'no_reply' && lastAttempt
-						? 'bg-warning text-warning-foreground'
-						: 'bg-subtle text-subtle-foreground'
-				)}
-			>
-				{hint}
-			</p>
-		{/if}
-
-		{#if showDate}
-			<div class="flex flex-col gap-2">
-				<label for="next-date-{item.followUpId}" class="text-ui font-semibold text-foreground">
-					{m.today_next_date()}
-				</label>
-				<div class="flex flex-wrap gap-2">
-					{#each DATE_OFFSETS as n (n)}
-						{@const target = addDays(today, n)}
-						<Button
-							type="button"
-							size="sm"
-							variant={nextDate === target ? 'default' : 'secondary'}
-							class="h-11 rounded-lg px-[14px] desk:h-10"
-							aria-pressed={nextDate === target}
-							onclick={() => (nextDate = target)}
-						>
-							{n === 1 ? m.snooze_tomorrow() : m.today_plus_days({ count: n })}
-						</Button>
-					{/each}
-				</div>
-				<div
-					class="relative flex h-11 items-center gap-2 rounded-lg border border-input bg-card px-3 text-sm has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring desk:h-10"
+		<div class="flex flex-col gap-3 border-t border-rule px-6 py-[18px]">
+			{#if hint}
+				<p
+					class={cn(
+						'flex items-start gap-2.5 rounded-[8px] px-3.5 py-3 text-sm leading-[21px] text-foreground',
+						warn ? 'bg-note' : 'bg-background dark:bg-secondary'
+					)}
 				>
-					<CalendarIcon class="size-4 text-muted-foreground" aria-hidden="true" />
-					<span class="num">{nextDate ? formatDate(nextDate, locale, 'long') : ''}</span>
-					<input
-						id="next-date-{item.followUpId}"
-						type="date"
-						name="nextDate"
-						bind:value={nextDate}
-						min={minDate}
-						aria-invalid={errors.nextDate ? true : undefined}
-						class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-					/>
-				</div>
-				<FieldError message={fieldError('nextDate', errors.nextDate)} />
-			</div>
-		{/if}
+					{#if warn}
+						<TriangleAlertIcon
+							class="mt-0.5 size-4 shrink-0 text-status-today"
+							aria-hidden="true"
+						/>
+					{:else}
+						<InfoIcon class="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+					{/if}
+					<span class="flex-1">{hint}</span>
+				</p>
+			{/if}
 
-		<div class="flex flex-col gap-1.5">
-			<label for="note-{item.followUpId}" class="text-ui font-semibold text-foreground">
-				{m.today_note_label()}
-			</label>
-			<Textarea
-				id="note-{item.followUpId}"
-				name="note"
-				rows={2}
-				maxlength={1000}
-				placeholder={m.today_note_placeholder()}
-				class="min-h-[56px] border-rule px-[12px] py-[10px] text-base md:text-sm"
-			/>
+			{#if showDate}
+				<div class="flex flex-col gap-2">
+					<label for="next-date-{item.followUpId}" class="text-ui font-semibold text-foreground">
+						{m.today_next_date()}
+					</label>
+					<div class="flex flex-wrap gap-2">
+						{#each DATE_OFFSETS as n (n)}
+							{@const target = addDays(today, n)}
+							{@const on = nextDate === target}
+							<Button
+								type="button"
+								variant={on ? 'default' : 'outline'}
+								class={cn('h-11 px-4 desk:h-10', !on && 'border-input')}
+								aria-pressed={on}
+								onclick={() => (nextDate = target)}
+							>
+								{m.today_plus_days({ count: n })}
+							</Button>
+						{/each}
+					</div>
+					<div
+						class="relative flex h-11 items-center gap-2.5 rounded-lg border border-input bg-card px-3 text-[15px] has-[:focus-visible]:border-primary has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring"
+					>
+						<CalendarIcon class="size-4 text-muted-foreground" aria-hidden="true" />
+						<span class="num">{nextDate ? formatDate(nextDate, locale, 'long') : ''}</span>
+						<input
+							id="next-date-{item.followUpId}"
+							type="date"
+							name="nextDate"
+							bind:value={nextDate}
+							min={minDate}
+							aria-invalid={errors.nextDate ? true : undefined}
+							class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+						/>
+					</div>
+					<FieldError message={fieldError('nextDate', errors.nextDate)} />
+				</div>
+			{/if}
+
+			<div class="flex flex-col gap-1.5">
+				<label for="note-{item.followUpId}" class="text-ui font-semibold text-foreground">
+					{m.today_note_title()}
+					<span class="font-normal text-muted-foreground">{m.optional().toLowerCase()}</span>
+				</label>
+				<Textarea
+					id="note-{item.followUpId}"
+					name="note"
+					rows={2}
+					maxlength={1000}
+					placeholder={m.today_note_placeholder()}
+					class="h-[72px] min-h-0 resize-none px-3 py-2.5 text-base desk:text-[15px]"
+				/>
+			</div>
 		</div>
 
-		<div class="flex gap-2">
-			<Button
-				type="submit"
-				class="h-11 px-[14px] text-ui font-semibold desk:h-11"
-				disabled={save.pending}
-			>
+		<!-- Pinned to the bottom of the panel (or sheet) while the result is being filled in. -->
+		<div
+			class="sticky bottom-0 z-10 flex gap-2 border-t border-rule bg-card px-6 py-3.5 shadow-[0_-6px_16px_color-mix(in_oklch,var(--shadow-tint)_5%,transparent)]"
+		>
+			<Button type="submit" class="h-11 flex-1 desk:h-11" disabled={save.pending}>
 				{m.today_outcome_save()}
 			</Button>
 			<Button
 				type="button"
 				variant="outline"
-				class="h-11 px-[14px] text-ui font-semibold desk:h-11"
+				class="h-11 w-[100px] desk:h-11"
 				onclick={() => (choice = null)}
 			>
 				{m.cancel()}

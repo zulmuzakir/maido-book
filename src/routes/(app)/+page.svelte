@@ -11,7 +11,7 @@
 	import ChevronUpIcon from '@lucide/svelte/icons/chevron-up';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import XIcon from '@lucide/svelte/icons/x';
-	import UsersIcon from '@lucide/svelte/icons/users';
+	import TextAlignStartIcon from '@lucide/svelte/icons/text-align-start';
 	import InboxIcon from '@lucide/svelte/icons/inbox';
 	import UploadIcon from '@lucide/svelte/icons/upload';
 	import EmptyState from '#lib/components/empty-state.svelte';
@@ -22,7 +22,6 @@
 	import * as Drawer from '#lib/components/ui/drawer/index.js';
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
 	import { searchDigits } from '#lib/domain/phone.ts';
-	import type { SavedOutcome } from '#lib/components/follow-up-outcome.svelte';
 	import { dueState, type QueueRowItem } from '#lib/queue.ts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { cn } from '#lib/utils.js';
@@ -121,7 +120,6 @@
 	const flat = $derived(shown.flatMap((s) => s.items));
 	const pool = $derived(allSections.flatMap((s) => s.items));
 	let selectedId = $state<string | null>(null);
-	let saved = $state<(SavedOutcome & { item: QueueRowItem }) | null>(null);
 	let lastIndex = 0;
 	// A send moves the customer to the end of "Menunggu balasan", far from where the agent was
 	// working. Stepping then continues from the neighbours they had in the list when it was sent.
@@ -129,9 +127,7 @@
 	let sheetOpen = $state(false);
 	const selected = $derived(pool.find((i) => i.followUpId === selectedId) ?? null);
 	const position = $derived(selected ? flat.indexOf(selected) : -1);
-	// The customer whose outcome was just saved stays open ("Hasil tersimpan") until the user moves on.
-	const savedHere = $derived(saved && saved.item.followUpId === selectedId ? saved : null);
-	const displayed = $derived(selected ?? savedHere?.item ?? null);
+	const displayed = $derived(selected);
 	const sentHere = $derived(sentFrom && sentFrom.id === selectedId ? sentFrom : null);
 	const inFlat = (id: string | null) => !!id && flat.some((i) => i.followUpId === id);
 	const canPrev = $derived(
@@ -156,8 +152,6 @@
 
 	$effect(() => {
 		if (selectedId && !selected) {
-			// The saved follow-up has left the list but stays on screen until the user moves on.
-			if (savedHere) return;
 			// A finished day has no next follow-up to select; the summary aside takes its place.
 			const next = dayDone ? undefined : flat[Math.min(lastIndex, flat.length - 1)];
 			if (next) untrack(() => reveal(next));
@@ -179,7 +173,6 @@
 
 	function select(item: QueueRowItem) {
 		reveal(item);
-		saved = null;
 		sentFrom = null;
 		selectedId = item.followUpId;
 		lastIndex = Math.max(0, flat.indexOf(item));
@@ -193,7 +186,7 @@
 			if (target) select(target);
 			return;
 		}
-		// Once the saved follow-up has left the list, step from the slot it occupied.
+		// Once the follow-up has left the list, step from the slot it occupied.
 		const next = position >= 0 ? flat[position + by] : flat[lastIndex + (by > 0 ? 0 : -1)];
 		if (next) select(next);
 	}
@@ -208,12 +201,10 @@
 		};
 	}
 
-	function outcomeSaved(result: SavedOutcome) {
-		if (displayed) saved = { ...result, item: displayed };
-	}
-
-	function clearSaved() {
-		saved = null;
+	// A saved outcome takes the customer out of the list: on desktop the panel moves to whoever
+	// takes their place; on tablet and phone the detail closes. The toast carries the undo.
+	function outcomeSaved() {
+		if (!wide.current) sheetOpen = false;
 	}
 
 	// Keyboard: on desk j / k step through the queue like a mail client. Ignored while typing.
@@ -247,7 +238,7 @@
 {/snippet}
 
 {#snippet stepper()}
-	{#if position >= 0 || savedHere || sentHere}
+	{#if position >= 0 || sentHere}
 		<div class="flex items-center gap-1">
 			<!-- After a send the customer sits in "Menunggu balasan"; its place there is not the agent's. -->
 			{#if position >= 0 && !sentHere}
@@ -321,7 +312,6 @@
 					label={m.queue_title()}
 					onselect={(key) => {
 						tab = key as Tab;
-						saved = null;
 						selectedId = null;
 					}}
 				/>
@@ -391,12 +381,7 @@
 						item={displayed}
 						today={data.today}
 						rules={data.rules}
-						{stepper}
-						saved={savedHere}
 						onsaved={outcomeSaved}
-						onundo={clearSaved}
-						onnext={() => step(1)}
-						hasNext={canNext}
 						onsent={cardSent}
 					/>
 				</div>
@@ -407,13 +392,16 @@
 					next={data.upcoming[0]}
 				/>
 			{:else}
-				<div class="m-auto flex max-w-80 flex-col items-center gap-2.5 text-center">
+				<div class="m-auto flex max-w-[260px] flex-col items-center gap-1.5 text-center">
 					<span
-						class="flex size-12 items-center justify-center rounded-full bg-secondary text-primary-text"
+						class="mb-2 grid size-[52px] place-items-center rounded-full bg-avatar text-avatar-foreground"
 					>
-						<UsersIcon class="size-5" aria-hidden="true" />
+						<TextAlignStartIcon class="size-[22px]" aria-hidden="true" />
 					</span>
-					<p class="text-sm leading-[18px] text-muted-foreground">{m.queue_select_hint()}</p>
+					<p class="text-[15px] leading-5 font-semibold text-foreground">
+						{m.queue_select_title()}
+					</p>
+					<p class="text-sm leading-5 text-muted-foreground">{m.queue_select_hint()}</p>
 				</div>
 			{/if}
 		</aside>
@@ -445,11 +433,7 @@
 						item={displayed}
 						today={data.today}
 						rules={data.rules}
-						saved={savedHere}
 						onsaved={outcomeSaved}
-						onundo={clearSaved}
-						onnext={() => step(1)}
-						hasNext={canNext}
 						onsent={cardSent}
 					/>
 				{/if}

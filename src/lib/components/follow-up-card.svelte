@@ -1,11 +1,14 @@
 <script lang="ts">
-	import { untrack, type Snippet } from 'svelte';
+	import { untrack } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import { toast } from 'svelte-sonner';
+	import InfoIcon from '@lucide/svelte/icons/info';
+	import MessageCircleIcon from '@lucide/svelte/icons/message-circle';
+	import PencilIcon from '@lucide/svelte/icons/pencil';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Textarea } from '#lib/components/ui/textarea/index.js';
-	import FollowUpOutcome from '#lib/components/follow-up-outcome.svelte';
+	import FollowUpOutcome, { type SavedOutcome } from '#lib/components/follow-up-outcome.svelte';
 	import FollowUpSnooze from '#lib/components/follow-up-snooze.svelte';
 	import {
 		AlertDialog,
@@ -17,21 +20,18 @@
 		AlertDialogHeader,
 		AlertDialogTitle
 	} from '#lib/components/ui/alert-dialog/index.js';
-	import PersonSummary from '#lib/components/person-summary.svelte';
+	import InitialsAvatar from '#lib/components/initials-avatar.svelte';
 	import SupplyTrack from '#lib/components/supply-track.svelte';
-	import WhatsappIcon from '#lib/components/whatsapp-icon.svelte';
-	import { formatDate } from '#lib/domain/dates.ts';
+	import { addDays, formatDate } from '#lib/domain/dates.ts';
+	import { supplyStatus } from '#lib/domain/follow-up.ts';
 	import { formatPhone, waLink } from '#lib/domain/phone.ts';
-	import { customerStatusLabel, outcomeLabel } from '#lib/labels.ts';
-	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
-	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
+	import { customerStatusLabel } from '#lib/labels.ts';
 	import type { ManualOutcome, RuleSettings } from '#lib/domain/types.ts';
 	import { toTemplate } from '#lib/domain/template.ts';
 	import { firstName } from '#lib/format.ts';
 	import { FormAction } from '#lib/form-action.svelte.ts';
 	import { sentToast } from '#lib/follow-up-undo.ts';
 	import { dueState, type QueueRowItem } from '#lib/queue.ts';
-	import type { SavedOutcome } from '#lib/components/follow-up-outcome.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import { cn } from '#lib/utils.js';
@@ -40,28 +40,17 @@
 		item,
 		today,
 		rules,
-		stepper,
-		saved = null,
 		onsaved,
 		onundo,
-		onnext,
-		hasNext = false,
 		onsent
 	}: {
 		item: QueueRowItem;
 		today: string;
 		rules: RuleSettings;
-		/** Optional queue stepper, shown top-right on wide screens. */
-		stepper?: Snippet;
-		/** Set once the outcome is saved: the card shows the read-only "Hasil tersimpan" state. */
-		saved?: SavedOutcome | null;
-		/** Reports a successful outcome save so the page keeps this follow-up open. */
+		/** Reports a saved outcome; the page then moves on (the toast carries the undo). */
 		onsaved?: (result: SavedOutcome) => void;
 		/** Runs once an undo from the toast has finished and the follow-up is back in the queue. */
 		onundo?: () => void;
-		/** Moves the queue to the next customer, offered once this one is done. */
-		onnext?: () => void;
-		hasNext?: boolean;
 		/** Reports a logged send, so the page can keep "next" pointing into today's work. */
 		onsent?: () => void;
 	} = $props();
@@ -70,45 +59,56 @@
 	const due = $derived(dueState(item, today, rules));
 	const waiting = $derived(due.bucket === 'waiting');
 	const customerHref = $derived(resolve('/(app)/customers/[id]', { id: item.customer.id }));
+	const sendFormId = $derived(`send-${item.followUpId}`);
 
 	// The message is edited per follow-up. Edits survive a template save (a reload of the same
 	// follow-up) and reset only when the queue moves to another follow-up.
 	let editing = $state(false);
 	let edited = $state(untrack(() => item.message));
 	let templateConfirm = $state(false);
-	// A picked outcome hides the message and the WhatsApp send until it is saved or cancelled.
+	// A picked outcome hides the message and the snooze until it is saved or cancelled.
 	let outcomeChoice = $state<ManualOutcome | null>(null);
-	// Before the first message the outcome grid stays behind "Sudah ada balasan?": the job is to send.
-	let replyOpen = $state(false);
-	// Just sent from this card: the reply has not had time to come, so the card points to the next
-	// customer instead of leading with the outcome grid.
-	let justSent = $state(false);
-	// Once the outcome is saved, sending again is the exception: it waits behind a quiet link.
-	let resendOpen = $state(false);
 	$effect(() => {
 		void item.followUpId;
 		untrack(() => {
 			edited = item.message;
 			editing = false;
 			outcomeChoice = null;
-			replyOpen = false;
-			justSent = false;
-			resendOpen = false;
 		});
 	});
 	const changed = $derived(edited !== item.message);
 
+	// "±3 hari sisa stok · habis sekitar 12 Nov", or how long ago the stock ran out.
+	const supply = $derived.by(() => {
+		const o = item.lastOrder;
+		if (!o) return null;
+		const { daysLeft } = supplyStatus({ orderDate: o.orderDate, daysSupply: o.daysSupply, today });
+		const runOut = formatDate(addDays(o.orderDate, o.daysSupply), locale, 'short');
+		return {
+			big: daysLeft > 0 ? `±${daysLeft}` : String(-daysLeft),
+			text:
+				daysLeft > 0
+					? m.card_supply_left({ date: runOut })
+					: daysLeft === 0
+						? m.card_supply_out_today()
+						: m.card_supply_out({ date: runOut }),
+			tone:
+				daysLeft > rules.leadDays
+					? 'text-foreground'
+					: daysLeft > 0
+						? 'text-status-today'
+						: 'text-status-overdue'
+		};
+	});
+
 	const sent = new FormAction(async ({ result, update }) => {
 		if (result.type === 'success' && result.data?.action === 'sent') {
 			sentToast(firstName(item.customer.name), result.data.undo);
-			justSent = true;
+			editing = false;
 			onsent?.();
-		} else if (result.type === 'success' && result.data?.action === 'resend') {
-			sentToast(firstName(item.customer.name), result.data.undo, 'undoResend');
 		}
 		await update();
 	});
-	const leadWithOutcome = $derived(waiting && !justSent);
 	const saveTemplate = new FormAction(async ({ result, update }) => {
 		if (result.type === 'success') toast.success(m.toast_template_saved());
 		await update({ reset: false });
@@ -118,254 +118,201 @@
 	function openWhatsApp() {
 		window.open(waLink(item.customer.phone, edited), '_blank', 'noopener');
 	}
+
+	const sendLabel = $derived(
+		waiting ? m.today_resend() : m.queue_send_to({ name: firstName(item.customer.name) })
+	);
+	const section = 'flex flex-col gap-3 border-t border-rule px-6 py-[18px]';
 </script>
 
-{#snippet nextButton()}
-	<Button class="h-11 w-full text-sm desk:h-10" onclick={onnext}>
-		{m.queue_next()}
-		<kbd
-			class="ml-1 hidden rounded-[4px] border border-primary-foreground/30 px-1.5 text-xs font-medium lg:inline"
-			>J</kbd
-		>
+{#snippet sendButton(cls: string)}
+	<Button
+		type="submit"
+		form={sendFormId}
+		variant="whatsapp"
+		class={cls}
+		disabled={sent.pending}
+		onclick={openWhatsApp}
+	>
+		<MessageCircleIcon class="size-[18px]" aria-hidden="true" />
+		{sendLabel}
 	</Button>
 {/snippet}
 
-{#snippet quietResend()}
-	{#if resendOpen}
-		{@render message()}
-	{:else}
-		<div class="border-t border-rule px-5 py-3">
-			<Button
-				type="button"
-				variant="ghost"
-				class="-mx-2 h-11 px-2 text-ui font-semibold text-primary-text desk:h-10"
-				onclick={() => (resendOpen = true)}
-			>
-				{m.queue_resend_link()}
-			</Button>
-		</div>
-	{/if}
-{/snippet}
-
-{#snippet outcome()}
-	<FollowUpOutcome {item} {today} {rules} {onsaved} {onundo} bind:choice={outcomeChoice} />
-{/snippet}
-
-{#snippet message()}
-	<section class="flex flex-col gap-2.5 border-t border-rule px-5 py-4">
-		<div class="flex items-center justify-between gap-2">
-			<h3 class="text-ui font-semibold text-foreground">{m.queue_message_label()}</h3>
-			{#if editing}
-				<span class="text-ui text-hint-foreground">{m.queue_editing()}</span>
-			{:else}
-				<Button
-					type="button"
-					variant="outline"
-					size="sm"
-					class="h-11 rounded-lg border-rule px-[10px] text-ui font-semibold text-subtle-foreground desk:h-8"
-					onclick={() => (editing = true)}
-				>
-					{m.edit()}
-				</Button>
-			{/if}
-		</div>
-
-		{#if editing}
-			<Textarea
-				bind:value={edited}
-				rows={5}
-				maxlength={1000}
-				class="min-h-0 w-full rounded-lg border-2 border-primary bg-card px-[14px] py-[12px] text-[15px] leading-[23px] text-foreground max-md:min-h-[150px] dark:border-accent-foreground desk:text-sm desk:leading-[21px]"
+<article class="flex min-h-full flex-col">
+	<div class="flex-1">
+		<header class="flex items-center gap-3 px-6 pt-[22px] pb-[18px]">
+			<InitialsAvatar
+				name={item.customer.name}
+				size={48}
+				class="bg-avatar text-[17px] font-extrabold text-avatar-foreground"
 			/>
-			<div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-ui">
-				<span class="text-hint-foreground num">{m.queue_char_count({ count: edited.length })}</span>
-				<div class="flex items-center gap-4 font-semibold text-primary-text">
-					<button
-						type="button"
-						class="hover:underline disabled:pointer-events-none disabled:opacity-40"
-						disabled={!changed}
-						onclick={() => (edited = item.message)}
-					>
-						{m.queue_reset()}
-					</button>
-					<button type="button" class="hover:underline" onclick={() => (templateConfirm = true)}>
-						{m.queue_save_template()}
-					</button>
-				</div>
+			<div class="min-w-0 flex-1">
+				<h2 class="text-lg leading-[22px] font-bold tracking-[-0.01em] break-words">
+					{item.customer.name}
+				</h2>
+				<p class="mt-0.5 text-ui text-muted-foreground num">
+					{formatPhone(item.customer.phone)} · {customerStatusLabel(item.customer.status)}
+				</p>
 			</div>
-			<p class="text-ui text-hint-foreground">
-				{m.queue_edit_note({ name: firstName(item.customer.name) })}
-			</p>
-		{:else}
-			<blockquote
-				class="rounded-[8px] bg-subtle px-3.5 py-3 text-sm leading-[21px] whitespace-pre-wrap text-subtle-foreground"
+			<a
+				href={customerHref}
+				class="-mr-1 shrink-0 rounded-sm px-1 py-1 text-[13.5px] font-semibold text-primary-text outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring"
 			>
-				{edited}
-			</blockquote>
+				{m.card_profile()}
+			</a>
+		</header>
+
+		{#if item.lastOrder && supply}
+			<section class={section}>
+				<p class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+					<span class="text-[34px] leading-none font-bold tracking-[-0.03em] num {supply.tone}"
+						>{supply.big}</span
+					>
+					<span class="text-sm text-muted-foreground">{supply.text}</span>
+				</p>
+				<SupplyTrack
+					orderDate={item.lastOrder.orderDate}
+					daysSupply={item.lastOrder.daysSupply}
+					{today}
+					leadDays={rules.leadDays}
+					label={false}
+					decorative
+				/>
+				<p class="text-ui text-muted-foreground num">
+					{m.card_last_order({
+						qty: item.lastOrder.qty,
+						unit: item.lastOrder.unitLabel,
+						product: item.lastOrder.productName,
+						date: formatDate(item.lastOrder.orderDate, locale, 'short')
+					})}{m.queue_dose_suffix({ dose: item.customer.dosePerDay })}
+				</p>
+			</section>
 		{/if}
 
-		<form
-			method="post"
-			action={saved ? '?/resend' : '?/sent'}
-			use:enhance={sent.enhance}
-			class="flex flex-col"
-		>
+		<AlertDialog bind:open={templateConfirm}>
+			<AlertDialogContent>
+				<form method="post" action="?/saveTemplate" use:enhance={saveTemplate.enhance}>
+					<input type="hidden" name="kind" value={item.kind} />
+					<input type="hidden" name="body" value={toTemplate(edited, item.vars)} />
+					<AlertDialogHeader>
+						<AlertDialogTitle>{m.queue_template_confirm_title()}</AlertDialogTitle>
+						<AlertDialogDescription>{m.queue_template_confirm_description()}</AlertDialogDescription
+						>
+					</AlertDialogHeader>
+					<AlertDialogFooter class="mt-4">
+						<AlertDialogCancel type="button">{m.cancel()}</AlertDialogCancel>
+						<AlertDialogAction type="submit" disabled={saveTemplate.pending}>
+							{m.queue_template_confirm()}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</form>
+			</AlertDialogContent>
+		</AlertDialog>
+
+		<!-- The send form holds only the data; its buttons sit in the message section, or in the
+		     bottom bar while editing. -->
+		<form id={sendFormId} method="post" action="?/sent" use:enhance={sent.enhance} class="hidden">
 			<input type="hidden" name="followUpId" value={item.followUpId} />
-			{#if changed || saved}<input type="hidden" name="body" value={edited} />{/if}
-			<div class="flex items-center gap-2">
-				<Button
-					type="submit"
-					variant="whatsapp"
-					class={editing
-						? 'h-11 flex-1 text-[15px]'
-						: saved
-							? 'h-11 w-full text-sm leading-[18px] desk:h-11 desk:text-sm'
-							: 'flex-1 text-sm leading-[18px] desk:h-11 desk:text-sm'}
-					disabled={sent.pending}
-					onclick={openWhatsApp}
-				>
-					{#if !editing}<WhatsappIcon class={saved ? 'size-[18px]' : 'size-4'} />{/if}
-					{waiting && !saved
-						? m.today_resend()
-						: m.queue_send_to({ name: firstName(item.customer.name) })}
-				</Button>
-				{#if editing}
-					<Button type="button" variant="outline" class="h-11" onclick={() => (editing = false)}>
-						{m.queue_done_editing()}
-					</Button>
-				{/if}
-			</div>
+			{#if changed}<input type="hidden" name="body" value={edited} />{/if}
 		</form>
-	</section>
-{/snippet}
 
-<article class="flex flex-col">
-	<header class="flex items-start gap-3 px-5 pt-5 pb-3.5">
-		<PersonSummary
-			name={item.customer.name}
-			avatarSize={44}
-			href={customerHref}
-			nameClass="truncate text-base leading-5 font-bold tracking-[-0.01em] text-foreground hover:underline"
-			class="flex-1 items-start"
-		>
-			<span class="text-ui text-muted-foreground num">
-				{formatPhone(item.customer.phone)} · {customerStatusLabel(item.customer.status)}
-			</span>
-		</PersonSummary>
-		{#if stepper}{@render stepper()}{/if}
-	</header>
-
-	{#if item.lastOrder}
-		<section
-			class={cn('flex flex-col gap-3 px-5 pb-[18px]', outcomeChoice && !editing && 'max-md:hidden')}
-		>
-			<SupplyTrack
-				size="lg"
-				orderDate={item.lastOrder.orderDate}
-				daysSupply={item.lastOrder.daysSupply}
-				dueDate={item.dueDate}
-				{today}
-				leadDays={rules.leadDays}
-			/>
-			<p class="text-ui text-muted-foreground num">
-				{m.card_last_order({
-					qty: item.lastOrder.qty,
-					unit: item.lastOrder.unitLabel,
-					product: item.lastOrder.productName,
-					date: formatDate(item.lastOrder.orderDate, locale, 'short')
-				})}{m.queue_dose_suffix({ dose: item.customer.dosePerDay })}
-			</p>
-		</section>
-	{/if}
-
-	<AlertDialog bind:open={templateConfirm}>
-		<AlertDialogContent>
-			<form method="post" action="?/saveTemplate" use:enhance={saveTemplate.enhance}>
-				<input type="hidden" name="kind" value={item.kind} />
-				<input type="hidden" name="body" value={toTemplate(edited, item.vars)} />
-				<AlertDialogHeader>
-					<AlertDialogTitle>{m.queue_template_confirm_title()}</AlertDialogTitle>
-					<AlertDialogDescription>{m.queue_template_confirm_description()}</AlertDialogDescription>
-				</AlertDialogHeader>
-				<AlertDialogFooter class="mt-4">
-					<AlertDialogCancel type="button">{m.cancel()}</AlertDialogCancel>
-					<AlertDialogAction type="submit" disabled={saveTemplate.pending}>
-						{m.queue_template_confirm()}
-					</AlertDialogAction>
-				</AlertDialogFooter>
-			</form>
-		</AlertDialogContent>
-	</AlertDialog>
-
-	{#key item.followUpId}
-		{#if saved}
-			<section class="flex flex-col gap-3 border-t border-rule px-5 py-4" aria-live="polite">
-				<div class="flex items-start gap-2.5">
-					<CircleCheckIcon class="mt-px size-[18px] shrink-0 text-status-done" aria-hidden="true" />
-					<div class="flex min-w-0 flex-col gap-0.5">
-						<p class="text-sm font-semibold text-foreground">
-							{m.queue_saved_title({ outcome: outcomeLabel(saved.outcome) })}
-						</p>
-						{#if saved.nextDate}
-							<p class="text-ui text-muted-foreground num">
-								{m.queue_saved_next({ date: formatDate(saved.nextDate, locale, 'short') })}
-							</p>
+		{#key item.followUpId}
+			{#if !outcomeChoice}
+				<section class={section}>
+					<div class="flex min-h-9 items-center justify-between gap-2">
+						<h3 class="text-ui font-semibold text-foreground">{m.queue_message_label()}</h3>
+						{#if editing}
+							<span class="text-ui font-medium text-muted-foreground">{m.queue_editing()}</span>
+						{:else}
+							<Button
+								type="button"
+								variant="ghost"
+								class="-mr-2.5 h-9 gap-1.5 px-2.5 text-[13.5px] text-primary-text hover:bg-accent hover:text-primary-text desk:h-9"
+								onclick={() => (editing = true)}
+							>
+								<PencilIcon class="size-4" aria-hidden="true" />
+								{m.edit()}
+							</Button>
 						{/if}
 					</div>
-				</div>
-				{#if onnext && hasNext}
-					{@render nextButton()}
-				{/if}
-			</section>
-			{@render quietResend()}
-			{#if saved.nextFollowUpId}
-				<FollowUpSnooze followUpId={saved.nextFollowUpId} {today} label={m.queue_snooze_next()} />
-			{/if}
-		{:else if leadWithOutcome}
-			<!-- A message is out and has had time to land: the reply is what happens next. -->
-			{@render outcome()}
-			{#if !outcomeChoice}
-				{@render message()}
-				<FollowUpSnooze followUpId={item.followUpId} {today} />
-			{/if}
-		{:else}
-			{#if justSent && !outcomeChoice}
-				<section class="flex flex-col gap-3 border-t border-rule px-5 py-4" aria-live="polite">
-					<div class="flex items-start gap-2.5">
-						<CircleCheckIcon
-							class="mt-px size-[18px] shrink-0 text-status-done"
-							aria-hidden="true"
+
+					{#if editing}
+						<Textarea
+							bind:value={edited}
+							rows={5}
+							maxlength={1000}
+							aria-label={m.queue_message_label()}
+							class="h-[132px] min-h-0 resize-none rounded-[8px] border-primary px-3.5 py-3 text-[14.5px] leading-[22px] ring-3 ring-ring focus-visible:ring-3 dark:border-selected-ring"
 						/>
-						<p class="text-sm text-foreground">
-							{m.queue_sent_note({ name: firstName(item.customer.name) })}
+						<div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+							<span class="text-ui text-muted-foreground num">
+								{m.queue_char_count({ count: edited.length })}
+							</span>
+							<div class="-mr-2.5 flex gap-1">
+								<Button
+									type="button"
+									variant="ghost"
+									class="h-9 px-2.5 text-[13.5px] text-primary-text hover:bg-accent hover:text-primary-text desk:h-9"
+									disabled={!changed}
+									onclick={() => (edited = item.message)}
+								>
+									{m.queue_reset()}
+								</Button>
+								<Button
+									type="button"
+									variant="ghost"
+									class="h-9 px-2.5 text-[13.5px] text-primary-text hover:bg-accent hover:text-primary-text desk:h-9"
+									onclick={() => (templateConfirm = true)}
+								>
+									{m.queue_save_template()}
+								</Button>
+							</div>
+						</div>
+						<p
+							class="flex items-start gap-2.5 rounded-[8px] bg-background px-3.5 py-3 text-sm leading-[21px] text-foreground dark:bg-secondary"
+						>
+							<InfoIcon class="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+							<span class="flex-1">
+								{m.queue_edit_note({ name: firstName(item.customer.name) })}
+							</span>
 						</p>
-					</div>
-					{#if onnext && hasNext}
-						{@render nextButton()}
+					{:else}
+						<blockquote
+							class="rounded-[8px] bg-background px-3.5 py-3 text-[14.5px] leading-[22px] whitespace-pre-wrap text-foreground dark:bg-secondary"
+						>
+							{edited}
+						</blockquote>
+						{@render sendButton('h-12 w-full text-[15px] desk:h-12')}
 					{/if}
 				</section>
 			{/if}
+
+			<FollowUpOutcome {item} {today} {rules} {onsaved} {onundo} bind:choice={outcomeChoice} />
+
 			{#if !outcomeChoice}
-				<!-- Right after a send, sending again is the exception, not the next step. -->
-				{#if justSent}{@render quietResend()}{:else}{@render message()}{/if}
 				<FollowUpSnooze followUpId={item.followUpId} {today} />
 			{/if}
-			{#if replyOpen || outcomeChoice}
-				{@render outcome()}
-			{:else}
-				<div class="border-t border-rule px-5 py-3">
-					<Button
-						type="button"
-						variant="ghost"
-						class="-mx-2 h-11 px-2 text-ui font-semibold text-primary-text desk:h-10"
-						aria-expanded={false}
-						onclick={() => (replyOpen = true)}
-					>
-						{m.queue_reply_toggle()}
-						<ChevronDownIcon class="size-4" aria-hidden="true" />
-					</Button>
-				</div>
-			{/if}
-		{/if}
-	{/key}
+		{/key}
+	</div>
+
+	{#if editing && !outcomeChoice}
+		<!-- While editing, the send and "Selesai" stay in reach at the bottom of the panel. -->
+		<div
+			class={cn(
+				'sticky bottom-0 z-10 flex gap-2 border-t border-rule bg-card px-6 py-3.5',
+				'shadow-[0_-6px_16px_color-mix(in_oklch,var(--shadow-tint)_5%,transparent)]'
+			)}
+		>
+			{@render sendButton('h-11 min-w-0 flex-1 desk:h-11')}
+			<Button
+				type="button"
+				variant="outline"
+				class="h-11 w-[100px] desk:h-11"
+				onclick={() => (editing = false)}
+			>
+				{m.queue_done_editing()}
+			</Button>
+		</div>
+	{/if}
 </article>
