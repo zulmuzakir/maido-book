@@ -27,7 +27,7 @@
 	const minDate = $derived(addDays(today, 1));
 	let snoozeDate = $state(untrack(() => addDays(today, 1)));
 	let errors = $state<Record<string, string>>({});
-	const chipClass = 'h-11 desk:h-9 rounded-lg px-3.5 text-ui font-semibold';
+	const chipClass = 'h-11 desk:h-10 rounded-lg px-3.5 text-ui font-semibold';
 
 	const snooze = new FormAction(async ({ result, update, formData }) => {
 		if (result.type === 'success') {

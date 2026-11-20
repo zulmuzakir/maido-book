@@ -127,7 +127,7 @@
 								variant="ghost"
 								size="icon"
 								aria-label={m.customer_action_more()}
-								class="size-11 shrink-0 text-muted-foreground desk:size-9"
+								class="size-11 shrink-0 text-muted-foreground desk:size-10"
 							>
 								<EllipsisIcon class="size-4" />
 							</Button>

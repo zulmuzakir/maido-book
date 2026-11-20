@@ -59,7 +59,7 @@
 		<a
 			href={back.href}
 			aria-label={m.back_to({ page: back.label })}
-			class="grid size-11 shrink-0 place-items-center rounded-md text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:hidden"
+			class="grid size-11 shrink-0 place-items-center rounded-md text-foreground outline-none focus-visible:ring-3 focus-visible:ring-ring md:hidden"
 		>
 			<ChevronLeft class="size-[22px]" aria-hidden="true" />
 		</a>
@@ -72,7 +72,7 @@
 			<a
 				href={back.href}
 				class={cn(
-					'-my-1 inline-flex min-h-11 w-fit items-center gap-1 rounded-sm text-[13.5px] leading-[18px] font-semibold text-primary-text outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring/50 md:min-h-0 md:py-1',
+					'-my-1 inline-flex min-h-11 w-fit items-center gap-1 rounded-sm text-[13.5px] leading-[18px] font-semibold text-primary-text outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring md:min-h-0 md:py-1',
 					backMobileOnly && 'md:hidden'
 				)}
 			>

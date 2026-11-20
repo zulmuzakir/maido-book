@@ -32,7 +32,7 @@
 	rel="noopener"
 	aria-label={label}
 	class={cn(
-		'inline-flex size-11 shrink-0 items-center justify-center rounded-lg border border-input bg-card text-whatsapp-text transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 aria-disabled:opacity-50 desk:size-9',
+		'inline-flex size-11 shrink-0 items-center justify-center rounded-lg border border-input bg-card text-whatsapp-text transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring aria-disabled:opacity-50 desk:size-10',
 		className
 	)}
 >

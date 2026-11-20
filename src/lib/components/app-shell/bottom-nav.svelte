@@ -53,7 +53,7 @@
 			<a
 				href={resolve('/(app)/orders/new')}
 				aria-label={m.new_order()}
-				class="-mt-6 grid size-[52px] place-items-center rounded-2xl bg-sidebar-primary text-sidebar-primary-foreground shadow-[0_6px_16px_color-mix(in_oklch,var(--sidebar-primary)_35%,transparent)] outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+				class="-mt-6 grid size-[52px] place-items-center rounded-2xl bg-sidebar-primary text-sidebar-primary-foreground shadow-[0_6px_16px_color-mix(in_oklch,var(--sidebar-primary)_35%,transparent)] outline-none focus-visible:ring-3 focus-visible:ring-ring"
 			>
 				<Plus class="size-6" aria-hidden="true" />
 			</a>

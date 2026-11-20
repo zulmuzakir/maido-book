@@ -59,7 +59,7 @@
 		</div>
 	{/if}
 	<label
-		class="flex cursor-pointer flex-col items-center gap-3.5 rounded-[8px] border-[1.5px] border-dashed bg-dropzone px-4 py-10 text-center transition-colors focus-within:ring-3 focus-within:ring-ring/50 md:px-6 md:py-14 {problem
+		class="flex cursor-pointer flex-col items-center gap-3.5 rounded-[8px] border-[1.5px] border-dashed bg-dropzone px-4 py-10 text-center transition-colors focus-within:ring-3 focus-within:ring-ring md:px-6 md:py-14 {problem
 			? 'border-destructive'
 			: 'border-dropzone-border'} {dragging ? 'border-primary bg-accent' : ''}"
 		ondragover={(event) => {

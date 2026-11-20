@@ -87,7 +87,7 @@
 			onblur={() => {
 				if (!value) open = false;
 			}}
-			class="h-11 w-full rounded-lg border border-input bg-card pr-8 pl-9 text-base placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 desk:h-9 desk:text-ui"
+			class="h-11 w-full rounded-lg border border-input bg-card pr-8 pl-9 text-base placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring desk:h-10 desk:text-ui"
 		/>
 		{#if value}
 			<button

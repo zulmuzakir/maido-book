@@ -126,7 +126,7 @@
 			type="submit"
 			variant="outline"
 			size="sm"
-			class="h-9 px-3.5 text-ui font-semibold desk:h-9"
+			class="h-9 px-3.5 text-ui font-semibold desk:h-10"
 			disabled={noteAction.pending}
 		>
 			{m.customer_note_save()}

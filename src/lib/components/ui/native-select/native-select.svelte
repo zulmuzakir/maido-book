@@ -27,7 +27,7 @@
 		bind:this={ref}
 		data-slot="native-select"
 		data-size={size}
-		class="h-11 w-full min-w-0 appearance-none rounded-lg border border-input bg-card py-1 pr-8 pl-3 text-base transition-[color,box-shadow] outline-none select-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-[size=sm]:h-8 desk:h-9 desk:text-sm"
+		class="h-11 w-full min-w-0 appearance-none rounded-lg border border-input bg-card py-1 pr-8 pl-3 text-base transition-[color,box-shadow] outline-none select-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring disabled:pointer-events-none disabled:cursor-not-allowed aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 data-[size=sm]:h-8 desk:h-10 desk:text-sm"
 		{...restProps}
 	>
 		{@render children?.()}

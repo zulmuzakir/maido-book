@@ -184,7 +184,7 @@
 					<Label for="order-date" class={fieldLabel}>{m.order_date()}</Label>
 					<!-- The native date input is transparent and covers the visible box, so a tap opens the picker. -->
 					<div
-						class="relative flex h-11 items-center gap-2 rounded-lg border border-input bg-card px-3 text-base has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50 has-[[aria-invalid]]:border-destructive has-[[aria-invalid]]:ring-3 has-[[aria-invalid]]:ring-destructive/20 desk:h-9 desk:text-sm"
+						class="relative flex h-11 items-center gap-2 rounded-lg border border-input bg-card px-3 text-base has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring has-[[aria-invalid]]:border-destructive has-[[aria-invalid]]:ring-3 has-[[aria-invalid]]:ring-destructive/20 desk:h-10 desk:text-sm"
 					>
 						<CalendarIcon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
 						<span aria-hidden="true">
@@ -235,7 +235,7 @@
 					<div class="space-y-[18px] pt-1.5 pb-[18px]">
 						<div class={fieldStack}>
 							<Label for="order-total" class={fieldLabel}>{m.order_total()}</Label>
-							<InputGroup.Root class="h-11 rounded-lg shadow-none desk:h-9">
+							<InputGroup.Root class="h-11 rounded-lg shadow-none desk:h-10">
 								<InputGroup.Addon align="inline-start" class="gap-2 pr-0 pl-3">
 									<InputGroup.Text class="text-base font-normal desk:text-sm">Rp</InputGroup.Text>
 								</InputGroup.Addon>

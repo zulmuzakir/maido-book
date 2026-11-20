@@ -22,7 +22,7 @@
 	const trackClass = 'flex rounded-[8px] bg-secondary p-[3px]';
 	const optionClass = (on: boolean) =>
 		cn(
-			'flex h-[30px] flex-1 items-center justify-center rounded-[5px] text-ui outline-none has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50',
+			'flex h-[30px] flex-1 items-center justify-center rounded-[5px] text-ui outline-none has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring',
 			on
 				? 'bg-card font-semibold shadow-[0_1px_2px_color-mix(in_oklch,var(--foreground)_12%,transparent)]'
 				: 'font-normal text-muted-foreground'

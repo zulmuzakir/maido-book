@@ -54,16 +54,16 @@
 
 	const wide = new MediaQuery('(min-width: 768px)');
 	const navButton =
-		'inline-flex h-full w-11 shrink-0 items-center justify-center outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring/50 desk:w-[34px]';
+		'inline-flex h-full w-11 shrink-0 items-center justify-center outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-inset focus-visible:ring-ring desk:w-[34px]';
 	const yearButton =
-		'inline-flex size-11 items-center justify-center rounded-md outline-none enabled:hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 desk:size-9';
+		'inline-flex size-11 items-center justify-center rounded-md outline-none enabled:hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring desk:size-10';
 </script>
 
 <!-- eslint-disable svelte/no-navigation-without-resolve -- callers pass already-resolved hrefs -->
 
 {#snippet grid()}
 	<div class="flex flex-col gap-1.5">
-		<div class="flex h-11 items-center justify-between desk:h-9">
+		<div class="flex h-11 items-center justify-between desk:h-10">
 			<button
 				type="button"
 				class={yearButton}
@@ -96,7 +96,7 @@
 						onclick={() => setOpen(false)}
 						aria-current={cell.key === month ? 'true' : undefined}
 						class={cn(
-							'inline-flex h-12 items-center justify-center rounded-lg border text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50 md:h-11 desk:h-10 desk:text-[13px]',
+							'inline-flex h-12 items-center justify-center rounded-lg border text-sm font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring md:h-11 desk:h-10 desk:text-[13px]',
 							cell.key === month
 								? 'border-primary bg-primary font-semibold text-primary-foreground'
 								: cell.key === current
@@ -114,7 +114,7 @@
 	<button
 		type="button"
 		{...props}
-		class="inline-flex h-full items-center gap-1.5 px-1.5 text-sm font-semibold outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset desk:px-2 desk:text-ui"
+		class="inline-flex h-full items-center gap-1.5 px-1.5 text-sm font-semibold outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring focus-visible:ring-inset desk:px-2 desk:text-ui"
 	>
 		{formatMonth(month, locale, 'long')}
 		<ChevronDownIcon class="size-4 text-muted-foreground desk:size-3.5" aria-hidden="true" />
@@ -125,7 +125,7 @@
 	<button
 		type="button"
 		{...props}
-		class="inline-flex h-9 items-center gap-1.5 rounded-md border border-input bg-card px-3 text-ui font-semibold outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+		class="inline-flex h-9 items-center gap-1.5 rounded-md border border-input bg-card px-3 text-ui font-semibold outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring"
 	>
 		<CalendarIcon class="size-4" aria-hidden="true" />
 		{formatMonth(month, locale, 'long')}
@@ -178,13 +178,13 @@
 	{#if variant === 'nav' && month !== current}
 		<a
 			href={hrefFor(current)}
-			class="inline-flex h-11 items-center rounded-sm px-3 text-sm font-semibold text-primary-text outline-none focus-visible:ring-3 focus-visible:ring-ring/50 max-md:order-last desk:h-9 desk:px-1.5 desk:text-ui"
+			class="inline-flex h-11 items-center rounded-sm px-3 text-sm font-semibold text-primary-text outline-none focus-visible:ring-3 focus-visible:ring-ring max-md:order-last desk:h-10 desk:px-1.5 desk:text-ui"
 			>{m.orders_this_month()}</a
 		>
 	{/if}
 	{#if variant === 'nav'}
 		<div
-			class="inline-flex h-11 items-center overflow-hidden rounded-lg border border-input bg-card dark:border-border desk:h-9"
+			class="inline-flex h-11 items-center overflow-hidden rounded-lg border border-input bg-card dark:border-border desk:h-10"
 		>
 			<a href={hrefFor(prev)} class={navButton} aria-label={m.previous()}>
 				<ChevronLeftIcon class="size-[18px] desk:size-[15px]" />

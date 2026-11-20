@@ -53,7 +53,7 @@
 	// The same offsets as the snooze chips, so a date chip means the same thing everywhere.
 	const DATE_OFFSETS = [1, 3, 7];
 	const cellClass =
-		'flex min-h-11 items-center justify-center gap-1 rounded-lg border border-rule bg-card px-2 py-1.5 text-center text-ui leading-tight font-semibold text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50 desk:min-h-[38px]';
+		'flex min-h-11 items-center justify-center gap-1 rounded-lg border border-rule bg-card px-2 py-1.5 text-center text-ui leading-tight font-semibold text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring desk:min-h-[38px]';
 
 	let nextDate = $state(untrack(() => addDays(today, rules.retryDays)));
 	let errors = $state<Record<string, string>>({});
@@ -175,7 +175,7 @@
 							type="button"
 							size="sm"
 							variant={nextDate === target ? 'default' : 'secondary'}
-							class="h-11 rounded-lg px-[14px] desk:h-9"
+							class="h-11 rounded-lg px-[14px] desk:h-10"
 							aria-pressed={nextDate === target}
 							onclick={() => (nextDate = target)}
 						>
@@ -184,7 +184,7 @@
 					{/each}
 				</div>
 				<div
-					class="relative flex h-11 items-center gap-2 rounded-lg border border-input bg-card px-3 text-sm has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/50 desk:h-10"
+					class="relative flex h-11 items-center gap-2 rounded-lg border border-input bg-card px-3 text-sm has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring desk:h-10"
 				>
 					<CalendarIcon class="size-4 text-muted-foreground" aria-hidden="true" />
 					<span class="num">{nextDate ? formatDate(nextDate, locale, 'long') : ''}</span>

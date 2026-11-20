@@ -138,7 +138,7 @@
 			<Button
 				type="button"
 				variant="ghost"
-				class="-mx-2 h-11 px-2 text-ui font-semibold text-primary-text desk:h-9"
+				class="-mx-2 h-11 px-2 text-ui font-semibold text-primary-text desk:h-10"
 				onclick={() => (resendOpen = true)}
 			>
 				{m.queue_resend_link()}
@@ -357,7 +357,7 @@
 					<Button
 						type="button"
 						variant="ghost"
-						class="-mx-2 h-11 px-2 text-ui font-semibold text-primary-text desk:h-9"
+						class="-mx-2 h-11 px-2 text-ui font-semibold text-primary-text desk:h-10"
 						aria-expanded={false}
 						onclick={() => (replyOpen = true)}
 					>
