@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { m } from '#lib/paraglide/messages.js';
+	import { getLocale } from '#lib/paraglide/runtime.js';
 
 	let {
 		days,
@@ -9,55 +10,84 @@
 		today: string;
 	} = $props();
 
-	const max = $derived(Math.max(1, ...days.map((d) => d.revenue)));
+	// Drawn in pixels at the measured width: a y axis in Rp juta (three steps of a round size),
+	// bars up to 40px wide with a 4px top radius, and today's value printed above its bar.
+	let width = $state(0);
+	const AXIS = 30;
+	const TOP = 22;
+	const BOTTOM = 26;
+	const STEPS = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
+
+	const millions = $derived(days.map((d) => d.revenue / 1_000_000));
+	const step = $derived(STEPS.find((s) => s * 3 >= Math.max(...millions, 0)) ?? 1000);
+	const top = $derived(step * 3);
+	const fmt = $derived(
+		new Intl.NumberFormat(getLocale() === 'id' ? 'id-ID' : 'en-GB', { maximumFractionDigits: 2 })
+	);
+
+	const tall = $derived(width < 480 ? 190 : 230);
+	const base = $derived(tall - BOTTOM);
+	const plot = $derived(base - TOP);
+	// 8px on the right keeps the last day's label and today's value inside the frame.
+	const slot = $derived(days.length ? (width - AXIS - 8) / days.length : 0);
+	const bar = $derived(Math.max(4, Math.min(40, slot * 0.55)));
+	const y = (v: number) => base - (v / top) * plot;
 	const dayNumber = (iso: string) => Number(iso.slice(8));
 	const showLabel = (iso: string, i: number) =>
-		days.length <= 12 ||
-		iso === today ||
-		i === 0 ||
-		i === days.length - 1 ||
-		dayNumber(iso) % 5 === 0;
+		slot >= 22 || iso === today || i === 0 || i === days.length - 1 || dayNumber(iso) % 5 === 0;
 </script>
 
-<div class="flex flex-col xl:w-[720px]" role="img" aria-label={m.insights_daily_title()}>
-	<svg
-		viewBox="0 0 {days.length} 100"
-		preserveAspectRatio="none"
-		class="h-[106px] w-full md:h-[156px]"
-		aria-hidden="true"
-	>
-		{#each [0.5, 50, 99.5] as y (y)}
-			<line
-				x1="0"
-				x2={days.length}
-				y1={y}
-				y2={y}
-				class="stroke-gridline"
-				stroke-width="1"
-				vector-effect="non-scaling-stroke"
-			/>
-		{/each}
-		{#each days as d, i (d.date)}
-			{@const h = (d.revenue / max) * 100}
-			<rect
-				x={i + 0.2}
-				y={100 - h}
-				width="0.6"
-				height={h}
-				rx="0.2"
-				class={d.date === today ? 'fill-primary' : 'fill-chart-bar'}
-			/>
-		{/each}
-	</svg>
-	<div class="flex h-6 items-center pl-[34px]" aria-hidden="true">
-		{#each days as d, i (d.date)}
-			<span
-				class="flex-1 text-center text-xs {d.date === today
-					? 'font-bold text-ink'
-					: 'font-medium text-chart-axis'}"
-			>
-				{showLabel(d.date, i) ? dayNumber(d.date) : ''}
-			</span>
-		{/each}
-	</div>
+<div bind:clientWidth={width} class="w-full" role="img" aria-label={m.insights_daily_title()}>
+	{#if width > 0}
+		<svg {width} height={tall} viewBox="0 0 {width} {tall}" class="block" aria-hidden="true">
+			{#each [0, 1, 2, 3] as i (i)}
+				{@const ly = y(step * i)}
+				<line
+					x1={AXIS}
+					x2={width}
+					y1={ly}
+					y2={ly}
+					class={i === 0 ? 'stroke-border' : 'stroke-rule'}
+					stroke-width="1"
+				/>
+				<text x={AXIS - 8} y={ly + 4} text-anchor="end" class="fill-chart-axis text-[11.5px] num"
+					>{fmt.format(step * i)}</text
+				>
+			{/each}
+			{#each days as d, i (d.date)}
+				{@const cx = AXIS + slot * (i + 0.5)}
+				{@const h = Math.max(0, base - y(millions[i]))}
+				{@const isToday = d.date === today}
+				{@const r = Math.min(4, bar / 2, h)}
+				{#if h > 0}
+					<!-- Square at the baseline, rounded at the top. -->
+					<path
+						d="M{cx - bar / 2},{base} v{r - h} q0,{-r} {r},{-r} h{bar - 2 * r} q{r},0 {r},{r} v{h -
+							r} z"
+						class={isToday ? 'fill-primary' : 'fill-chart-bar'}
+					/>
+				{/if}
+				{#if isToday && d.revenue > 0}
+					<text
+						x={Math.min(cx, width - 16)}
+						y={base - h - 7}
+						text-anchor="middle"
+						class="fill-primary-text text-xs font-bold num">{fmt.format(millions[i])}</text
+					>
+				{/if}
+				{#if showLabel(d.date, i)}
+					<text
+						x={cx}
+						y={tall - 7}
+						text-anchor="middle"
+						class={isToday
+							? 'fill-foreground text-xs font-bold num'
+							: 'fill-chart-axis text-xs font-medium num'}>{dayNumber(d.date)}</text
+					>
+				{/if}
+			{/each}
+		</svg>
+	{:else}
+		<div class="h-[190px] min-[480px]:h-[230px]"></div>
+	{/if}
 </div>

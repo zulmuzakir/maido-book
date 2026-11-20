@@ -52,7 +52,10 @@
 	// The day is done when nobody is left to contact, even if fresh replies are still pending.
 	const dayDone = $derived(!firstRun && workCount === 0);
 
-	let tab = $state<Tab>('all');
+	// `?tab=winback` (from Ringkasan's "Buka di antrian") opens on that section.
+	const TABS: Tab[] = ['all', 'overdue', 'today', 'waiting', 'winback'];
+	const tabParam = page.url.searchParams.get('tab') as Tab | null;
+	let tab = $state<Tab>(tabParam && TABS.includes(tabParam) ? tabParam : 'all');
 	// One tab per section. The week ahead has no tab: it only closes the "Semua" list.
 	const tabItems = $derived([
 		{

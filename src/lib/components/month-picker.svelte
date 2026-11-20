@@ -137,10 +137,11 @@
 	<button
 		type="button"
 		{...props}
-		class="inline-flex h-9 items-center gap-1.5 rounded-md border border-input bg-card px-3 text-ui font-semibold outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring"
+		class="inline-flex size-11 items-center justify-center gap-2 rounded-md text-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring md:h-10 md:w-auto md:border md:border-input md:bg-card md:px-4 md:text-sm md:font-semibold"
 	>
-		<CalendarIcon class="size-4" aria-hidden="true" />
-		{formatMonth(month, locale, 'long')}
+		<CalendarIcon class="size-5 md:size-[17px]" aria-hidden="true" />
+		<!-- Phone: the calendar icon alone; the month stays its accessible name. -->
+		<span class="sr-only md:not-sr-only">{formatMonth(month, locale, 'long')}</span>
 	</button>
 {/snippet}
 

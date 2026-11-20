@@ -265,7 +265,7 @@
 	"insights_repeat_rate": "Repeat customers",
 	"insights_month_col": "Month",
 	"insights_orders_col": "Orders",
-	"insights_revenue_col": "Revenue",
+	"insights_revenue_col": "Revenue (IDR)",
 	"settings_products": "Products",
 	"settings_product_add": "Add product",
 	"settings_product_new": "New product",
@@ -455,7 +455,7 @@
 	"customer_data_runs_out": "Runs out on",
 	"activity_attempt": "Attempt {attempt} of {max}",
 	"insights_daily_title": "Revenue per day",
-	"insights_daily_sub": "IDR millions",
+	"insights_daily_sub": "IDR millions · {range}",
 	"insights_outcomes_sub": "From {count} outcomes logged this month",
 	"insights_repeat_sub": "{count} of them repeat orders",
 	"insights_this_month": "this month",
@@ -508,7 +508,6 @@
 	"customer_header_stock_out": "out of stock {count} days ago",
 	"customer_supply_hint_short": "{qty} {unit} {product} on {date}, dose {dose}/day",
 	"customer_activity_scheduled_sub": "Automatic, {date}",
-	"insights_outcomes_sub_short": "From {count} outcomes this month",
 	"import_skipped_sub_short": "duplicates/invalid numbers",
 	"import_status_phone_date_short": "WhatsApp is a date",
 	"customer_tab_summary": "Summary",
@@ -566,5 +565,11 @@
 	"orders_day_count": "{count} orders",
 	"orders_empty_month": "No orders in {month} yet.",
 	"month_picker_current": "this month",
-	"month_picker_cap": "Months after {month} can’t be picked yet."
+	"month_picker_cap": "Months after {month} can’t be picked yet.",
+	"insights_vs_month_short": "{change} vs {month}",
+	"insights_repeat_sub_short": "{count} repeat orders",
+	"insights_conversion_short": "Conversion",
+	"insights_conversion_sub_short": "{orders} of {messages} messages",
+	"insights_winback_hint": "Their stock ran out a while ago. Win them back once the main queue is done.",
+	"insights_winback_send": "Message {name} from the queue"
 }

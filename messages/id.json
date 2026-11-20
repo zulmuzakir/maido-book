@@ -211,7 +211,7 @@
 	"insights_repeat_rate": "Pelanggan repeat",
 	"insights_month_col": "Bulan",
 	"insights_orders_col": "Order",
-	"insights_revenue_col": "Omzet",
+	"insights_revenue_col": "Omzet (Rp)",
 	"settings_products": "Produk",
 	"settings_product_add": "Tambah produk",
 	"settings_product_new": "Produk baru",
@@ -365,7 +365,7 @@
 	"customer_data_runs_out": "Habis pada",
 	"activity_attempt": "Percobaan {attempt} dari {max}",
 	"insights_daily_title": "Omzet per hari",
-	"insights_daily_sub": "Rp juta",
+	"insights_daily_sub": "Rp juta · {range}",
 	"insights_outcomes_sub": "Dari {count} hasil yang dicatat bulan ini",
 	"insights_repeat_sub": "{count} di antaranya repeat order",
 	"insights_this_month": "bulan ini",
@@ -418,7 +418,6 @@
 	"customer_header_stock_out": "stok habis {count} hari lalu",
 	"customer_supply_hint_short": "{qty} {unit} {product} pada {date}, takaran {dose}/hari",
 	"customer_activity_scheduled_sub": "Otomatis, {date}",
-	"insights_outcomes_sub_short": "Dari {count} hasil bulan ini",
 	"import_skipped_sub_short": "duplikat/nomor tak valid",
 	"import_status_phone_date_short": "No. WA berformat tanggal",
 	"customer_tab_summary": "Ringkasan",
@@ -476,5 +475,11 @@
 	"orders_day_count": "{count} order",
 	"orders_empty_month": "Belum ada order di {month}.",
 	"month_picker_current": "bulan ini",
-	"month_picker_cap": "Bulan setelah {month} belum bisa dipilih."
+	"month_picker_cap": "Bulan setelah {month} belum bisa dipilih.",
+	"insights_vs_month_short": "{change} vs {month}",
+	"insights_repeat_sub_short": "{count} repeat order",
+	"insights_conversion_short": "Konversi",
+	"insights_conversion_sub_short": "{orders} dari {messages} pesan",
+	"insights_winback_hint": "Stoknya sudah lama habis. Ajak kembali setelah antrian utama beres.",
+	"insights_winback_send": "Kirim pesan ke {name} dari antrian"
 }

@@ -11,6 +11,7 @@
 		filled = false,
 		onclick,
 		disabled = false,
+		external = true,
 		class: className
 	}: {
 		href: string;
@@ -24,6 +25,8 @@
 		onclick?: () => void;
 		/** While the send is being logged, a second tap neither reopens WhatsApp nor logs again. */
 		disabled?: boolean;
+		/** `false` for an in-app link (Ringkasan opens the queue on that customer). */
+		external?: boolean;
 		class?: string;
 	} = $props();
 </script>
@@ -37,8 +40,8 @@
 		else onclick?.();
 	}}
 	aria-disabled={disabled || undefined}
-	target="_blank"
-	rel="noopener"
+	target={external ? '_blank' : undefined}
+	rel={external ? 'noopener' : undefined}
 	aria-label={label}
 	class={cn(
 		'inline-flex size-11 shrink-0 items-center justify-center gap-2 rounded-lg border transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring aria-disabled:opacity-45',

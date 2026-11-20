@@ -138,6 +138,7 @@ export async function getInsights(db: Db, today: string, month: string) {
 		.filter((item) => item.kind === 'winback')
 		.map((item) => ({
 			customerId: item.customer.id,
+			followUpId: item.followUpId,
 			name: item.customer.name,
 			lastOrderDate: item.lastOrder?.orderDate ?? null,
 			daysOut: item.lastOrder
