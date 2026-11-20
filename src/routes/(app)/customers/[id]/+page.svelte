@@ -59,8 +59,6 @@
 					dosePerDay={c.dosePerDay}
 					orders={data.orders}
 					today={data.today}
-					leadDays={data.rules.leadDays}
-					dueDate={data.openFollowUp?.dueDate ?? null}
 				/>
 				<OrderHistory
 					class="order-3"

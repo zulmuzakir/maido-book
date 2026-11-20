@@ -520,5 +520,8 @@
 	"customer_order_col_date": "Date",
 	"customer_order_col_total": "Total",
 	"customer_order_menu": "Order menu, {date}",
-	"customer_orders_recent": "Orders · last {count}"
+	"customer_orders_recent": "Orders · last {count}",
+	"customer_supply_gap_days": "{count}d",
+	"customer_supply_gaps": "Out {count}×",
+	"customer_supply_gaps_avg": "Out {count}× · {days} days on average before the next order"
 }

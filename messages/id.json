@@ -430,5 +430,8 @@
 	"customer_order_col_date": "Tanggal",
 	"customer_order_col_total": "Total",
 	"customer_order_menu": "Menu order {date}",
-	"customer_orders_recent": "Order · {count} terakhir"
+	"customer_orders_recent": "Order · {count} terakhir",
+	"customer_supply_gap_days": "{count} hari",
+	"customer_supply_gaps": "Kosong {count}×",
+	"customer_supply_gaps_avg": "Kosong {count}× · rata-rata {days} hari sebelum order lagi"
 }

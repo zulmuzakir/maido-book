@@ -32,3 +32,38 @@ export function supplySteps(orders: { orderDate: string; daysSupply: number }[])
 	}
 	return out;
 }
+
+export interface SupplyGap {
+	/** Epoch day the stock ran out. */
+	start: number;
+	/** Epoch day the next order came in, or today while still out. */
+	end: number;
+	days: number;
+	/** Still out of stock today. */
+	ongoing: boolean;
+}
+
+/** Days without stock: between orders, and from the last run-out until today. Oldest first. */
+export function supplyGaps(steps: SupplyStep[], today: string): SupplyGap[] {
+	const out: SupplyGap[] = [];
+	for (const s of steps) {
+		if (s.before < 0)
+			out.push({ start: s.day + s.before, end: s.day, days: -s.before, ongoing: false });
+	}
+	const last = steps.at(-1);
+	const todayDay = epochDay(today);
+	if (last && todayDay > last.day + last.after) {
+		const start = last.day + last.after;
+		out.push({ start, end: todayDay, days: todayDay - start, ongoing: true });
+	}
+	return out;
+}
+
+/** "Kosong 3× · rata-rata 8 hari": every gap counts; the average is over the closed ones. */
+export function gapSummary(gaps: SupplyGap[]): { count: number; averageDays: number | null } {
+	const closed = gaps.filter((g) => !g.ongoing);
+	const averageDays = closed.length
+		? Math.round(closed.reduce((sum, g) => sum + g.days, 0) / closed.length)
+		: null;
+	return { count: gaps.length, averageDays };
+}

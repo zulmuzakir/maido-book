@@ -3,6 +3,7 @@
 	import { Button } from '#lib/components/ui/button/index.js';
 	import SupplyChart from '#lib/components/supply-chart.svelte';
 	import { formatDate } from '#lib/domain/dates.ts';
+	import { gapSummary, supplyGaps, supplySteps } from '#lib/domain/supply.ts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import { cn } from '#lib/utils.js';
@@ -13,20 +14,17 @@
 		dosePerDay,
 		orders,
 		today,
-		leadDays,
-		dueDate,
 		class: className
 	}: {
 		customerId: string;
 		dosePerDay: number;
 		orders: PageData['orders'];
 		today: string;
-		leadDays: number;
-		dueDate: string | null;
 		class?: string;
 	} = $props();
 
 	const latest = $derived(orders[0] ?? null);
+	const gapInfo = $derived(gapSummary(supplyGaps(supplySteps(orders), today)));
 	const locale = getLocale() === 'id' ? 'id' : 'en';
 </script>
 
@@ -57,7 +55,21 @@
 		{/if}
 	</div>
 	{#if latest}
-		<SupplyChart {orders} {today} {leadDays} {dueDate} />
+		<div class="space-y-2">
+			<SupplyChart {orders} {today} />
+			{#if gapInfo.count > 0}
+				<!-- Phone has no room for the hint's "Garis merah" sentence, so it reads the red line here. -->
+				<p
+					class="flex items-center gap-2 text-[13px] leading-[18px] text-muted-foreground md:hidden"
+				>
+					<span class="h-[3px] w-4 shrink-0 rounded-full bg-status-overdue" aria-hidden="true"
+					></span>
+					{gapInfo.averageDays !== null
+						? m.customer_supply_gaps_avg({ count: gapInfo.count, days: gapInfo.averageDays })
+						: m.customer_supply_gaps({ count: gapInfo.count })}
+				</p>
+			{/if}
+		</div>
 	{:else}
 		<p class="text-sm text-muted-foreground">{m.customer_supply_none()}</p>
 		<div>
