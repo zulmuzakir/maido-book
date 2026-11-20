@@ -168,7 +168,7 @@
 	"orders_col_customer": "Customer",
 	"orders_col_total": "Total",
 	"orders_total_unrecorded": "Not recorded",
-	"today_waiting_today": "Sent today",
+	"today_waiting_today": "Contacted today",
 	"today_waiting_day_one": "Waiting 1 day",
 	"today_waiting_days": "Waiting {count} days",
 	"today_needs_follow_up": "Needs follow-up",

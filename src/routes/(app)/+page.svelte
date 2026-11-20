@@ -7,8 +7,10 @@
 	import { untrack } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { resolve } from '$app/paths';
-	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
-	import ChevronUpIcon from '@lucide/svelte/icons/chevron-up';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
+	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import XIcon from '@lucide/svelte/icons/x';
 	import TextAlignStartIcon from '@lucide/svelte/icons/text-align-start';
@@ -150,6 +152,39 @@
 		};
 	});
 
+	// Phone: the detail is a full-screen view at `/?item=<id>`, so the system Back closes it and
+	// a link such as "Buka di antrian" can open it. The queue's load ignores the URL, so opening
+	// it does not reload anything.
+	const urlItem = $derived(page.url.searchParams.get('item'));
+	const phoneDetail = $derived(!tablet.current && urlItem !== null && !!selected);
+	const itemHref = (id: string) => `${resolve('/(app)')}?item=${encodeURIComponent(id)}`;
+	// Whether the open detail has a list entry behind it in this tab's history.
+	let pushed = false;
+
+	// The selection follows `?item=`: a deep link, or Back/Forward between details.
+	$effect(() => {
+		const id = urlItem;
+		if (!id) return;
+		untrack(() => {
+			const item = pool.find((i) => i.followUpId === id);
+			if (!item || item.followUpId === selectedId) return;
+			reveal(item);
+			selectedId = item.followUpId;
+			if (tablet.current && !wide.current) sheetOpen = true;
+		});
+	});
+
+	function closePhone() {
+		if (pushed) {
+			pushed = false;
+			history.back();
+		} else void goto(resolve('/(app)'), { replace: true, reset: false });
+	}
+
+	function onpopstate() {
+		pushed = new URL(location.href).searchParams.has('item') && pushed;
+	}
+
 	$effect(() => {
 		if (selectedId && !selected) {
 			// A finished day has no next follow-up to select; the summary aside takes its place.
@@ -176,7 +211,16 @@
 		sentFrom = null;
 		selectedId = item.followUpId;
 		lastIndex = Math.max(0, flat.indexOf(item));
-		if (!wide.current) sheetOpen = true;
+		if (wide.current) return;
+		if (tablet.current) {
+			sheetOpen = true;
+			return;
+		}
+		// Stepping inside the open phone detail replaces the entry, so Back still means "list".
+		const replace = urlItem !== null;
+		if (!replace) pushed = true;
+		// eslint-disable-next-line svelte/no-navigation-without-resolve -- itemHref() wraps resolve()
+		void goto(itemHref(item.followUpId), { replace, reset: false });
 	}
 
 	function step(by: 1 | -1) {
@@ -204,7 +248,9 @@
 	// A saved outcome takes the customer out of the list: on desktop the panel moves to whoever
 	// takes their place; on tablet and phone the detail closes. The toast carries the undo.
 	function outcomeSaved() {
-		if (!wide.current) sheetOpen = false;
+		if (wide.current) return;
+		sheetOpen = false;
+		if (phoneDetail) closePhone();
 	}
 
 	// Keyboard: on desk j / k step through the queue like a mail client. Ignored while typing.
@@ -219,7 +265,7 @@
 	}
 </script>
 
-<svelte:window {onkeydown} />
+<svelte:window {onkeydown} {onpopstate} />
 
 {#snippet search()}
 	<HeaderSearch
@@ -237,39 +283,38 @@
 	</a>
 {/snippet}
 
-{#snippet stepper()}
-	{#if position >= 0 || sentHere}
-		<div class="flex items-center gap-1">
-			<!-- After a send the customer sits in "Menunggu balasan"; its place there is not the agent's. -->
-			{#if position >= 0 && !sentHere}
-				<span class="mr-1 text-ui text-muted-foreground num">
-					{m.queue_position(place)}
-				</span>
-			{/if}
-			<Button
-				variant="ghost"
-				size="icon"
-				aria-label={m.queue_prev()}
-				aria-keyshortcuts={wide.current ? 'k' : undefined}
-				title={wide.current ? `${m.queue_prev()} (K)` : undefined}
-				disabled={!canPrev}
-				onclick={() => step(-1)}
-			>
-				<ChevronUpIcon />
-			</Button>
-			<Button
-				variant="ghost"
-				size="icon"
-				aria-label={m.queue_next()}
-				aria-keyshortcuts={wide.current ? 'j' : undefined}
-				title={wide.current ? `${m.queue_next()} (J)` : undefined}
-				disabled={!canNext}
-				onclick={() => step(1)}
-			>
-				<ChevronDownIcon />
-			</Button>
-		</div>
-	{/if}
+<!-- "‹ ›" for tablet and phone: 40px outlined squares. -->
+{#snippet stepButtons()}
+	<div class="flex shrink-0 items-center gap-2">
+		<Button
+			variant="outline"
+			size="icon"
+			class="size-10 desk:size-10"
+			aria-label={m.queue_prev()}
+			disabled={!canPrev}
+			onclick={() => step(-1)}
+		>
+			<ChevronLeftIcon class="size-5" />
+		</Button>
+		<Button
+			variant="outline"
+			size="icon"
+			class="size-10 desk:size-10"
+			aria-label={m.queue_next()}
+			disabled={!canNext}
+			onclick={() => step(1)}
+		>
+			<ChevronRightIcon class="size-5" />
+		</Button>
+	</div>
+{/snippet}
+
+<!-- "Hari ini · 1 dari 5": the place within the section. After a send the customer sits in
+     "Menunggu balasan"; its place there is not the agent's, so the label is left out. -->
+{#snippet placeLabel(cls: string)}
+	<p class="min-w-0 flex-1 truncate {cls} num">
+		{position >= 0 && !sentHere ? m.queue_position(place) : ''}
+	</p>
 {/snippet}
 
 <div
@@ -408,26 +453,25 @@
 	{/if}
 </div>
 
-{#if !wide.current}
-	<Drawer.Root bind:open={sheetOpen} direction={tablet.current ? 'right' : 'bottom'}>
+{#if tablet.current && !wide.current}
+	<Drawer.Root bind:open={sheetOpen} direction="right">
 		<Drawer.Content
-			class={tablet.current
-				? 'data-[vaul-drawer-direction=right]:w-[480px] data-[vaul-drawer-direction=right]:max-w-full data-[vaul-drawer-direction=right]:rounded-none data-[vaul-drawer-direction=right]:shadow-[-12px_0_40px_color-mix(in_oklch,var(--shadow-tint)_16%,transparent)] data-[vaul-drawer-direction=right]:sm:max-w-full'
-				: 'max-h-[92dvh]'}
+			class="data-[vaul-drawer-direction=right]:w-[480px] data-[vaul-drawer-direction=right]:max-w-full data-[vaul-drawer-direction=right]:rounded-none data-[vaul-drawer-direction=right]:shadow-[-12px_0_40px_color-mix(in_oklch,var(--shadow-tint)_16%,transparent)] data-[vaul-drawer-direction=right]:sm:max-w-full"
 		>
-			<Drawer.Header class="flex-row items-center justify-between py-2 text-left">
+			<Drawer.Header
+				class="flex-row items-center gap-2 border-b border-rule py-2.5 pr-6 pl-3 text-left"
+			>
 				<Drawer.Title class="sr-only">{displayed?.customer.name ?? ''}</Drawer.Title>
-				{@render stepper()}
-				{#if tablet.current}
-					<Drawer.Close
-						class={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'ml-auto')}
-						aria-label={m.close()}
-					>
-						<XIcon />
-					</Drawer.Close>
-				{/if}
+				<Drawer.Close
+					class={buttonVariants({ variant: 'ghost', size: 'icon' })}
+					aria-label={m.close()}
+				>
+					<XIcon class="size-5" />
+				</Drawer.Close>
+				{@render placeLabel('text-sm font-semibold')}
+				{@render stepButtons()}
 			</Drawer.Header>
-			<div class="min-h-0 flex-1 overflow-y-auto pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+			<div class="min-h-0 flex-1 overflow-y-auto">
 				{#if displayed}
 					<FollowUpCard
 						item={displayed}
@@ -440,4 +484,35 @@
 			</div>
 		</Drawer.Content>
 	</Drawer.Root>
+{/if}
+
+{#if phoneDetail && displayed}
+	<!-- Full-screen above the list, below the bottom nav (which stays visible). -->
+	<section
+		class="fixed inset-x-0 top-0 bottom-[calc(72px+env(safe-area-inset-bottom))] z-20 flex flex-col bg-card md:hidden"
+		aria-label={displayed.customer.name}
+	>
+		<div class="flex min-h-14 shrink-0 items-center gap-1 border-b border-rule pr-3 pl-1">
+			<button
+				type="button"
+				class="grid size-11 shrink-0 place-items-center rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring"
+				aria-label={m.back()}
+				onclick={closePhone}
+			>
+				<ChevronLeftIcon class="size-[22px]" aria-hidden="true" />
+			</button>
+			{@render placeLabel('text-[17px] font-bold')}
+			{@render stepButtons()}
+		</div>
+		<div class="min-h-0 flex-1 overflow-y-auto">
+			<FollowUpCard
+				item={displayed}
+				today={data.today}
+				rules={data.rules}
+				onsaved={outcomeSaved}
+				onsent={cardSent}
+				stickySend
+			/>
+		</div>
+	</section>
 {/if}

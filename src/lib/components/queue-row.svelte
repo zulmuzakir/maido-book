@@ -99,7 +99,7 @@
 			<p class="truncate text-[12.5px] leading-4 text-muted-foreground num md:text-ui">
 				{#if orderLine}
 					{orderLine}<span class="xl:hidden">
-						· <span class="md:hidden">{qty}</span><span class="max-md:hidden"
+						&nbsp;· <span class="md:hidden">{qty}</span><span class="max-md:hidden"
 							>{waiting ? qty : dose}</span
 						></span
 					>

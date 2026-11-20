@@ -42,7 +42,8 @@
 		rules,
 		onsaved,
 		onundo,
-		onsent
+		onsent,
+		stickySend = false
 	}: {
 		item: QueueRowItem;
 		today: string;
@@ -53,6 +54,8 @@
 		onundo?: () => void;
 		/** Reports a logged send, so the page can keep "next" pointing into today's work. */
 		onsent?: () => void;
+		/** Phone detail: the send sits in a bar pinned to the bottom instead of under the message. */
+		stickySend?: boolean;
 	} = $props();
 
 	const locale = $derived(getLocale());
@@ -283,7 +286,7 @@
 						>
 							{edited}
 						</blockquote>
-						{@render sendButton('h-12 w-full text-[15px] desk:h-12')}
+						{#if !stickySend}{@render sendButton('h-12 w-full text-[15px] desk:h-12')}{/if}
 					{/if}
 				</section>
 			{/if}
@@ -296,7 +299,13 @@
 		{/key}
 	</div>
 
-	{#if editing && !outcomeChoice}
+	{#if stickySend && !editing && !outcomeChoice}
+		<div
+			class="sticky bottom-0 z-10 border-t border-rule bg-card px-4 py-2.5 shadow-[0_-6px_16px_color-mix(in_oklch,var(--shadow-tint)_5%,transparent)]"
+		>
+			{@render sendButton('h-12 w-full text-[15px]')}
+		</div>
+	{:else if editing && !outcomeChoice}
 		<!-- While editing, the send and "Selesai" stay in reach at the bottom of the panel. -->
 		<div
 			class={cn(

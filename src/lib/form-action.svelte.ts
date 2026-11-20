@@ -37,7 +37,14 @@ export class FormAction {
 			return;
 		}
 		this.pending = true;
-		return async (input) => {
+		return async (raw) => {
+			// An action on this page (`?/sent` from `/?item=x`) differs from the current URL only by its
+			// query, which SvelteKit treats as another page and navigates to. Apply the result here
+			// instead, so the page keeps its query (and its history entry).
+			const samePage = raw.action.pathname === location.pathname;
+			const input: typeof raw = samePage
+				? { ...raw, update: (opts) => raw.update({ navigate: false, ...opts }) }
+				: raw;
 			try {
 				if (input.result.type === 'error') await reportActionError(input.result.status);
 				else if (this.#onResult) await this.#onResult(input);

@@ -10,6 +10,10 @@ declare global {
 			db: Db;
 			auth: Auth;
 		}
+		interface PageState {
+			/** Follow-up open in the phone's full-screen queue detail (shallow route `?item=`). */
+			item?: string;
+		}
 	}
 }
 
