@@ -3,46 +3,56 @@
 	import { m } from '#lib/paraglide/messages.js';
 	import { cn } from '#lib/utils.js';
 
-	let { step }: { step: 1 | 2 | 3 } = $props();
-
-	const done = $derived(step === 3);
+	let { step, finished = false }: { step: 1 | 2 | 3; finished?: boolean } = $props();
 
 	const steps = [
 		{ n: 1, label: () => m.import_step_file() },
 		{ n: 2, label: () => m.import_step_review() },
 		{ n: 3, label: () => m.import_step_import() }
 	] as const;
+
+	const isDone = (n: number) => finished || n < step;
 </script>
 
-<ol aria-label={m.import_steps_label()} class="flex items-center gap-3 text-ui">
+<!-- 28px discs joined by flexible lines. Done steps are filled with a check and the line after them
+     turns primary. Phone labels only the current step. -->
+<ol aria-label={m.import_steps_label()} class="flex items-center gap-2 text-sm">
 	{#each steps as item, i (item.n)}
-		<li class="flex items-center gap-2" aria-current={step === item.n ? 'step' : undefined}>
+		{@const done = isDone(item.n)}
+		{@const current = step === item.n && !finished}
+		<li
+			class={cn('flex items-center gap-2', i < steps.length - 1 && 'flex-1 md:max-w-[200px]')}
+			aria-current={current ? 'step' : undefined}
+		>
 			<span
 				class={cn(
-					'grid size-[22px] place-items-center rounded-full border-[1.5px] text-[11px] leading-[14px] font-bold num',
-					done
+					'grid size-7 shrink-0 place-items-center rounded-full border text-[13px] font-bold num',
+					done || current
 						? 'border-primary bg-primary text-primary-foreground'
-						: step >= item.n
-							? 'border-primary bg-primary text-primary-foreground'
-							: 'border-muted-foreground bg-card text-muted-foreground'
+						: 'border-border bg-card text-muted-foreground'
 				)}
 			>
 				{#if done}
-					<Check class="size-3" aria-hidden="true" />
+					<Check class="size-[15px] stroke-[2.6]" aria-hidden="true" />
 				{:else}
 					{item.n}
 				{/if}
 			</span>
 			<span
-				class={step === item.n && !done
-					? 'font-semibold text-foreground'
-					: 'font-medium text-muted-foreground'}
+				class={cn(
+					'whitespace-nowrap',
+					current ? 'font-bold text-foreground' : 'font-medium text-muted-foreground',
+					!current && 'sr-only md:not-sr-only'
+				)}
 			>
 				{item.label()}
 			</span>
+			{#if i < steps.length - 1}
+				<span
+					class={cn('h-0.5 min-w-4 flex-1 rounded-[1px]', done ? 'bg-primary' : 'bg-rule')}
+					aria-hidden="true"
+				></span>
+			{/if}
 		</li>
-		{#if i < steps.length - 1}
-			<li aria-hidden="true" class="h-px w-5 bg-rule md:w-10"></li>
-		{/if}
 	{/each}
 </ol>

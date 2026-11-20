@@ -36,13 +36,8 @@ export function statusLabel(status: RowStatus): string {
 	}
 }
 
-// Phone shows a shorter reason for date-formatted phone cells.
-export function statusLabelCompact(status: RowStatus): string {
-	return status === 'phone_date_format' ? m.import_status_phone_date_short() : statusLabel(status);
-}
-
 export const chipClass: Record<RowStatus, string> = {
-	ready: 'text-status-done',
+	ready: 'text-foreground',
 	existing: 'text-muted-foreground',
 	invalid_phone: 'text-status-overdue',
 	phone_date_format: 'text-status-overdue',
@@ -61,22 +56,18 @@ export function lastOrderDate(row: ImportRow): string {
 	return row.lastOrderDate ? shortDay(row.lastOrderDate) : '—';
 }
 
-// Qty and product shown under the last-order date.
-export function lastOrderDetail(row: ImportRow): string {
-	return [row.qty, row.productName].filter((p) => p != null && p !== '').join(' ');
-}
-
 export function planKind(row: ImportRow): string {
 	return row.plan.followUp ? followUpKindLabel(row.plan.followUp.kind) : m.import_no_plan();
 }
 
-// The due date is the primary value; the kind label is the detail line.
-// Without a due date the kind label stands in as the primary value.
+// Desktop column: the due date, or the kind label when there is none.
 export function planDate(row: ImportRow): string {
 	const due = row.plan.followUp?.dueDate;
 	return due ? shortDay(due) : planKind(row);
 }
 
-export function planDetail(row: ImportRow): string {
-	return row.plan.followUp?.dueDate ? planKind(row) : '';
+// Tablet/phone line under the status: "Follow up 18 Jul".
+export function planLine(row: ImportRow): string {
+	const due = row.plan.followUp?.dueDate;
+	return due ? m.import_follow_up_on({ date: shortDay(due) }) : planKind(row);
 }

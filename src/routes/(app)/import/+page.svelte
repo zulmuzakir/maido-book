@@ -3,7 +3,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { toast } from 'svelte-sonner';
-	import Upload from '@lucide/svelte/icons/upload';
+	import Check from '@lucide/svelte/icons/check';
 	import ImportDone from './import-done.svelte';
 	import ImportPick from './import-pick.svelte';
 	import ImportReview from './import-review.svelte';
@@ -23,6 +23,7 @@
 	import { todayIso } from '#lib/domain/dates.ts';
 	import { mapCustomerSheet, type ImportRow } from '#lib/domain/import-sheet.ts';
 	import { m } from '#lib/paraglide/messages.js';
+	import { cn } from '#lib/utils.js';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -69,6 +70,9 @@
 			}))
 		)
 	);
+	const skippedCount = $derived(classified.length - counts.ready);
+	const BUTTON = 'h-12 px-4 text-sm font-semibold desk:h-11';
+	const ALERT = 'rounded-[8px] bg-alert px-3.5 py-3 text-sm leading-5 text-alert-foreground';
 	const failureText = $derived(
 		failure === 'empty'
 			? m.import_nothing_new()
@@ -156,9 +160,45 @@
 		<Spinner />
 		{m.import_importing()}
 	{:else}
-		<Upload class="size-[15px]" aria-hidden="true" />
 		{m.import_submit({ count: counts.ready })}
 	{/if}
+{/snippet}
+
+{#snippet notes(id: string, cls: string)}
+	<!-- Desktop: a 300px panel with check marks on every step. Tablet/phone: a bulleted list under
+	     the dropzone. -->
+	<aside class={cls} aria-labelledby={id}>
+		<h2 {id} class="text-sm font-bold">{m.import_notes_title()}</h2>
+		<ul class="flex flex-col gap-3 text-[13.5px] leading-5 max-xl:gap-2 max-xl:text-sm xl:gap-3">
+			{#each [m.import_sheet_note(), m.import_existing_note(), m.import_limit_note()] as note, i (i)}
+				<li class="flex gap-2.5">
+					<Check
+						class="mt-0.5 hidden size-4 shrink-0 text-primary-text xl:block"
+						aria-hidden="true"
+					/>
+					<span
+						class="mt-2 size-[5px] shrink-0 rounded-full bg-primary-text xl:hidden"
+						aria-hidden="true"
+					></span>
+					<span>{note}</span>
+				</li>
+			{/each}
+		</ul>
+	</aside>
+{/snippet}
+
+{#snippet actionButtons(cls: string)}
+	<Button variant="outline" class={cn(BUTTON, 'w-[34%] md:w-auto', cls)} onclick={reset}>
+		{m.cancel()}
+	</Button>
+	<Button
+		type="submit"
+		form="import-form"
+		disabled={submitDisabled}
+		class={cn(BUTTON, 'flex-1 md:flex-none', cls)}
+	>
+		{@render submitLabel()}
+	</Button>
 {/snippet}
 
 <div class="min-h-dvh bg-card">
@@ -167,72 +207,62 @@
 		back={{ href: resolve('/(app)/more'), label: m.nav_more() }}
 		variant="subpage"
 		backMobileOnly
+		metaInline="md"
+		class="md:px-[max(24px,calc((100%-600px)/2))] xl:px-[54px]"
 	>
-		{#snippet actions()}
-			{#if step === 2 && preview}
-				<div class="hidden md:block">
-					<Button
-						type="submit"
-						form="import-form"
-						disabled={submitDisabled}
-						class="h-9 px-3.5 text-ui font-semibold"
-					>
-						{@render submitLabel()}
-					</Button>
-				</div>
-			{/if}
-		{/snippet}
+		{#snippet meta()}{m.import_step_of({ step })}{/snippet}
 	</PageHeader>
 
 	<div
-		class="page-frame {step === 3
-			? 'space-y-5 md:space-y-[22px]'
-			: 'space-y-[18px] md:space-y-5'} {step === 2 ? 'md:pt-6' : 'md:pt-7'}"
+		class="flex items-start gap-10 px-4 pt-1 pb-8 md:mx-auto {step === 2
+			? 'md:pb-28 xl:pb-8'
+			: ''} md:max-w-[648px] md:px-6 md:pt-7 xl:mx-0 xl:max-w-none xl:px-[54px]"
 	>
-		{#if step !== 2}<ImportStepper {step} />{/if}
+		<div class="flex min-w-0 flex-1 flex-col gap-5 xl:max-w-[760px]">
+			<ImportStepper {step} finished={step === 3 && !!outcome} />
 
-		{#if step === 3 && outcome}
-			<ImportDone {outcome} onreset={reset} />
-		{:else if step === 1}
-			<ImportPick {reading} {problem} onfile={readFile} />
-		{:else if step === 2 && preview}
-			<form id="import-form" method="post" use:enhance={submitImport} hidden>
-				<input type="hidden" name="rows" value={payload} />
-				<input type="hidden" name="skippedExisting" value={counts.existing + counts.dup} />
-				<input type="hidden" name="skippedInvalid" value={counts.invalid} />
-			</form>
+			{#if step === 3 && outcome}
+				<ImportDone {outcome} onreset={reset} />
+			{:else if step === 1}
+				<ImportPick {reading} {problem} onfile={readFile} />
+				{@render notes('import-notes-list', 'flex flex-col gap-2 xl:hidden')}
+			{:else if step === 2 && preview}
+				<form id="import-form" method="post" use:enhance={submitImport} hidden>
+					<input type="hidden" name="rows" value={payload} />
+					<input type="hidden" name="skippedExisting" value={counts.existing + counts.dup} />
+					<input type="hidden" name="skippedInvalid" value={counts.invalid} />
+				</form>
 
-			{#if tooMany}
-				<p
-					role="alert"
-					class="rounded-[8px] border border-alert-border bg-alert px-3.5 py-3 text-ui leading-[19px] text-alert-foreground"
+				{#if tooMany}
+					<p role="alert" class={ALERT}>{m.import_too_many()}</p>
+				{/if}
+				{#if failureText}
+					<p role="alert" class={ALERT}>{failureText}</p>
+				{/if}
+
+				<ImportReview {preview} rows={classified} {counts} onchangefile={reset} />
+
+				<!-- Desktop: right-aligned under the table. -->
+				<div class="hidden justify-end gap-2.5 xl:flex">
+					{@render actionButtons('')}
+				</div>
+				<!-- Tablet: a sticky bar with the summary. Phone: Batal and Impor above the bottom nav. -->
+				<div
+					class="sticky bottom-[calc(72px+env(safe-area-inset-bottom))] z-10 -mx-4 flex items-center gap-2 border-t border-rule bg-card px-4 py-2.5 shadow-[0_-6px_16px_color-mix(in_oklch,var(--shadow-tint)_5%,transparent)] md:fixed md:inset-x-0 md:bottom-0 md:left-[84px] md:mx-0 md:gap-2.5 md:px-[max(24px,calc((100vw-84px-600px)/2))] md:py-3 xl:hidden"
 				>
-					{m.import_too_many()}
-				</p>
+					<p class="hidden flex-1 text-sm text-muted-foreground md:block">
+						{skippedCount
+							? m.import_review_summary({ count: skippedCount })
+							: m.import_review_summary_none()}
+					</p>
+					{@render actionButtons('md:h-11')}
+				</div>
 			{/if}
-			{#if failureText}
-				<p
-					role="alert"
-					class="rounded-[8px] border border-alert-border bg-alert px-3.5 py-3 text-ui leading-[19px] text-alert-foreground"
-				>
-					{failureText}
-				</p>
-			{/if}
+		</div>
 
-			<ImportReview {preview} rows={classified} {counts} onchangefile={reset} />
-
-			<div
-				class="sticky bottom-[calc(72px+env(safe-area-inset-bottom))] z-10 -mx-4 border-t border-rule bg-card px-4 py-2.5 md:hidden"
-			>
-				<Button
-					type="submit"
-					form="import-form"
-					class="h-12 w-full px-3.5 text-ui font-semibold"
-					disabled={submitDisabled}
-				>
-					{@render submitLabel()}
-				</Button>
-			</div>
-		{/if}
+		{@render notes(
+			'import-notes-panel',
+			'hidden w-[300px] shrink-0 flex-col gap-3 rounded-[12px] bg-background p-5 xl:flex'
+		)}
 	</div>
 </div>
