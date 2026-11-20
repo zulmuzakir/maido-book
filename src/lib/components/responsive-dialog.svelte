@@ -18,7 +18,7 @@
 		description?: string;
 		children: Snippet;
 		footer?: Snippet;
-		/** Phone bottom sheet for destructive confirmations (Paper C1A-1): no grab handle, 16px top radius, 36px bottom padding. */
+		/** Phone bottom sheet for destructive confirmations: tighter body and 36px bottom padding. */
 		confirm?: boolean;
 	} = $props();
 
@@ -29,7 +29,8 @@
 
 {#if desktop.current}
 	<Dialog.Root bind:open>
-		<Dialog.Content class="sm:max-w-[440px]">
+		<!-- Centred dialog: 480px on tablet, 440px on desktop. -->
+		<Dialog.Content class="sm:max-w-[480px] xl:max-w-[440px]">
 			<Dialog.Header class="gap-2">
 				<Dialog.Title class={TITLE}>{title}</Dialog.Title>
 				{#if description}<Dialog.Description class={DESCRIPTION}>{description}</Dialog.Description
@@ -41,11 +42,8 @@
 	</Dialog.Root>
 {:else}
 	<Drawer.Root bind:open>
-		<Drawer.Content
-			handle={!confirm}
-			class={confirm ? 'data-[vaul-drawer-direction=bottom]:rounded-t-[16px]' : ''}
-		>
-			<Drawer.Header class={cn('gap-2 px-6 pt-6 text-left', confirm && 'pb-0')}>
+		<Drawer.Content class="data-[vaul-drawer-direction=bottom]:rounded-t-[16px]">
+			<Drawer.Header class={cn('gap-2 px-6 pt-4 text-left', confirm && 'pb-0')}>
 				<Drawer.Title class={TITLE}>{title}</Drawer.Title>
 				{#if description}<Drawer.Description class={DESCRIPTION}>{description}</Drawer.Description
 					>{/if}
