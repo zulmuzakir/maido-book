@@ -4,7 +4,7 @@
 @import '@fontsource-variable/inter';
 
 @custom-variant dark (&:is(.dark *));
-/* Compact (36px) controls only on a wide screen that isn't touch-first (mouse, trackpad, or
+/* Compact (40px) controls only on a wide screen that isn't touch-first (mouse, trackpad, or
    keyboard-only). Tablets and landscape phones are wide but touch-driven, so they keep 44px targets. */
 @custom-variant desk (@media (width >= 48rem) and (not (pointer: coarse)));
 @plugin '@tailwindcss/forms';
@@ -79,7 +79,6 @@
 	--hint-foreground: #5e5868;
 	--primary-text: #592c82;
 	--chart-axis: #5e5868;
-	--toast-action: #cbbce0;
 	--warning: #fbf1dc;
 	--warning-foreground: #5c4310;
 	--dropzone: #fcfbfc;
@@ -156,7 +155,6 @@
 	--hint-foreground: #aca2b5;
 	--primary-text: #bb93e1;
 	--chart-axis: #aca2b5;
-	--toast-action: #592c82;
 	--warning: #3a2e14;
 	--warning-foreground: #dcaf61;
 	--dropzone: #201b24;
@@ -235,7 +233,6 @@
 	--color-hint-foreground: var(--hint-foreground);
 	--color-primary-text: var(--primary-text);
 	--color-chart-axis: var(--chart-axis);
-	--color-toast-action: var(--toast-action);
 	--color-warning: var(--warning);
 	--color-warning-foreground: var(--warning-foreground);
 	--color-dropzone: var(--dropzone);
