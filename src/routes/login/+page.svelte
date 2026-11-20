@@ -36,7 +36,7 @@
 
 	<div class="flex flex-col items-center gap-3">
 		<h1
-			class="text-center text-[50px] leading-[48px] font-bold tracking-[-1.7px] text-white md:text-[80px] md:leading-[76px] md:tracking-[-2.7px] xl:text-[104px] xl:leading-[99px] xl:tracking-[-3.5px] dark:text-foreground"
+			class="text-center text-[50px] leading-[48px] font-bold tracking-[-1.7px] text-sidebar-foreground md:text-[80px] md:leading-[76px] md:tracking-[-2.7px] xl:text-[104px] xl:leading-[99px] xl:tracking-[-3.5px]"
 		>
 			{m.app_name()}
 		</h1>
@@ -74,7 +74,7 @@
 				type="button"
 				aria-current={getLocale() === locale ? 'true' : undefined}
 				onclick={() => setLocale(locale)}
-				class="rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring aria-[current=true]:font-bold aria-[current=true]:text-white dark:aria-[current=true]:text-foreground"
+				class="rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring aria-[current=true]:font-bold aria-[current=true]:text-sidebar-foreground"
 				>{localeName(locale)}</button
 			>
 		{/each}

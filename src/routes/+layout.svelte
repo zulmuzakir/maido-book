@@ -14,7 +14,7 @@
 	// Paper toasts: a dark pill for normal and success, light red for errors. Each type carries its
 	// own colours so that no class competes with another on the same element.
 	const pill =
-		'!h-[52px] !w-max !max-w-[min(520px,calc(100vw-48px))] !items-center !gap-4 !px-[18px] !py-0 !rounded-[8px] !border-transparent !bg-foreground !text-[14px] !leading-[18px] !text-card !shadow-[0_12px_32px_#2414204D] dark:!text-background';
+		'!h-[52px] !w-max !max-w-[min(520px,calc(100vw-48px))] !items-center !gap-4 !px-[18px] !py-0 !rounded-[8px] !border-transparent !bg-foreground !text-[14px] !leading-[18px] !text-card !shadow-[0_12px_32px_color-mix(in_oklch,var(--shadow-tint)_30%,transparent)] dark:!text-background';
 	const toastClasses = {
 		default: pill,
 		normal: pill,
@@ -24,7 +24,7 @@
 		loading: pill,
 		action: pill,
 		error:
-			'!w-[376px] !items-start !gap-4 !rounded-[6px] !border-[#F0B5AD] !bg-alert !px-4 !py-[14px] !text-[14px] !leading-5 !text-alert-foreground !shadow-[0_8px_24px_#24142024] dark:!border-alert-border [&_[data-icon]]:!hidden [&_[data-title]]:!leading-5',
+			'!w-[376px] !items-start !gap-4 !rounded-[6px] !border-alert-border !bg-alert !px-4 !py-[14px] !text-[14px] !leading-5 !text-alert-foreground !shadow-[0_8px_24px_color-mix(in_oklch,var(--shadow-tint)_14%,transparent)] [&_[data-icon]]:!hidden [&_[data-title]]:!leading-5',
 		title: '!font-normal !leading-[18px]',
 		actionButton:
 			'!h-auto !p-0 !bg-transparent !text-[14px] !leading-[18px] !font-bold !text-toast-action'

@@ -21,7 +21,7 @@
 				class={cn(
 					'grid size-[22px] place-items-center rounded-full border-[1.5px] text-[11px] leading-[14px] font-bold num',
 					done
-						? 'border-status-done bg-status-done text-primary-foreground'
+						? 'border-primary bg-primary text-primary-foreground'
 						: step >= item.n
 							? 'border-primary bg-primary text-primary-foreground'
 							: 'border-muted-foreground bg-card text-muted-foreground'

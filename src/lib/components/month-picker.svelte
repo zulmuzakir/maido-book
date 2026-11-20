@@ -141,7 +141,7 @@
 					)}{/snippet}
 			</Popover.Trigger>
 			<Popover.Content
-				class="w-[340px] gap-1.5 rounded-[8px] border border-rule px-3 pt-2 pb-3 shadow-[0px_8px_24px_#24142024] ring-0 desk:w-[300px]"
+				class="w-[340px] gap-1.5 rounded-[8px] border border-rule px-3 pt-2 pb-3 shadow-[0px_8px_24px_color-mix(in_oklch,var(--shadow-tint)_14%,transparent)] ring-0 desk:w-[300px]"
 				align="end">{@render grid()}</Popover.Content
 			>
 		</Popover.Root>

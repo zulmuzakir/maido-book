@@ -45,7 +45,8 @@
 			class="grid size-[30px] shrink-0 place-items-center rounded-lg bg-sidebar-primary text-ui font-extrabold text-sidebar-primary-foreground xl:size-7"
 			aria-hidden="true">{m.app_name().slice(0, 1)}</span
 		>
-		<span class="text-[15px] leading-[18px] font-bold tracking-[-0.02em] text-white max-xl:sr-only"
+		<span
+			class="text-[15px] leading-[18px] font-bold tracking-[-0.02em] text-sidebar-foreground max-xl:sr-only"
 			>{m.app_name()}</span
 		>
 	</a>

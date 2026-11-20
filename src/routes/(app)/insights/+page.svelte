@@ -60,9 +60,9 @@
 		'not_interested'
 	];
 	const outcomeBar: Record<FollowUpOutcome, string> = {
-		ordered: 'bg-status-done',
-		replied: 'bg-chart-2',
-		interested: 'bg-chart-1',
+		ordered: 'bg-chart-1',
+		replied: 'bg-chart-3',
+		interested: 'bg-chart-2',
 		no_reply: 'bg-chart-4',
 		not_interested: 'bg-chart-5'
 	};
@@ -77,7 +77,7 @@
 	const outcomeTotal = $derived(outcomes.reduce((sum, o) => sum + o.count, 0));
 
 	const customerBar: Record<(typeof CUSTOMER_STATUSES)[number], string> = {
-		lead: 'bg-chart-2',
+		lead: 'bg-chart-3',
 		active: 'bg-chart-1',
 		dormant: 'bg-chart-4'
 	};
@@ -136,7 +136,7 @@
 				m.insights_revenue(),
 				formatRupiahCompact(ins.revenueThisMonth),
 				revenueSub?.text,
-				revenueSub?.up ? 'text-status-done' : 'text-status-overdue'
+				'text-foreground'
 			)}
 			{@render kpi(
 				m.insights_orders(),

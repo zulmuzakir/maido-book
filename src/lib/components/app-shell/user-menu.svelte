@@ -18,7 +18,8 @@
 			size={30}
 			class="bg-sidebar-primary font-bold text-sidebar-primary-foreground xl:!size-7"
 		/>
-		<span class="min-w-0 flex-1 truncate text-ui font-semibold text-white max-xl:hidden"
+		<span
+			class="min-w-0 flex-1 truncate text-ui font-semibold text-sidebar-foreground max-xl:hidden"
 			>{firstName(user.name)}</span
 		>
 	</DropdownMenu.Trigger>

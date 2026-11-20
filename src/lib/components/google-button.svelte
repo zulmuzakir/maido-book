@@ -6,7 +6,7 @@
 <button
 	type="submit"
 	{disabled}
-	class="inline-flex h-[52px] w-full max-w-full items-center justify-center gap-2.5 rounded-[6px] border border-white bg-white text-base leading-5 font-semibold text-[#241420] outline-none focus-visible:ring-3 focus-visible:ring-sidebar-ring disabled:opacity-60 md:w-[420px] xl:w-[380px] dark:border-[#8E918F] dark:bg-[#131314] dark:text-[#E3E3E3]"
+	class="inline-flex h-[52px] w-full max-w-full items-center justify-center gap-2.5 rounded-[6px] border border-input bg-white text-base leading-5 font-semibold text-foreground outline-none focus-visible:ring-3 focus-visible:ring-sidebar-ring disabled:opacity-60 md:w-[420px] xl:w-[380px] dark:border-[#8E918F] dark:bg-[#131314] dark:text-[#E3E3E3]"
 >
 	<svg
 		width="20"

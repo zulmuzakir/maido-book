@@ -423,7 +423,7 @@
 	<Drawer.Root bind:open={sheetOpen} direction={tablet.current ? 'right' : 'bottom'}>
 		<Drawer.Content
 			class={tablet.current
-				? 'data-[vaul-drawer-direction=right]:w-[430px] data-[vaul-drawer-direction=right]:max-w-full data-[vaul-drawer-direction=right]:rounded-l-[20px] data-[vaul-drawer-direction=right]:shadow-[-12px_0_40px_#0F141929] data-[vaul-drawer-direction=right]:sm:max-w-full'
+				? 'data-[vaul-drawer-direction=right]:w-[430px] data-[vaul-drawer-direction=right]:max-w-full data-[vaul-drawer-direction=right]:rounded-l-[20px] data-[vaul-drawer-direction=right]:shadow-[-12px_0_40px_color-mix(in_oklch,var(--shadow-tint)_16%,transparent)] data-[vaul-drawer-direction=right]:sm:max-w-full'
 				: 'max-h-[92dvh]'}
 		>
 			<Drawer.Header class="flex-row items-center justify-between py-2 text-left">

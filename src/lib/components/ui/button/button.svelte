@@ -10,7 +10,7 @@
 				default:
 					'bg-primary text-primary-foreground hover:bg-[color-mix(in_oklch,var(--primary),var(--foreground)_18%)]',
 				outline:
-					'border-input bg-card hover:bg-muted hover:text-foreground dark:hover:bg-accent aria-expanded:bg-muted aria-expanded:text-foreground',
+					'border-input bg-card hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground',
 				whatsapp:
 					'bg-whatsapp text-whatsapp-foreground hover:bg-[color-mix(in_oklch,var(--whatsapp),var(--foreground)_18%)]',
 				'destructive-outline':
