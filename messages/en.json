@@ -578,5 +578,9 @@
 	"settings_product_save": "Save product",
 	"settings_kind_closing": "Closing",
 	"settings_template_body": "Message",
-	"settings_template_sample": "Example with data for {name}."
+	"settings_template_sample": "Example with data for {name}.",
+	"login_title": "Sign in",
+	"login_hero_title": "Timely follow-ups, every day.",
+	"login_hero_sub": "A daily queue, customer stock and WhatsApp messages for the CS team.",
+	"login_tagline": "The daily follow-up queue for the CS team."
 }

@@ -488,5 +488,9 @@
 	"settings_product_save": "Simpan produk",
 	"settings_kind_closing": "Closing",
 	"settings_template_body": "Isi pesan",
-	"settings_template_sample": "Contoh dengan data Ibu {name}."
+	"settings_template_sample": "Contoh dengan data Ibu {name}.",
+	"login_title": "Masuk",
+	"login_hero_title": "Follow up yang tepat waktu, setiap hari.",
+	"login_hero_sub": "Antrian harian, stok pelanggan, dan pesan WhatsApp untuk tim CS.",
+	"login_tagline": "Antrian follow up harian untuk tim CS."
 }
