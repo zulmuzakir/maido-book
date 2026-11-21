@@ -96,13 +96,14 @@
 			onblur={() => {
 				if (!value) open = false;
 			}}
-			class="h-11 w-full rounded-lg border border-input bg-card pr-8 pl-9 text-base placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-ring desk:h-10 desk:text-[15px]"
+			class="h-11 w-full rounded-lg border border-input bg-card pr-11 pl-9 text-base placeholder:text-muted-foreground focus-visible:border-primary focus-visible:ring-3 focus-visible:ring-ring desk:h-10 desk:text-[15px]"
 		/>
 		{#if value}
+			<!-- 44px target (40px at desk) over the field's right edge. -->
 			<button
 				type="button"
-				class="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground"
-				aria-label={m.close()}
+				class="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-lg text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring desk:w-10"
+				aria-label={m.search_clear()}
 				onclick={() => {
 					value = '';
 					oninput?.('');

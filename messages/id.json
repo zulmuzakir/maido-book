@@ -321,6 +321,7 @@
 	"today_undone": "Dikembalikan ke antrian",
 	"today_undo_failed": "Tidak bisa diurungkan: pelanggan ini sudah diproses lagi.",
 	"close": "Tutup",
+	"search_clear": "Hapus pencarian",
 	"stock_out_ago": "habis {count} hari lalu",
 	"stock_out_today": "habis hari ini",
 	"stock_days_left": "sisa ±{count} hari",

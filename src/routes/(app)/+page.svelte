@@ -302,13 +302,12 @@
 	</a>
 {/snippet}
 
-<!-- "‹ ›" for tablet and phone: 40px outlined squares. -->
+<!-- "‹ ›" for tablet and phone: 44px outlined squares (40px at desk). -->
 {#snippet stepButtons()}
 	<div class="flex shrink-0 items-center gap-2">
 		<Button
 			variant="outline"
 			size="icon"
-			class="size-10 desk:size-10"
 			aria-label={m.queue_prev()}
 			disabled={!canPrev}
 			onclick={() => step(-1)}
@@ -318,7 +317,6 @@
 		<Button
 			variant="outline"
 			size="icon"
-			class="size-10 desk:size-10"
 			aria-label={m.queue_next()}
 			disabled={!canNext}
 			onclick={() => step(1)}
@@ -527,11 +525,13 @@
 		aria-label={selected.customer.name}
 	>
 		<div class="flex min-h-14 shrink-0 items-center gap-1 border-b border-rule pr-3 pl-1">
+			<!-- Opening the detail moves focus here, so keyboard and screen-reader users land in it. -->
 			<button
 				type="button"
 				class="grid size-11 shrink-0 place-items-center rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring"
 				aria-label={m.back()}
 				onclick={closePhone}
+				{@attach (el) => el.focus()}
 			>
 				<ChevronLeftIcon class="size-[22px]" aria-hidden="true" />
 			</button>

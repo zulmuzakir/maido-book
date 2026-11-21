@@ -411,6 +411,7 @@
 	"today_undone": "Back in the queue",
 	"today_undo_failed": "Can't undo: this customer has been handled again.",
 	"close": "Close",
+	"search_clear": "Clear search",
 	"stock_out_ago": "ran out {count} days ago",
 	"stock_out_today": "runs out today",
 	"stock_days_left": "±{count} days left",
