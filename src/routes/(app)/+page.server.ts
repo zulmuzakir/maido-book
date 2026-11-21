@@ -1,30 +1,44 @@
 import { todayIso } from '#lib/domain/dates.ts';
 import { waLink } from '#lib/domain/phone.ts';
+import { countOf } from '#lib/server/crm/batch.ts';
 import {
-	getQueue,
-	handledToday,
-	messageContext,
+	defaultProductQuery,
+	doneTodayQuery,
+	handledQuery,
 	messageFor,
+	queueQuery,
 	templateVars,
-	doneTodayCount,
+	toHandled,
+	toMessageContext,
+	toQueue,
 	type QueueItem
 } from '#lib/server/crm/follow-ups.ts';
-import { getRules } from '#lib/server/crm/settings.ts';
-import { hasCustomers } from '#lib/server/crm/customers.ts';
+import { rulesQuery, templatesQuery, toRules } from '#lib/server/crm/settings.ts';
+import { hasCustomersQuery } from '#lib/server/crm/customers.ts';
 import { followUpActions } from '#lib/server/crm/follow-up-actions.ts';
 import { m } from '#lib/paraglide/messages.js';
 import type { PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const today = todayIso();
-	const [queue, rules, doneToday, handled, ctx, anyCustomer] = await Promise.all([
-		getQueue(locals.db, today),
-		getRules(locals.db),
-		doneTodayCount(locals.db, today),
-		handledToday(locals.db, today),
-		messageContext(locals.db),
-		hasCustomers(locals.db)
-	]);
+	const db = locals.db;
+	// One D1 round trip for the whole page.
+	const [queueRows, ruleRows, doneRows, handledRows, templateRows, productRows, customerRows] =
+		await db.batch([
+			queueQuery(db, today),
+			rulesQuery(db),
+			doneTodayQuery(db, today),
+			handledQuery(db, today),
+			templatesQuery(db),
+			defaultProductQuery(db),
+			hasCustomersQuery(db)
+		]);
+	const queue = toQueue(queueRows, today);
+	const rules = toRules(ruleRows);
+	const doneToday = countOf(doneRows);
+	const handled = toHandled(handledRows);
+	const ctx = toMessageContext(templateRows, productRows);
+	const anyCustomer = customerRows.length > 0;
 	const csName = locals.user!.name;
 
 	const withWaUrl = (item: QueueItem) => {

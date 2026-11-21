@@ -1,7 +1,12 @@
 import { redirect } from '@sveltejs/kit';
 import { todayIso } from '#lib/domain/dates.ts';
-import { countCustomersByFilter, listCustomers } from '#lib/server/crm/customers.ts';
-import { getRules } from '#lib/server/crm/settings.ts';
+import {
+	customerFilterCountsQuery,
+	listCustomersQueries,
+	toCustomerFilterCounts,
+	toCustomerList
+} from '#lib/server/crm/customers.ts';
+import { rulesQuery, toRules } from '#lib/server/crm/settings.ts';
 import { m } from '#lib/paraglide/messages.js';
 import type { PageServerLoad } from './$types';
 
@@ -21,11 +26,15 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		n > PAGE_SIZE ? Math.min(MAX_ROWS, Math.ceil(n / PAGE_SIZE) * PAGE_SIZE) : PAGE_SIZE;
 	const today = todayIso();
 
-	const [result, counts, rules] = await Promise.all([
-		listCustomers(locals.db, { q, status, page, pageSize }),
-		countCustomersByFilter(locals.db, q),
-		getRules(locals.db)
+	const db = locals.db;
+	const [totalRows, rows, countRows, ruleRows] = await db.batch([
+		...listCustomersQueries(db, { q, status, page, pageSize }),
+		customerFilterCountsQuery(db, q),
+		rulesQuery(db)
 	]);
+	const result = toCustomerList(totalRows, rows);
+	const counts = toCustomerFilterCounts(countRows);
+	const rules = toRules(ruleRows);
 
 	// A stale link (or the last row on a page was deleted) points past the end: go to the last page.
 	const lastPage = Math.max(1, Math.ceil(result.total / pageSize));

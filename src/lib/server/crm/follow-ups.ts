@@ -6,7 +6,6 @@ import {
 	customer,
 	customerOrder,
 	followUp,
-	messageTemplate,
 	product,
 	setting
 } from '#lib/server/db/schema.ts';
@@ -15,9 +14,11 @@ import { pickHandled, type HandledOutcome } from '#lib/domain/handled.ts';
 import { planAfterOutcome, queueBucket, type QueueBucket } from '#lib/domain/follow-up.ts';
 import { renderTemplate, type TemplateVars } from '#lib/domain/template.ts';
 import type { CustomerStatus, FollowUpKind, ManualOutcome } from '#lib/domain/types.ts';
-import { runBatch, type Stmt } from './batch.ts';
+import { batchSafe, runBatch, type Stmt } from './batch.ts';
 import { latestOrderOn, toLastOrder, type LastOrder } from './customers.ts';
-import { getRules } from './settings.ts';
+import { getRules, templatesQuery } from './settings.ts';
+
+const jakartaMidnight = (iso: string) => new Date(Date.parse(iso + 'T00:00:00+07:00'));
 
 export interface QueueItem {
 	followUpId: string;
@@ -29,25 +30,28 @@ export interface QueueItem {
 	lastOrder: LastOrder | null;
 }
 
-export async function getQueue(db: Db, today: string): Promise<Record<QueueBucket, QueueItem[]>> {
-	const rows = await db
-		.select({
-			followUpId: followUp.id,
-			kind: followUp.kind,
-			dueDate: followUp.dueDate,
-			attempt: followUp.attempt,
-			contactedAt: followUp.contactedAt,
-			cId: customer.id,
-			cName: customer.name,
-			cPhone: customer.phone,
-			cDose: customer.dosePerDay,
-			cStatus: customer.status,
-			oDate: customerOrder.orderDate,
-			oQty: customerOrder.qty,
-			oDays: customerOrder.daysSupply,
-			pName: product.name,
-			pUnit: product.unitLabel
-		})
+/** Open follow-ups due within a week, or sent and waiting, with customer and latest order. */
+export const queueQuery = (db: Db, today: string) =>
+	db
+		.select(
+			batchSafe({
+				followUpId: followUp.id,
+				kind: followUp.kind,
+				dueDate: followUp.dueDate,
+				attempt: followUp.attempt,
+				contactedAt: followUp.contactedAt,
+				cId: customer.id,
+				cName: customer.name,
+				cPhone: customer.phone,
+				cDose: customer.dosePerDay,
+				cStatus: customer.status,
+				oDate: customerOrder.orderDate,
+				oQty: customerOrder.qty,
+				oDays: customerOrder.daysSupply,
+				pName: product.name,
+				pUnit: product.unitLabel
+			})
+		)
 		.from(followUp)
 		.innerJoin(customer, eq(customer.id, followUp.customerId))
 		.leftJoin(customerOrder, latestOrderOn)
@@ -59,6 +63,10 @@ export async function getQueue(db: Db, today: string): Promise<Record<QueueBucke
 			)
 		);
 
+export function toQueue(
+	rows: Awaited<ReturnType<typeof queueQuery>>,
+	today: string
+): Record<QueueBucket, QueueItem[]> {
 	const out: Record<QueueBucket, QueueItem[]> = {
 		overdue: [],
 		today: [],
@@ -94,6 +102,10 @@ export async function getQueue(db: Db, today: string): Promise<Record<QueueBucke
 	out.waiting.sort((a, b) => a.contactedAt!.getTime() - b.contactedAt!.getTime());
 	out.upcoming.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 	return out;
+}
+
+export async function getQueue(db: Db, today: string): Promise<Record<QueueBucket, QueueItem[]>> {
+	return toQueue(await queueQuery(db, today), today);
 }
 
 /**
@@ -138,30 +150,36 @@ export interface HandledItem {
  * "Dihubungi hari ini" list. Plain sends count too ("contacted"); an outcome or order logged the
  * same day says more and wins (see `pickHandled`).
  */
-export async function handledToday(db: Db, today: string): Promise<HandledItem[]> {
-	const since = new Date(Date.parse(today + 'T00:00:00+07:00'));
-	const rows = await db
-		.select({
-			id: activity.id,
-			customerId: activity.customerId,
-			name: customer.name,
-			type: activity.type,
-			outcome: activity.outcome,
-			oDate: customerOrder.orderDate,
-			oQty: customerOrder.qty,
-			oDays: customerOrder.daysSupply,
-			pName: product.name,
-			pUnit: product.unitLabel
-		})
+export const handledQuery = (db: Db, today: string) =>
+	db
+		.select(
+			batchSafe({
+				id: activity.id,
+				customerId: activity.customerId,
+				name: customer.name,
+				type: activity.type,
+				outcome: activity.outcome,
+				oDate: customerOrder.orderDate,
+				oQty: customerOrder.qty,
+				oDays: customerOrder.daysSupply,
+				pName: product.name,
+				pUnit: product.unitLabel
+			})
+		)
 		.from(activity)
 		.innerJoin(customer, eq(customer.id, activity.customerId))
 		.leftJoin(customerOrder, latestOrderOn)
 		.leftJoin(product, eq(product.id, customerOrder.productId))
 		.where(
-			and(inArray(activity.type, ['outcome', 'order', 'wa_sent']), gte(activity.createdAt, since))
+			and(
+				inArray(activity.type, ['outcome', 'order', 'wa_sent']),
+				gte(activity.createdAt, jakartaMidnight(today))
+			)
 		)
 		.orderBy(sql`${activity.createdAt} desc`)
 		.limit(300);
+
+export function toHandled(rows: Awaited<ReturnType<typeof handledQuery>>): HandledItem[] {
 	return pickHandled(
 		rows.map((r) => ({ ...r, type: r.type as 'outcome' | 'order' | 'wa_sent' }))
 	).map((r) => ({
@@ -184,41 +202,44 @@ export async function handledToday(db: Db, today: string): Promise<HandledItem[]
  * snoozed or ordered. Each counts once, so a resend or a second tap does not move the progress, and
  * a customer closed without a message still counts as done.
  */
-export async function doneTodayCount(db: Db, today: string): Promise<number> {
-	const since = new Date(Date.parse(today + 'T00:00:00+07:00'));
-	const row = await db
+export const doneTodayQuery = (db: Db, today: string) =>
+	db
 		.select({ n: sql<number>`count(distinct ${activity.customerId})` })
 		.from(activity)
 		.where(
 			and(
 				inArray(activity.type, ['wa_sent', 'outcome', 'snooze', 'order']),
-				gte(activity.createdAt, since)
+				gte(activity.createdAt, jakartaMidnight(today))
 			)
-		)
-		.get();
-	return row?.n ?? 0;
-}
+		);
 
 export const csFirstName = (name: string) => name.trim().split(/\s+/)[0] ?? '';
 
+/** The first active product: the `{produk}` fallback for customers without an order. */
+export const defaultProductQuery = (db: Db) =>
+	db
+		.select({ name: product.name })
+		.from(product)
+		.where(eq(product.active, true))
+		.orderBy(asc(product.createdAt))
+		.limit(1);
+
 /** Templates + default product name, loaded once and reused for many rows. */
-export async function messageContext(db: Db) {
-	const [templates, firstProduct] = await Promise.all([
-		db.select().from(messageTemplate),
-		db
-			.select({ name: product.name })
-			.from(product)
-			.where(eq(product.active, true))
-			.orderBy(asc(product.createdAt))
-			.limit(1)
-			.get()
-	]);
+export function toMessageContext(
+	templates: { kind: string; body: string }[],
+	firstProduct: { name: string }[]
+) {
 	return {
 		templates: Object.fromEntries(templates.map((t) => [t.kind, t.body])) as Record<string, string>,
-		defaultProduct: firstProduct?.name ?? ''
+		defaultProduct: firstProduct[0]?.name ?? ''
 	};
 }
-export type MessageContext = Awaited<ReturnType<typeof messageContext>>;
+
+export async function messageContext(db: Db) {
+	const [templates, firstProduct] = await db.batch([templatesQuery(db), defaultProductQuery(db)]);
+	return toMessageContext(templates, firstProduct);
+}
+export type MessageContext = ReturnType<typeof toMessageContext>;
 
 export function templateVars(
 	ctx: MessageContext,

@@ -126,7 +126,4 @@ export async function importCustomers(
 	return { imported, skippedExisting, skippedInvalid };
 }
 
-export async function existingPhones(db: Db): Promise<string[]> {
-	const rows = await db.select({ phone: customer.phone }).from(customer);
-	return rows.map((r) => r.phone);
-}
+export const customerPhonesQuery = (db: Db) => db.select({ phone: customer.phone }).from(customer);

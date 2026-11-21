@@ -4,8 +4,11 @@ import type { Db } from '#lib/server/db/index.ts';
 import { messageTemplate, product, setting } from '#lib/server/db/schema.ts';
 import { FOLLOW_UP_KINDS, type RuleSettings, type TemplateKind } from '#lib/domain/types.ts';
 
-export async function getRules(db: Db): Promise<RuleSettings> {
-	const row = await db.select().from(setting).where(eq(setting.id, 1)).get();
+/** The rules row as a batchable query; read it with `toRules`. */
+export const rulesQuery = (db: Db) => db.select().from(setting).where(eq(setting.id, 1));
+
+export function toRules(rows: (typeof setting.$inferSelect)[]): RuleSettings {
+	const row = rows[0];
 	if (!row) throw new Error('setting row missing - run pnpm db:migrate:local');
 	return {
 		leadDays: row.leadDays,
@@ -15,12 +18,20 @@ export async function getRules(db: Db): Promise<RuleSettings> {
 	};
 }
 
+export async function getRules(db: Db): Promise<RuleSettings> {
+	return toRules(await rulesQuery(db));
+}
+
 export async function updateRules(db: Db, rules: RuleSettings) {
 	await db.update(setting).set(rules).where(eq(setting.id, 1));
 }
 
-export async function getTemplates(db: Db): Promise<Record<TemplateKind, string>> {
-	const rows = await db.select().from(messageTemplate);
+export const templatesQuery = (db: Db) => db.select().from(messageTemplate);
+
+/** Every follow-up kind with its template body ('' when a kind has no row). */
+export function toTemplates(
+	rows: { kind: TemplateKind; body: string }[]
+): Record<TemplateKind, string> {
 	const out = Object.fromEntries(FOLLOW_UP_KINDS.map((k) => [k, ''])) as Record<
 		TemplateKind,
 		string
@@ -48,16 +59,18 @@ export async function updateTemplate(db: Db, kind: TemplateKind, body: string) {
 
 export type Product = typeof product.$inferSelect;
 
+export const productsQuery = (db: Db, opts: { activeOnly?: boolean } = {}) =>
+	db
+		.select()
+		.from(product)
+		.where(opts.activeOnly ? eq(product.active, true) : undefined)
+		.orderBy(product.createdAt, product.name);
+
 export async function listProducts(
 	db: Db,
 	opts: { activeOnly?: boolean } = {}
 ): Promise<Product[]> {
-	const q = db.select().from(product);
-	const rows = await (opts.activeOnly ? q.where(eq(product.active, true)) : q).orderBy(
-		product.createdAt,
-		product.name
-	);
-	return rows;
+	return productsQuery(db, opts);
 }
 
 export interface ProductInput {

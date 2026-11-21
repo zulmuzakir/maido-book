@@ -2,20 +2,35 @@ import { error, fail } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { todayIso } from '#lib/domain/dates.ts';
 import { waLink } from '#lib/domain/phone.ts';
-import { addNote, getCustomerDetail } from '#lib/server/crm/customers.ts';
+import { addNote, customerDetailQueries, toCustomerDetail } from '#lib/server/crm/customers.ts';
 import { parseForm } from '#lib/server/crm/form.ts';
 import { followUpActions } from '#lib/server/crm/follow-up-actions.ts';
-import { messageContext, messageFor, templateVars } from '#lib/server/crm/follow-ups.ts';
+import {
+	defaultProductQuery,
+	messageFor,
+	templateVars,
+	toMessageContext
+} from '#lib/server/crm/follow-ups.ts';
 import { deleteOrder } from '#lib/server/crm/orders.ts';
 import { noteSchema } from '#lib/server/crm/schemas.ts';
-import { getRules } from '#lib/server/crm/settings.ts';
+import { rulesQuery, templatesQuery, toRules } from '#lib/server/crm/settings.ts';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-	const detail = await getCustomerDetail(locals.db, params.id);
+	const db = locals.db;
+	// One D1 round trip: the customer's detail, the rules and the message context.
+	const [c0, fu, last, orderRows, activityRows, ruleRows, templateRows, productRows] =
+		await db.batch([
+			...customerDetailQueries(db, params.id),
+			rulesQuery(db),
+			templatesQuery(db),
+			defaultProductQuery(db)
+		]);
+	const detail = toCustomerDetail([c0, fu, last, orderRows, activityRows]);
 	if (!detail) error(404, 'Not found');
 
 	const { customer: c, openFollowUp, lastOrder, orders, activities } = detail;
-	const [rules, ctx] = await Promise.all([getRules(locals.db), messageContext(locals.db)]);
+	const rules = toRules(ruleRows);
+	const ctx = toMessageContext(templateRows, productRows);
 	const today = todayIso();
 	const csName = locals.user!.name;
 

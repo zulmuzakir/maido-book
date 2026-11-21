@@ -5,9 +5,12 @@ import { parseForm } from '#lib/server/crm/form.ts';
 import { csFirstName } from '#lib/server/crm/follow-ups.ts';
 import {
 	createProduct,
-	getRules,
-	getTemplates,
 	listProducts,
+	productsQuery,
+	rulesQuery,
+	templatesQuery,
+	toRules,
+	toTemplates,
 	updateProduct,
 	updateRules,
 	updateTemplates
@@ -15,11 +18,14 @@ import {
 import { productSchema, rulesSchema, templatesSchema } from '#lib/server/crm/schemas.ts';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	const [products, rules, templates] = await Promise.all([
-		listProducts(locals.db),
-		getRules(locals.db),
-		getTemplates(locals.db)
+	const db = locals.db;
+	const [products, ruleRows, templateRows] = await db.batch([
+		productsQuery(db),
+		rulesQuery(db),
+		templatesQuery(db)
 	]);
+	const rules = toRules(ruleRows);
+	const templates = toTemplates(templateRows);
 	const sample = products.find((p) => p.active) ?? products[0];
 	return {
 		title: m.nav_settings(),

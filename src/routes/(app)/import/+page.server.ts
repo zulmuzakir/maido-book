@@ -2,13 +2,19 @@ import { fail } from '@sveltejs/kit';
 import * as v from 'valibot';
 import { todayIso } from '#lib/domain/dates.ts';
 import { m } from '#lib/paraglide/messages.js';
-import { existingPhones, importCustomers, importRowsSchema } from '#lib/server/crm/import.ts';
-import { getRules } from '#lib/server/crm/settings.ts';
+import { customerPhonesQuery, importCustomers, importRowsSchema } from '#lib/server/crm/import.ts';
+import { rulesQuery, toRules } from '#lib/server/crm/settings.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	const [rules, phones] = await Promise.all([getRules(locals.db), existingPhones(locals.db)]);
-	return { rules, existingPhones: phones, today: todayIso(), title: m.import_title() };
+	const db = locals.db;
+	const [ruleRows, phoneRows] = await db.batch([rulesQuery(db), customerPhonesQuery(db)]);
+	return {
+		rules: toRules(ruleRows),
+		existingPhones: phoneRows.map((r) => r.phone),
+		today: todayIso(),
+		title: m.import_title()
+	};
 };
 
 export const actions: Actions = {

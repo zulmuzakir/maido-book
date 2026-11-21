@@ -11,13 +11,10 @@ import {
 import { todayIso } from '#lib/domain/dates.ts';
 import { searchDigits } from '#lib/domain/phone.ts';
 import type { CustomerSnapshot, CustomerStatus, FollowUpKind } from '#lib/domain/types.ts';
-import { runBatch } from './batch.ts';
+import { batchSafe, runBatch } from './batch.ts';
 
 /** False only before the first import or customer: the queue shows how to get started instead. */
-export async function hasCustomers(db: Db): Promise<boolean> {
-	const row = await db.select({ id: customer.id }).from(customer).limit(1).get();
-	return !!row;
-}
+export const hasCustomersQuery = (db: Db) => db.select({ id: customer.id }).from(customer).limit(1);
 
 export interface OpenFollowUp {
 	id: string;
@@ -103,43 +100,43 @@ function statusCondition(
 	return undefined;
 }
 
-export async function listCustomers(
-	db: Db,
-	opts: {
-		q?: string;
-		status?: CustomerStatus | 'all' | 'interested';
-		page?: number;
-		pageSize?: number;
-	}
-): Promise<{ items: CustomerListItem[]; total: number }> {
+type CustomerListOpts = {
+	q?: string;
+	status?: CustomerStatus | 'all' | 'interested';
+	page?: number;
+	pageSize?: number;
+};
+
+/** [total count, one page of rows]; read them with `toCustomerList`. */
+export function listCustomersQueries(db: Db, opts: CustomerListOpts) {
 	const pageSize = opts.pageSize ?? 30;
 	const page = Math.max(1, opts.page ?? 1);
 	const where = and(searchCondition(opts.q ?? ''), statusCondition(opts.status));
-
-	const [totalRow, rows] = await Promise.all([
+	return [
 		db
-			.select({ n: sql<number>`count(*)` })
+			.select(batchSafe({ n: sql<number>`count(*)` }))
 			.from(customer)
-			.where(where)
-			.get(),
+			.where(where),
 		db
-			.select({
-				id: customer.id,
-				name: customer.name,
-				phone: customer.phone,
-				status: customer.status,
-				dosePerDay: customer.dosePerDay,
-				fuId: followUp.id,
-				fuKind: followUp.kind,
-				fuDue: followUp.dueDate,
-				fuContacted: followUp.contactedAt,
-				fuAttempt: followUp.attempt,
-				oDate: customerOrder.orderDate,
-				oQty: customerOrder.qty,
-				oDays: customerOrder.daysSupply,
-				pName: product.name,
-				pUnit: product.unitLabel
-			})
+			.select(
+				batchSafe({
+					id: customer.id,
+					name: customer.name,
+					phone: customer.phone,
+					status: customer.status,
+					dosePerDay: customer.dosePerDay,
+					fuId: followUp.id,
+					fuKind: followUp.kind,
+					fuDue: followUp.dueDate,
+					fuContacted: followUp.contactedAt,
+					fuAttempt: followUp.attempt,
+					oDate: customerOrder.orderDate,
+					oQty: customerOrder.qty,
+					oDays: customerOrder.daysSupply,
+					pName: product.name,
+					pUnit: product.unitLabel
+				})
+			)
 			.from(customer)
 			.leftJoin(followUp, openFollowUpOn)
 			.leftJoin(customerOrder, latestOrderOn)
@@ -152,10 +149,17 @@ export async function listCustomers(
 			)
 			.limit(pageSize)
 			.offset((page - 1) * pageSize)
-	]);
+	] as const;
+}
 
+type CustomerListRows = Awaited<ReturnType<typeof listCustomersQueries>[1]>;
+
+export function toCustomerList(
+	totalRows: { n: number }[],
+	rows: CustomerListRows
+): { items: CustomerListItem[]; total: number } {
 	return {
-		total: totalRow?.n ?? 0,
+		total: totalRows[0]?.n ?? 0,
 		items: rows.map((r) => ({
 			id: r.id,
 			name: r.name,
@@ -190,11 +194,8 @@ export async function customerCountsByStatus(db: Db): Promise<Record<CustomerSta
 	return out;
 }
 
-export async function countCustomersByFilter(
-	db: Db,
-	q: string
-): Promise<Record<'all' | 'interested' | 'lead' | 'active' | 'dormant', number>> {
-	const row = await db
+export const customerFilterCountsQuery = (db: Db, q: string) =>
+	db
 		.select({
 			all: sql<number>`count(*)`,
 			lead: sql<number>`coalesce(sum(${customer.status} = 'lead'), 0)`,
@@ -203,8 +204,12 @@ export async function countCustomersByFilter(
 			interested: sql<number>`coalesce(sum(${interestedExists}), 0)`
 		})
 		.from(customer)
-		.where(searchCondition(q))
-		.get();
+		.where(searchCondition(q));
+
+export function toCustomerFilterCounts(
+	rows: Awaited<ReturnType<typeof customerFilterCountsQuery>>
+): Record<'all' | 'interested' | 'lead' | 'active' | 'dormant', number> {
+	const row = rows[0];
 	return {
 		all: row?.all ?? 0,
 		interested: row?.interested ?? 0,
@@ -219,61 +224,68 @@ const ORDER_HISTORY_CAP = 50;
 /** Activity rows shown on the customer detail page; one extra row is fetched to detect truncation. */
 const ACTIVITY_HISTORY_CAP = 100;
 
-export async function getCustomerDetail(db: Db, id: string) {
-	const c = await db.select().from(customer).where(eq(customer.id, id)).get();
-	if (!c) return null;
-	const [fu, last, orders, activities] = await Promise.all([
+/**
+ * [customer, open follow-up, latest order, order history, activity history] for one customer, as
+ * batchable queries; read them with `toCustomerDetail`.
+ */
+export const customerDetailQueries = (db: Db, id: string) =>
+	[
+		db.select().from(customer).where(eq(customer.id, id)),
 		db
 			.select()
 			.from(followUp)
-			.where(and(eq(followUp.customerId, id), eq(followUp.status, 'open')))
-			.get(),
+			.where(and(eq(followUp.customerId, id), eq(followUp.status, 'open'))),
 		db
-			.select({
-				orderDate: customerOrder.orderDate,
-				qty: customerOrder.qty,
-				daysSupply: customerOrder.daysSupply,
-				productName: product.name,
-				unitLabel: product.unitLabel
-			})
+			.select(
+				batchSafe({
+					orderDate: customerOrder.orderDate,
+					qty: customerOrder.qty,
+					daysSupply: customerOrder.daysSupply,
+					productName: product.name,
+					unitLabel: product.unitLabel
+				})
+			)
 			.from(customerOrder)
 			.innerJoin(product, eq(product.id, customerOrder.productId))
 			.where(eq(customerOrder.customerId, id))
 			.orderBy(desc(customerOrder.orderDate), desc(customerOrder.createdAt))
-			.limit(1)
-			.get(),
+			.limit(1),
 		db
-			.select({
-				id: customerOrder.id,
-				orderDate: customerOrder.orderDate,
-				qty: customerOrder.qty,
-				dosePerDay: customerOrder.dosePerDay,
-				daysSupply: customerOrder.daysSupply,
-				totalPaid: customerOrder.totalPaid,
-				note: customerOrder.note,
-				productName: product.name,
-				unitLabel: product.unitLabel
-			})
+			.select(
+				batchSafe({
+					id: customerOrder.id,
+					orderDate: customerOrder.orderDate,
+					qty: customerOrder.qty,
+					dosePerDay: customerOrder.dosePerDay,
+					daysSupply: customerOrder.daysSupply,
+					totalPaid: customerOrder.totalPaid,
+					note: customerOrder.note,
+					productName: product.name,
+					unitLabel: product.unitLabel
+				})
+			)
 			.from(customerOrder)
 			.innerJoin(product, eq(product.id, customerOrder.productId))
 			.where(eq(customerOrder.customerId, id))
 			.orderBy(desc(customerOrder.orderDate), desc(customerOrder.createdAt))
 			.limit(ORDER_HISTORY_CAP + 1),
 		db
-			.select({
-				id: activity.id,
-				type: activity.type,
-				outcome: activity.outcome,
-				body: activity.body,
-				createdAt: activity.createdAt,
-				actorName: user.name,
-				attempt: followUp.attempt,
-				// "Order dicatat" rows say what was ordered: "20 sachet ROOVE · Rp 202.000".
-				orderQty: customerOrder.qty,
-				orderUnit: product.unitLabel,
-				orderProduct: product.name,
-				orderTotal: customerOrder.totalPaid
-			})
+			.select(
+				batchSafe({
+					id: activity.id,
+					type: activity.type,
+					outcome: activity.outcome,
+					body: activity.body,
+					createdAt: activity.createdAt,
+					actorName: user.name,
+					attempt: followUp.attempt,
+					// "Order dicatat" rows say what was ordered: "20 sachet ROOVE · Rp 202.000".
+					orderQty: customerOrder.qty,
+					orderUnit: product.unitLabel,
+					orderProduct: product.name,
+					orderTotal: customerOrder.totalPaid
+				})
+			)
 			.from(activity)
 			.leftJoin(user, eq(user.id, activity.userId))
 			.leftJoin(followUp, eq(followUp.id, activity.followUpId))
@@ -282,7 +294,22 @@ export async function getCustomerDetail(db: Db, id: string) {
 			.where(eq(activity.customerId, id))
 			.orderBy(desc(activity.createdAt), desc(activity.id))
 			.limit(ACTIVITY_HISTORY_CAP + 1)
-	]);
+	] as const;
+
+type DetailRows<I extends number> = Awaited<ReturnType<typeof customerDetailQueries>[I]>;
+
+/** Null when the customer does not exist. */
+export function toCustomerDetail([cs, fus, lasts, orders, activities]: [
+	DetailRows<0>,
+	DetailRows<1>,
+	DetailRows<2>,
+	DetailRows<3>,
+	DetailRows<4>
+]) {
+	const c = cs[0];
+	if (!c) return null;
+	const fu = fus[0];
+	const last = lasts[0];
 	return {
 		customer: c,
 		openFollowUp: fu
@@ -300,6 +327,11 @@ export async function getCustomerDetail(db: Db, id: string) {
 		ordersTruncated: orders.length > ORDER_HISTORY_CAP,
 		activitiesTruncated: activities.length > ACTIVITY_HISTORY_CAP
 	};
+}
+
+export async function getCustomerDetail(db: Db, id: string) {
+	const [c, fu, last, orders, activities] = await db.batch(customerDetailQueries(db, id));
+	return toCustomerDetail([c, fu, last, orders, activities]);
 }
 
 export async function findByPhone(db: Db, phone: string, excludeId?: string) {
@@ -371,7 +403,7 @@ export async function customerSnapshot(db: Db, id: string): Promise<CustomerSnap
 }
 
 export function snapshotOf(
-	detail: NonNullable<Awaited<ReturnType<typeof getCustomerDetail>>>
+	detail: NonNullable<ReturnType<typeof toCustomerDetail>>
 ): CustomerSnapshot {
 	const { customer: c, lastOrder, openFollowUp, orders } = detail;
 	return {
