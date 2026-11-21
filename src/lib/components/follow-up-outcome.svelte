@@ -187,7 +187,7 @@
 				<p
 					class={cn(
 						'flex items-start gap-2.5 rounded-[8px] px-3.5 py-3 text-sm leading-[21px] text-foreground',
-						warn ? 'bg-note' : 'bg-inset'
+						warn ? 'bg-note' : 'bg-surface-inset'
 					)}
 				>
 					{#if warn}

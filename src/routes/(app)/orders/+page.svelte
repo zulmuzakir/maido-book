@@ -173,7 +173,7 @@
 						<li class="border-b border-rule last:border-b-0">
 							<a
 								href={resolve('/(app)/customers/[id]', { id: item.customerId })}
-								class="{ROW} {ROW_XL} min-h-16 px-4 py-2 outline-none hover:bg-muted/70 focus-visible:bg-muted focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring md:px-6 xl:min-h-[60px] xl:px-8"
+								class="{ROW} {ROW_XL} min-h-16 px-4 py-2 outline-none hover:bg-muted/70 focus-visible:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset md:px-6 xl:min-h-[60px] xl:px-8"
 							>
 								<InitialsAvatar
 									name={item.customerName}

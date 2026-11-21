@@ -62,7 +62,7 @@
 	--selected-ring: #cbbce0;
 	/* Roles that differ by mode, so components need no dark: variants. */
 	--band-title: var(--accent-foreground);
-	--inset: var(--background);
+	--surface-inset: var(--background);
 	--field-active: var(--primary);
 	--thumb: #ffffff;
 	--tab-active: var(--primary);
@@ -145,7 +145,7 @@
 	--avatar-foreground: #f0e8f8;
 	--selected-ring: #cfb6e7;
 	--band-title: var(--primary-text);
-	--inset: var(--secondary);
+	--surface-inset: var(--secondary);
 	--field-active: var(--selected-ring);
 	--thumb: var(--card);
 	--tab-active: var(--accent-foreground);
@@ -247,7 +247,7 @@
 	--color-hint-foreground: var(--hint-foreground);
 	--color-primary-text: var(--primary-text);
 	--color-band-title: var(--band-title);
-	--color-inset: var(--inset);
+	--color-surface-inset: var(--surface-inset);
 	--color-field-active: var(--field-active);
 	--color-thumb: var(--thumb);
 	--color-tab-active: var(--tab-active);

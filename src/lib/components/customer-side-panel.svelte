@@ -109,7 +109,9 @@
 </script>
 
 <!-- Desktop only: a 360px panel beside the 560px form. -->
-<aside class={cn('flex flex-col gap-3.5 self-start rounded-[12px] bg-inset p-5', props.class)}>
+<aside
+	class={cn('flex flex-col gap-3.5 self-start rounded-[12px] bg-surface-inset p-5', props.class)}
+>
 	<h2 class="text-ui font-semibold text-muted-foreground">{heading}</h2>
 
 	<div class="flex items-center gap-3 rounded-[10px] border border-rule bg-card p-3">

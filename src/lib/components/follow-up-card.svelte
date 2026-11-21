@@ -257,7 +257,7 @@
 						</div>
 					</div>
 					<p
-						class="flex items-start gap-2.5 rounded-[8px] bg-inset px-3.5 py-3 text-sm leading-[21px] text-foreground"
+						class="flex items-start gap-2.5 rounded-[8px] bg-surface-inset px-3.5 py-3 text-sm leading-[21px] text-foreground"
 					>
 						<InfoIcon class="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
 						<span class="flex-1">
