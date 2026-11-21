@@ -338,6 +338,8 @@ Type is Inter with tabular figures on every count, date and phone number. Page c
 
 The values come from the ROOVE design canvas, with boards at desktop 1440, tablet 834 and phone 390 in light and dark. The earlier plum "Quiet xenops" design is retired.
 
+**Rules and measurements.** The colour meanings, the named rules, the 44px touch floor and the 16px inputs are rules. The pixel sizes in Typography, Layout, Shapes and Components are a record of the screens as built from the canvas, not a spec. Match them when you change an existing screen. On a new screen, reuse the nearest size already in use instead of copying an exact half-pixel or adding a new one.
+
 **Key Characteristics:**
 
 - Ground is `background`; sheets, rows, headers and the shell sit on the near-white `card`.
@@ -599,17 +601,18 @@ New customer, edit customer and new order share one pattern. Build new form page
 
 ## Motion
 
-Motion confirms an action, shows where something came from or went, and makes waiting visible. It never decorates. There is no animation library: Svelte's `svelte/transition`, `svelte/animate` and `svelte/motion`, plus Tailwind and `tw-animate-css` classes.
+Motion confirms an action, shows where something came from or went, and makes waiting visible. It never delays the next action: no transition blocks input, holds back focus or makes the user wait to see the result of what they did. Small touches that make the daily routine feel finished (a badge pop, the "day done" banner) are fine as long as they pass that test. There is no animation library: Svelte's `svelte/transition`, `svelte/animate` and `svelte/motion`, plus Tailwind and `tw-animate-css` classes.
 
-- **Tokens** (`src/lib/motion.ts`, CSS `--motion-*` in `layout.css`): `fast` 150ms (fades, small feedback), `base` 220ms (rows, panels, sheets), `slow` 320ms (charts, progress). Nothing runs longer. Easing is ease-out (`cubicOut`, CSS `ease-motion`) for enter and exit, `cubicInOut` for moves.
+- **Tokens** (`src/lib/motion.ts`, CSS `--motion-*` in `layout.css`): `fast` 150ms (fades, small feedback), `base` 220ms (rows, panels, sheets), `slow` 320ms (charts, progress). Motion the app starts on its own runs no longer than `slow`. Movement that follows a drag is exempt, and so are the phone bottom sheets, which keep vaul's own 500ms slide (`cubic-bezier(0.32, 0.72, 0, 1)`), tuned for dragging a sheet with a finger. Easing is ease-out (`cubicOut`, CSS `ease-motion`) for enter and exit, `cubicInOut` for moves.
 - **Reduced motion:** the CSS rule in `layout.css` covers CSS transitions and keyframes. Svelte transitions run through the Web Animations API and skip it, so every Svelte `transition:`, `in:`, `out:` and `animate:` takes its duration from `motionMs()`, which returns 0 under `prefers-reduced-motion`.
 - **What moves:**
   - Queue: a row that leaves folds away (`out:slide`) and the rows below close the gap (`animate:flip`); a section folds when its last row goes. The phone detail slides in from the right and back out; stepping to the next or previous customer slides in from that side. The side panel fades between customers.
   - Pages fade in on a route change (`fast`, no exit). A 2px top bar shows a navigation only once it has taken longer than 150ms.
-  - Removed list rows (order, customer) fold away; a new note slides in; a field error slides open.
+  - A removed order folds away; a new note slides in; a field error slides open.
   - Charts grow from the baseline once on load and tween between months; progress fills ease.
-  - Dialogs, sheets, menus and toasts keep their shadcn-svelte and vaul animations, tuned to the tokens.
-- **What does not move:** anything while the user is typing or filtering (search, tab switch, paging), first paint beyond the page fade, and layout that only changed because data loaded.
+  - Overlays keep their library animations: centred dialogs run at `fast`; phone sheets at vaul's 500ms (see Tokens); popovers, menus, selects and tooltips at shadcn's 100ms; toasts at svelte-sonner's own timing.
+- **Tabs and paging:** a tab or page change is one deliberate tap, so the new content may fade in (`fast`, no exit). Nothing else moves with it: rows already on screen do not fold out or slide (the queue's `{#key tab}` keeps their exits from running).
+- **What does not move:** anything while the user types (search and other live filters), first paint beyond the page fade, and layout that only changed because data loaded.
 
 ## Do's and Don'ts
 
@@ -634,5 +637,5 @@ Motion confirms an action, shows where something came from or went, and makes wa
 - **Don't** add gradients or glass surfaces. The login hero is the one gradient.
 - **Don't** hardcode hex values or `text-white` on themed surfaces.
 - **Don't** add eyebrow or kicker labels above headings.
-- **Don't** animate for decoration, run motion over 320ms, or set rows moving while the user types or filters.
+- **Don't** let motion delay the next action, run app-started motion over 320ms, or set rows moving while the user types.
 - **Don't** add a top app bar; navigation is the bottom bar on phones and the rail or sidebar from `md`.
