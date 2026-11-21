@@ -22,7 +22,7 @@
 	import { Label } from '#lib/components/ui/label/index.js';
 	import { Spinner } from '#lib/components/ui/spinner/index.js';
 	import * as InputGroup from '#lib/components/ui/input-group/index.js';
-	import * as NativeSelect from '#lib/components/ui/native-select/index.js';
+	import * as Select from '#lib/components/ui/select/index.js';
 	import { Textarea } from '#lib/components/ui/textarea/index.js';
 	import { formatDate, isIsoDate } from '#lib/domain/dates.ts';
 	import { daysOfSupply, reorderDueDate, supplyStatus } from '#lib/domain/follow-up.ts';
@@ -212,16 +212,22 @@
 					{#if data.products.length > 1}
 						<div class={fieldStack}>
 							<Label for="order-product" class={fieldLabel}>{m.order_product()}</Label>
-							<NativeSelect.Root
-								id="order-product"
-								name="productId"
-								class="w-full"
-								bind:value={productId}
-							>
-								{#each data.products as p (p.id)}
-									<NativeSelect.Option value={p.id}>{p.name}</NativeSelect.Option>
-								{/each}
-							</NativeSelect.Root>
+							<Select.Root type="single" name="productId" bind:value={productId}>
+								<Select.Trigger
+									id="order-product"
+									class="w-full"
+									aria-invalid={errors.productId ? 'true' : undefined}
+								>
+									<span data-slot="select-value">{product?.name}</span>
+								</Select.Trigger>
+								<Select.Content>
+									<Select.Group>
+										{#each data.products as p (p.id)}
+											<Select.Item value={p.id} label={p.name} />
+										{/each}
+									</Select.Group>
+								</Select.Content>
+							</Select.Root>
 							<FieldError
 								message={errors.productId ? fieldError('productId', errors.productId) : null}
 							/>
