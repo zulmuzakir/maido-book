@@ -14,7 +14,7 @@
 <DropdownMenu.Root>
 	<DropdownMenu.Trigger
 		aria-label={m.user_menu_label({ name: user.name })}
-		class="flex items-center gap-2.5 rounded-full text-left outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring xl:h-12 xl:w-full xl:rounded-lg xl:px-1.5 xl:transition-colors xl:hover:bg-sidebar-accent/60"
+		class="flex items-center gap-2.5 rounded-full text-left outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring xl:h-12 xl:w-full xl:rounded-lg xl:px-1.5 xl:transition-colors xl:duration-(--motion-fast) xl:ease-motion xl:hover:bg-sidebar-accent/60"
 	>
 		<InitialsAvatar
 			name={user.name}

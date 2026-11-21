@@ -69,7 +69,7 @@
 	{#each items as item (item.id)}
 		{@const inactive = item.status !== 'active'}
 		<li
-			class="{GRID} relative min-h-20 border-b border-rule px-4 py-2.5 transition-colors hover:bg-muted/70 md:min-h-[76px] md:px-6 xl:min-h-[68px] xl:px-8"
+			class="{GRID} relative min-h-20 border-b border-rule px-4 py-2.5 transition-colors duration-(--motion-fast) ease-motion hover:bg-muted/70 md:min-h-[76px] md:px-6 xl:min-h-[68px] xl:px-8"
 		>
 			<InitialsAvatar
 				name={item.name}

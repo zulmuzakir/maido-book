@@ -20,13 +20,13 @@
 		href={resolve(item.route)}
 		aria-current={active ? 'page' : undefined}
 		class={cn(
-			'group relative flex w-full flex-col items-center gap-1 py-1.5 text-sidebar-muted outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-inset xl:h-11 xl:flex-row xl:gap-3 xl:rounded-lg xl:px-3 xl:py-0 xl:transition-colors xl:hover:bg-sidebar-accent/60',
+			'group relative flex w-full flex-col items-center gap-1 py-1.5 text-sidebar-muted outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:ring-inset xl:h-11 xl:flex-row xl:gap-3 xl:rounded-lg xl:px-3 xl:py-0 xl:transition-colors xl:duration-(--motion-fast) xl:ease-motion xl:hover:bg-sidebar-accent/60',
 			active && 'text-sidebar-accent-foreground xl:bg-sidebar-accent xl:hover:bg-sidebar-accent'
 		)}
 	>
 		<span
 			class={cn(
-				'grid h-8 w-14 place-items-center rounded-2xl transition-colors duration-(--motion-fast) group-hover:bg-sidebar-accent/60 xl:contents',
+				'grid h-8 w-14 place-items-center rounded-2xl transition-colors duration-(--motion-fast) ease-motion group-hover:bg-sidebar-accent/60 xl:contents',
 				active && 'bg-sidebar-accent group-hover:bg-sidebar-accent'
 			)}
 		>

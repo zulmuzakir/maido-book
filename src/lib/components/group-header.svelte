@@ -53,7 +53,7 @@
 	{#if ontoggle}
 		<ChevronDownIcon
 			class={cn(
-				'ml-auto size-4 text-muted-foreground transition-transform',
+				'ml-auto size-4 text-muted-foreground transition-transform duration-(--motion-fast) ease-motion',
 				!expanded && '-rotate-90'
 			)}
 			aria-hidden="true"

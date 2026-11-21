@@ -17,7 +17,7 @@
 	);
 
 	const slotClass =
-		'relative flex transition-colors duration-(--motion-fast) h-full flex-col items-center justify-center gap-[3px] text-[11px] leading-[14px] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset';
+		'relative flex transition-colors duration-(--motion-fast) ease-motion h-full flex-col items-center justify-center gap-[3px] text-[11px] leading-[14px] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset';
 	const stateClass = (active: boolean) =>
 		// The active tab's icon is drawn at 2, the rest at the app-wide 1.7.
 		active ? 'font-bold text-primary-text [&_svg]:stroke-2' : 'font-medium text-sidebar-muted';
@@ -61,7 +61,7 @@
 			<a
 				href={resolve('/(app)/orders/new')}
 				aria-label={m.new_order()}
-				class="-mt-6 grid size-[52px] place-items-center rounded-2xl bg-sidebar-primary text-sidebar-primary-foreground shadow-[0_6px_16px_color-mix(in_oklch,var(--sidebar-primary)_35%,transparent)] transition-transform duration-(--motion-fast) outline-none focus-visible:ring-3 focus-visible:ring-ring active:scale-95"
+				class="-mt-6 grid size-[52px] place-items-center rounded-2xl bg-sidebar-primary text-sidebar-primary-foreground shadow-[0_6px_16px_color-mix(in_oklch,var(--sidebar-primary)_35%,transparent)] transition-transform duration-(--motion-fast) ease-motion outline-none focus-visible:ring-3 focus-visible:ring-ring active:scale-95"
 			>
 				<Plus class="size-6 stroke-[2.2]" aria-hidden="true" />
 			</a>

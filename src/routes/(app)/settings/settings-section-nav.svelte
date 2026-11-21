@@ -25,7 +25,7 @@
 					type="button"
 					aria-current={active === s.id ? 'true' : undefined}
 					class={[
-						'flex h-[42px] w-full items-center gap-2.5 rounded-lg px-3 text-sm leading-[18px] transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring',
+						'flex h-[42px] w-full items-center gap-2.5 rounded-lg px-3 text-sm leading-[18px] transition-colors duration-(--motion-fast) ease-motion outline-none focus-visible:ring-3 focus-visible:ring-ring',
 						active === s.id
 							? 'bg-accent font-semibold text-accent-foreground'
 							: 'font-medium text-muted-foreground hover:bg-muted'
