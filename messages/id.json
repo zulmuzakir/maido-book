@@ -266,7 +266,7 @@
 	"import_too_large": "File ini lebih dari 10 MB. Hapus sheet yang tidak dipakai atau pecah filenya, lalu coba lagi.",
 	"error_range": "Isi angka {min}–{max}.",
 	"error_date_from_tomorrow": "Pilih tanggal mulai besok.",
-	"error_date_from_today": "Pilih hari ini atau tanggal setelahnya.",
+	"error_date_from_today": "Tanggal sudah lewat. Pilih hari ini atau setelahnya.",
 	"error_order_date_future": "Tanggal order tidak boleh di masa depan.",
 	"error_phone_invalid": "Nomor WA tidak dikenali. Gunakan nomor Indonesia seperti contoh di atas.",
 	"error_date_invalid": "Tanggal tidak valid.",

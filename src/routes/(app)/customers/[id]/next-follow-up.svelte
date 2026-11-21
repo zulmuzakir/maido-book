@@ -65,8 +65,8 @@
 	);
 	const dateDescribedBy = $derived(
 		[
-			'schedule-date-hint',
-			scheduleDateError && 'schedule-date-error',
+			// The error replaces the hint, so the field is described by one line, not two.
+			scheduleDateError ? 'schedule-date-error' : 'schedule-date-hint',
 			scheduleConflict && 'schedule-conflict'
 		]
 			.filter(Boolean)
@@ -222,10 +222,13 @@
 				invalid={!!scheduleDateError}
 				describedby={dateDescribedBy}
 			/>
-			<p id="schedule-date-hint" class="text-ui text-muted-foreground">
-				{m.customer_schedule_helper()}
-			</p>
-			<FieldError id="schedule-date-error" message={scheduleDateError} />
+			{#if scheduleDateError}
+				<FieldError id="schedule-date-error" message={scheduleDateError} />
+			{:else}
+				<p id="schedule-date-hint" class="text-ui text-muted-foreground">
+					{m.customer_schedule_helper()}
+				</p>
+			{/if}
 			<FieldError
 				id="schedule-conflict"
 				message={scheduleConflict ? m.customer_schedule_exists() : null}

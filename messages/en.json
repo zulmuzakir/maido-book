@@ -338,7 +338,7 @@
 	"import_too_large": "This file is over 10 MB. Remove unused sheets or split it, then try again.",
 	"error_range": "Enter a number from {min} to {max}.",
 	"error_date_from_tomorrow": "Pick a date from tomorrow onward.",
-	"error_date_from_today": "Pick today or a later date.",
+	"error_date_from_today": "That date has passed. Pick today or later.",
 	"error_order_date_future": "The order date can't be in the future.",
 	"error_phone_invalid": "Not a recognized WhatsApp number. Use an Indonesian number like the example above.",
 	"error_date_invalid": "Not a valid date.",
