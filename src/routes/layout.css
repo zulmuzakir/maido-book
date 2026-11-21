@@ -267,6 +267,25 @@
 	--radius-2xl: calc(var(--radius) * 1.8);
 	--radius-3xl: calc(var(--radius) * 2.2);
 	--radius-4xl: calc(var(--radius) * 2.6);
+	/* Motion: same values as src/lib/motion.ts. Use as `duration-(--motion-base) ease-motion`. */
+	--ease-motion: cubic-bezier(0.215, 0.61, 0.355, 1);
+	/* A chart drawing itself left to right once, on load. Negative insets keep labels that sit
+	   outside the plot visible; the clip is gone once the animation ends. */
+	--animate-reveal-x: reveal-x var(--motion-slow) var(--ease-motion);
+	@keyframes reveal-x {
+		from {
+			clip-path: inset(-24px 100% -24px -24px);
+		}
+		to {
+			clip-path: inset(-24px -24px -24px -24px);
+		}
+	}
+}
+
+:root {
+	--motion-fast: 150ms;
+	--motion-base: 220ms;
+	--motion-slow: 320ms;
 }
 
 @layer base {

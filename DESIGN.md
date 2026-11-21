@@ -597,6 +597,20 @@ New customer, edit customer and new order share one pattern. Build new form page
 - **Login** (`/login`): a ROOVE purple gradient hero (170°, `#592C82` → `#3F1F5E`; `#6E3E9A` → `#3F1F5E` in dark) with white text. From `xl` the hero fills the left and a 560px `card` column holds the sign-in panel; below it the sign-in card (12px corner, login-panel shadow) sits over the hero. A segmented language switch (42px track, 10px corner) and an `alert` error box.
 - **Lainnya** (`/more`): the account (44px avatar, 17px name) and grouped list bands on `card`, separated by 8px `background` gaps with hairlines, preference rows with icons, and an outlined sign-out. From `md` the list sits in a bordered panel up to 36rem.
 
+## Motion
+
+Motion confirms an action, shows where something came from or went, and makes waiting visible. It never decorates. There is no animation library: Svelte's `svelte/transition`, `svelte/animate` and `svelte/motion`, plus Tailwind and `tw-animate-css` classes.
+
+- **Tokens** (`src/lib/motion.ts`, CSS `--motion-*` in `layout.css`): `fast` 150ms (fades, small feedback), `base` 220ms (rows, panels, sheets), `slow` 320ms (charts, progress). Nothing runs longer. Easing is ease-out (`cubicOut`, CSS `ease-motion`) for enter and exit, `cubicInOut` for moves.
+- **Reduced motion:** the CSS rule in `layout.css` covers CSS transitions and keyframes. Svelte transitions run through the Web Animations API and skip it, so every Svelte `transition:`, `in:`, `out:` and `animate:` takes its duration from `motionMs()`, which returns 0 under `prefers-reduced-motion`.
+- **What moves:**
+  - Queue: a row that leaves folds away (`out:slide`) and the rows below close the gap (`animate:flip`); a section folds when its last row goes. The phone detail slides in from the right and back out; stepping to the next or previous customer slides in from that side. The side panel fades between customers.
+  - Pages fade in on a route change (`fast`, no exit). A 2px top bar shows a navigation only once it has taken longer than 150ms.
+  - Removed list rows (order, customer) fold away; a new note slides in; a field error slides open.
+  - Charts grow from the baseline once on load and tween between months; progress fills ease.
+  - Dialogs, sheets, menus and toasts keep their shadcn-svelte and vaul animations, tuned to the tokens.
+- **What does not move:** anything while the user is typing or filtering (search, tab switch, paging), first paint beyond the page fade, and layout that only changed because data loaded.
+
 ## Do's and Don'ts
 
 ### Do:
@@ -609,6 +623,7 @@ New customer, edit customer and new order share one pattern. Build new form page
 - **Do** draw dividers and edges with 1px `rule`, `row-rule`, `border` and `input`.
 - **Do** keep phone and tablet controls at 44px and shrink them only through `desk`.
 - **Do** use theme tokens; mix shadows from `shadow-tint`.
+- **Do** take every Svelte transition's duration from `motionMs()` and a `DURATION` token.
 
 ### Don't:
 
@@ -619,4 +634,5 @@ New customer, edit customer and new order share one pattern. Build new form page
 - **Don't** add gradients or glass surfaces. The login hero is the one gradient.
 - **Don't** hardcode hex values or `text-white` on themed surfaces.
 - **Don't** add eyebrow or kicker labels above headings.
+- **Don't** animate for decoration, run motion over 320ms, or set rows moving while the user types or filters.
 - **Don't** add a top app bar; navigation is the bottom bar on phones and the rail or sidebar from `md`.
