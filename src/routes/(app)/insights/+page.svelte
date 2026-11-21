@@ -106,11 +106,19 @@
 <!-- eslint-disable svelte/no-navigation-without-resolve -- hrefs carry a query on a resolved path -->
 
 {#snippet stackBar(parts: { key: string; bar: string; count: number }[], total: number)}
-	<div class="flex h-2.5 gap-0.5 overflow-hidden rounded-[5px]" aria-hidden="true">
-		{#each parts as p (p.key)}
-			{#if p.count > 0}
-				<div class="h-full {p.bar}" style:width="{(p.count / total) * 100}%"></div>
-			{/if}
+	<!-- Every part stays in the DOM (an empty one at 0 width), so a month change tweens the widths.
+	     The 2px gap is a margin on the visible parts after the first, so an empty part adds none. -->
+	{@const first = parts.findIndex((p) => p.count > 0)}
+	<div class="flex h-2.5 overflow-hidden rounded-[5px]" aria-hidden="true">
+		{#each parts as p, i (p.key)}
+			<div
+				class={cn(
+					'h-full transition-[width] duration-(--motion-slow) ease-motion',
+					p.bar,
+					p.count > 0 && i > first && 'ml-0.5'
+				)}
+				style:width="{total ? (p.count / total) * 100 : 0}%"
+			></div>
 		{/each}
 	</div>
 {/snippet}
@@ -315,7 +323,10 @@
 										<span class="w-[22px] shrink-0 text-right xl:w-full">{row.orders}</span>
 										<div class="h-1.5 flex-1 overflow-hidden rounded-[3px] bg-track xl:hidden">
 											<div
-												class={cn('h-full', current ? 'bg-primary' : 'bg-chart-bar')}
+												class={cn(
+													'h-full transition-[width] duration-(--motion-slow) ease-motion',
+													current ? 'bg-primary' : 'bg-chart-bar'
+												)}
 												style:width="{fill}%"
 											></div>
 										</div>
@@ -324,7 +335,10 @@
 								<td class="hidden pr-3.5 xl:table-cell">
 									<div class="h-2 overflow-hidden rounded-[4px] bg-track">
 										<div
-											class={cn('h-full rounded-[4px]', current ? 'bg-primary' : 'bg-chart-bar')}
+											class={cn(
+												'h-full rounded-[4px] transition-[width] duration-(--motion-slow) ease-motion',
+												current ? 'bg-primary' : 'bg-chart-bar'
+											)}
 											style:width="{fill}%"
 										></div>
 									</div>

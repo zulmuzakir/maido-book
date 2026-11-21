@@ -13,6 +13,8 @@
 	import PageHeader from '#lib/components/page-header.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import { DURATION, motionMs } from '#lib/motion.ts';
+	import { fade } from 'svelte/transition';
 	import type { PageProps } from './$types';
 	import CustomerList from './customer-list.svelte';
 	import CustomerPager from './customer-pager.svelte';
@@ -199,22 +201,26 @@
 				{/if}
 			</div>
 		{:else}
-			<div class="flex flex-1 flex-col">
-				<CustomerList items={data.items} today={data.today} leadDays={data.leadDays} />
+			<!-- A status tab or another page fades the list in. Not the search (nothing moves while the
+			     user types) and not "Muat lainnya", which only adds rows below. -->
+			{#key `${data.status}:${data.page}`}
+				<div class="flex flex-1 flex-col" in:fade={{ duration: motionMs(DURATION.fast) }}>
+					<CustomerList items={data.items} today={data.today} leadDays={data.leadDays} />
 
-				<CustomerPager
-					page={data.page}
-					{pages}
-					{from}
-					{to}
-					total={data.total}
-					{summary}
-					prevHref={hasPrev ? listHref({ page: String(data.page - 1) }) : null}
-					nextHref={hasNext ? listHref({ page: String(data.page + 1) }) : null}
-					{moreHref}
-					moreCount={Math.min(data.step, data.total - to)}
-				/>
-			</div>
+					<CustomerPager
+						page={data.page}
+						{pages}
+						{from}
+						{to}
+						total={data.total}
+						{summary}
+						prevHref={hasPrev ? listHref({ page: String(data.page - 1) }) : null}
+						nextHref={hasNext ? listHref({ page: String(data.page + 1) }) : null}
+						{moreHref}
+						moreCount={Math.min(data.step, data.total - to)}
+					/>
+				</div>
+			{/key}
 		{/if}
 	</div>
 </div>

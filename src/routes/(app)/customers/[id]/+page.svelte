@@ -21,6 +21,9 @@
 		{ key: 'activity', label: m.customer_tab_activity() }
 	]);
 	const summary = $derived(tab === 'summary');
+	// A tab switch fades the new sections in. A CSS animation on mount, because the sections sit in
+	// a `contents` grid with `order-*` and a wrapper element would break that order.
+	const TAB_IN = 'animate-in fade-in-0 duration-(--motion-fast)';
 </script>
 
 <!-- Phone/tablet: one column (follow-up first). Desktop: the tab's content on the left and a
@@ -51,14 +54,14 @@
 		<div class="contents xl:flex xl:min-w-0 xl:flex-col xl:gap-8 xl:py-6 xl:pr-8">
 			{#if summary}
 				<SupplySection
-					class="order-2"
+					class="order-2 {TAB_IN}"
 					customerId={c.id}
 					dosePerDay={c.dosePerDay}
 					orders={data.orders}
 					today={data.today}
 				/>
 				<OrderHistory
-					class="order-3"
+					class="order-3 {TAB_IN}"
 					orders={data.orders}
 					today={data.today}
 					leadDays={data.rules.leadDays}
@@ -66,7 +69,7 @@
 				/>
 			{:else}
 				<ActivityTab
-					class="order-2"
+					class="order-2 {TAB_IN}"
 					activities={data.activities}
 					maxAttempts={data.rules.maxAttempts}
 					{form}

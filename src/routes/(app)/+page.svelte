@@ -432,27 +432,29 @@
 			</p>
 		{/if}
 
-		<!-- Rebuilt per tab: a tab switch swaps the list instead of folding sections and rows away
-		     (their transitions are local, so they do not run when the whole block goes). Within a tab,
-		     a section whose last customer leaves folds away. -->
+		<!-- Rebuilt per tab: a tab switch fades the new list in instead of folding sections and rows
+		     away (their transitions are local, so they do not run when the whole block goes). Within a
+		     tab, a section whose last customer leaves folds away. -->
 		{#key tab}
-			{#each shown as section (section.id)}
-				<div out:slide={{ duration: motionMs(DURATION.base, !query), easing: EASE }}>
-					<QueueSection
-						{section}
-						open
-						animate={!query}
-						rows={visibleRows(section)}
-						hiddenCount={hiddenRows(section)}
-						ontoggle={undefined}
-						onshowmore={() => (expanded = { ...expanded, [section.id]: true })}
-						today={data.today}
-						rules={data.rules}
-						selectedId={currentId}
-						onselect={select}
-					/>
-				</div>
-			{/each}
+			<div in:fade={{ duration: motionMs(DURATION.fast) }}>
+				{#each shown as section (section.id)}
+					<div out:slide={{ duration: motionMs(DURATION.base, !query), easing: EASE }}>
+						<QueueSection
+							{section}
+							open
+							animate={!query}
+							rows={visibleRows(section)}
+							hiddenCount={hiddenRows(section)}
+							ontoggle={undefined}
+							onshowmore={() => (expanded = { ...expanded, [section.id]: true })}
+							today={data.today}
+							rules={data.rules}
+							selectedId={currentId}
+							onselect={select}
+						/>
+					</div>
+				{/each}
+			</div>
 		{/key}
 
 		{#if tab === 'all' && data.handled.length > 0}
