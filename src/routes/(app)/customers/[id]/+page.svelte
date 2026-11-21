@@ -70,6 +70,7 @@
 					maxAttempts={data.rules.maxAttempts}
 					{form}
 					truncated={data.activitiesTruncated}
+					today={data.today}
 				/>
 			{/if}
 		</div>

@@ -27,12 +27,15 @@
 		maxAttempts,
 		form,
 		truncated,
+		today,
 		class: className
 	}: {
 		activities: PageData['activities'];
 		maxAttempts: number;
 		form: ActionData;
 		truncated: boolean;
+		/** Jakarta date from the server, so "today" matches the rest of the page. */
+		today: string;
 		class?: string;
 	} = $props();
 
@@ -112,8 +115,7 @@
 			.join(' · ');
 	}
 
-	const today = todayIso();
-	const thisYear = today.slice(0, 4);
+	const thisYear = $derived(today.slice(0, 4));
 	const timeFmt = new Intl.DateTimeFormat(locale === 'id' ? 'id-ID' : 'en-GB', {
 		hour: '2-digit',
 		minute: '2-digit',

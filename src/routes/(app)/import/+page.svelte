@@ -20,7 +20,6 @@
 	import PageHeader from '#lib/components/page-header.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Spinner } from '#lib/components/ui/spinner/index.js';
-	import { todayIso } from '#lib/domain/dates.ts';
 	import { mapCustomerSheet, type ImportRow } from '#lib/domain/import-sheet.ts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { cn } from '#lib/utils.js';
@@ -111,7 +110,7 @@
 				problem = { kind: 'read' };
 				return;
 			}
-			const mapped = mapCustomerSheet(sheet.data, todayIso(), data.rules);
+			const mapped = mapCustomerSheet(sheet.data, data.today, data.rules);
 			if ('error' in mapped) {
 				problem = { kind: 'missing', columns: mapped.missing, sheet: sheet.sheet };
 				return;
@@ -122,7 +121,7 @@
 			}
 			outcome = null;
 			failure = null;
-			preview = { file: file.name, sheet: sheet.sheet, today: todayIso(), rows: mapped.rows };
+			preview = { file: file.name, sheet: sheet.sheet, today: data.today, rows: mapped.rows };
 			step = 2;
 		} catch {
 			problem = { kind: 'read' };

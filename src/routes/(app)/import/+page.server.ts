@@ -8,7 +8,7 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const [rules, phones] = await Promise.all([getRules(locals.db), existingPhones(locals.db)]);
-	return { rules, existingPhones: phones, title: m.import_title() };
+	return { rules, existingPhones: phones, today: todayIso(), title: m.import_title() };
 };
 
 export const actions: Actions = {
