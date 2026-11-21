@@ -12,6 +12,7 @@
 	import UserPlusIcon from '@lucide/svelte/icons/user-plus';
 	import FieldError from '#lib/components/field-error.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
+	import BusyLabel from '#lib/components/busy-label.svelte';
 	import { Label } from '#lib/components/ui/label/index.js';
 	import { Textarea } from '#lib/components/ui/textarea/index.js';
 	import { formatDate, todayIso } from '#lib/domain/dates.ts';
@@ -164,8 +165,14 @@
 		/>
 		<FieldError id="customer-note-error" message={noteError} />
 		<div class="flex justify-end">
-			<Button type="submit" variant="outline" class="font-semibold" disabled={noteAction.pending}>
-				{m.customer_note_save()}
+			<Button
+				type="submit"
+				variant="outline"
+				class="font-semibold"
+				disabled={noteAction.pending}
+				aria-busy={noteAction.pending}
+			>
+				<BusyLabel busy={noteAction.pending}>{m.customer_note_save()}</BusyLabel>
 			</Button>
 		</div>
 	</form>

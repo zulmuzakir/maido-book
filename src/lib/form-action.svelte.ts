@@ -25,6 +25,11 @@ export interface AfterSubmitInput {
  */
 export class FormAction {
 	pending = $state(false);
+	/**
+	 * The button that sent the pending submit: its `data-busy-key`, else its `value` (`''` for no
+	 * button or no value). The key separates buttons that can share a value.
+	 */
+	submitter = $state<string | null>(null);
 	/** The last submit never reached the server. Only set with `inlineNetworkError`. */
 	networkFailed = $state(false);
 	#onResult?: (input: AfterSubmitInput) => void | Promise<void>;
@@ -42,12 +47,23 @@ export class FormAction {
 		this.#inlineNetworkError = inlineNetworkError;
 	}
 
-	enhance: SubmitFunction = ({ cancel }) => {
+	/**
+	 * Whether the pending submit came from the button with this `data-busy-key` or `value`, so a
+	 * form with several submit buttons (snooze chips, "save" and "save and order") shows the
+	 * spinner on the one that was pressed. A button without either matches `''`.
+	 */
+	pendingFor(value = ''): boolean {
+		return this.pending && this.submitter === value;
+	}
+
+	enhance: SubmitFunction = ({ cancel, submitter }) => {
 		if (this.pending) {
 			cancel();
 			return;
 		}
 		this.pending = true;
+		const button = submitter as HTMLButtonElement | null;
+		this.submitter = button?.dataset?.busyKey ?? button?.value ?? '';
 		this.networkFailed = false;
 		return async (raw) => {
 			// An action on this page (`?/sent` from `/?item=x`) differs from the current URL only by its
@@ -65,6 +81,7 @@ export class FormAction {
 				else await input.update();
 			} finally {
 				this.pending = false;
+				this.submitter = null;
 			}
 		};
 	};

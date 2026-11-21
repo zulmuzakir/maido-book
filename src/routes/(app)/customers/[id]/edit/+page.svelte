@@ -9,6 +9,7 @@
 	import FormActions from '#lib/components/form-actions.svelte';
 	import PageHeader from '#lib/components/page-header.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
+	import BusyLabel from '#lib/components/busy-label.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
@@ -59,8 +60,8 @@
 					<CustomerForm {values} {errors} {duplicateOf} idPrefix="edit-customer" />
 
 					<FormActions>
-						<Button size="lg" type="submit" disabled={save.pending}>
-							{m.customer_save_changes()}
+						<Button size="lg" type="submit" disabled={save.pending} aria-busy={save.pending}>
+							<BusyLabel busy={save.pending}>{m.customer_save_changes()}</BusyLabel>
 						</Button>
 						<Button size="lg" variant="outline" href={detailHref}>{m.cancel()}</Button>
 					</FormActions>

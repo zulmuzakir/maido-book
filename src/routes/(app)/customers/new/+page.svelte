@@ -8,6 +8,7 @@
 	import FormActions from '#lib/components/form-actions.svelte';
 	import PageHeader from '#lib/components/page-header.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
+	import BusyLabel from '#lib/components/busy-label.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { PageProps } from './$types';
 
@@ -60,12 +61,27 @@
 				/>
 
 				<FormActions>
-					<Button size="lg" type="submit" name="next" value="order" disabled={save.pending}>
-						<PlusIcon class="size-[18px]" aria-hidden="true" />
-						{m.customer_form_save_order()}
+					<Button
+						size="lg"
+						type="submit"
+						name="next"
+						value="order"
+						disabled={save.pending}
+						aria-busy={save.pendingFor('order')}
+					>
+						<BusyLabel busy={save.pendingFor('order')}>
+							<PlusIcon class="size-[18px]" aria-hidden="true" />
+							{m.customer_form_save_order()}
+						</BusyLabel>
 					</Button>
-					<Button size="lg" type="submit" variant="outline" disabled={save.pending}>
-						{m.customer_save_only()}
+					<Button
+						size="lg"
+						type="submit"
+						variant="outline"
+						disabled={save.pending}
+						aria-busy={save.pendingFor()}
+					>
+						<BusyLabel busy={save.pendingFor()}>{m.customer_save_only()}</BusyLabel>
 					</Button>
 				</FormActions>
 			</form>

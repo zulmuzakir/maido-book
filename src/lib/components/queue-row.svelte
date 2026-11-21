@@ -13,6 +13,7 @@
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import { cn } from '#lib/utils.js';
+	import BusyLabel from '#lib/components/busy-label.svelte';
 
 	let {
 		item,
@@ -79,7 +80,7 @@
      Desktop: avatar | name + order | dose | status over bar | Kirim, 72px tall. -->
 <div
 	class={cn(
-		'grid min-h-20 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 border-b border-row-rule px-4 py-2.5 transition-colors md:min-h-[72px] md:gap-x-4 md:px-6 md:py-0 xl:px-8',
+		'grid min-h-20 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 border-b border-row-rule px-4 py-2.5 transition-colors duration-(--motion-fast) ease-motion md:min-h-[72px] md:gap-x-4 md:px-6 md:py-0 xl:px-8',
 		selected ? 'bg-selected shadow-[inset_3px_0_0_var(--primary-text)]' : 'hover:bg-muted'
 	)}
 >
@@ -125,9 +126,10 @@
 				variant="outline"
 				class="h-11 px-3.5 text-sm font-semibold desk:h-11"
 				disabled={sent.pending}
+				aria-busy={sent.pending}
 				onclick={sendNow}
 			>
-				{m.today_resend()}
+				<BusyLabel busy={sent.pending}>{m.today_resend()}</BusyLabel>
 			</Button>
 		{:else}
 			<WaIconButton

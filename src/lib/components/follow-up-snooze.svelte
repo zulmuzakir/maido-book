@@ -12,6 +12,7 @@
 	import { UNDO_MS, undoFollowUp } from '#lib/follow-up-undo.ts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
+	import BusyLabel from '#lib/components/busy-label.svelte';
 
 	let {
 		followUpId,
@@ -65,8 +66,9 @@
 			variant="secondary"
 			class={chipClass}
 			disabled={snooze.pending}
+			aria-busy={snooze.pendingFor(addDays(today, 1))}
 		>
-			{m.snooze_tomorrow()}
+			<BusyLabel busy={snooze.pendingFor(addDays(today, 1))}>{m.snooze_tomorrow()}</BusyLabel>
 		</Button>
 		<Button
 			type="submit"
@@ -75,8 +77,11 @@
 			variant="secondary"
 			class={chipClass}
 			disabled={snooze.pending}
+			aria-busy={snooze.pendingFor(addDays(today, 3))}
 		>
-			{m.today_plus_days({ count: 3 })}
+			<BusyLabel busy={snooze.pendingFor(addDays(today, 3))}
+				>{m.today_plus_days({ count: 3 })}</BusyLabel
+			>
 		</Button>
 		<Button
 			type="submit"
@@ -85,8 +90,11 @@
 			variant="secondary"
 			class={chipClass}
 			disabled={snooze.pending}
+			aria-busy={snooze.pendingFor(addDays(today, 7))}
 		>
-			{m.today_plus_days({ count: 7 })}
+			<BusyLabel busy={snooze.pendingFor(addDays(today, 7))}
+				>{m.today_plus_days({ count: 7 })}</BusyLabel
+			>
 		</Button>
 		<Input
 			type="date"
@@ -101,11 +109,13 @@
 			type="submit"
 			name="dueDate"
 			value={snoozeDate}
+			data-busy-key="custom"
 			variant="outline"
 			class={chipClass}
 			disabled={!snoozeDate || snooze.pending}
+			aria-busy={snooze.pendingFor('custom')}
 		>
-			{m.snooze()}
+			<BusyLabel busy={snooze.pendingFor('custom')}>{m.snooze()}</BusyLabel>
 		</Button>
 	</form>
 	<FieldError message={fieldError('snoozeDate', errors.dueDate)} />

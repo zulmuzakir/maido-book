@@ -4,6 +4,7 @@
 	import ResponsiveDialog from '#lib/components/responsive-dialog.svelte';
 	import SettingsProductFields from '#lib/components/settings-product-fields.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
+	import BusyLabel from '#lib/components/busy-label.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 
 	let {
@@ -41,8 +42,9 @@
 			form="settings-product-form"
 			class="w-full sm:w-auto"
 			disabled={save.pending}
+			aria-busy={save.pending}
 		>
-			{m.save()}
+			<BusyLabel busy={save.pending}>{m.save()}</BusyLabel>
 		</Button>
 	{/snippet}
 </ResponsiveDialog>

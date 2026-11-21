@@ -9,6 +9,10 @@
 	import { fieldError, followUpKindLabel } from '#lib/labels.ts';
 	import { FOLLOW_UP_KINDS, type TemplateKind } from '#lib/domain/types.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
+	import BusyLabel from '#lib/components/busy-label.svelte';
+	import { DURATION, EASE, motionMs } from '#lib/motion.ts';
+	import { onMount } from 'svelte';
+	import { slide } from 'svelte/transition';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
 	import { Switch } from '#lib/components/ui/switch/index.js';
@@ -112,6 +116,15 @@
 	const rulesAction = new FormAction(({ update }) => update({ reset: false }));
 	const templatesAction = new FormAction(({ update }) => update({ reset: false }));
 
+	// A product added from the dialog slides into the list; the products the page opens with do
+	// not. Read when a form starts its transition, so no state.
+	let mounted = false;
+	onMount(() => {
+		mounted = true;
+	});
+	const productIn = (node: Element) =>
+		slide(node, { duration: mounted ? motionMs(DURATION.base) : 0, easing: EASE });
+
 	type SectionId = 'products' | 'rules' | 'templates' | 'data';
 	const sections: { id: SectionId; label: () => string; icon: typeof Receipt }[] = [
 		{ id: 'products', label: () => m.settings_products(), icon: Receipt },
@@ -214,6 +227,7 @@
 							method="post"
 							action="?/updateProduct"
 							use:enhance={productAction.enhance}
+							in:productIn
 							class="flex flex-col gap-[18px] border-t border-rule pt-5 first-of-type:border-t-0 first-of-type:pt-0"
 						>
 							<input type="hidden" name="productId" value={p.id} />
@@ -233,9 +247,18 @@
 							<FieldError message={errs.active} />
 
 							<div class="flex justify-end">
-								<Button type="submit" class={SAVE} disabled={productAction.pending}
-									>{m.settings_product_save()}</Button
+								<!-- The product forms share one action; the key puts the spinner on this one. -->
+								<Button
+									type="submit"
+									class={SAVE}
+									data-busy-key={p.id}
+									disabled={productAction.pending}
+									aria-busy={productAction.pendingFor(p.id)}
 								>
+									<BusyLabel busy={productAction.pendingFor(p.id)}
+										>{m.settings_product_save()}</BusyLabel
+									>
+								</Button>
 							</div>
 						</form>
 					{/each}
@@ -275,9 +298,14 @@
 						</div>
 
 						<div class="flex justify-end">
-							<Button type="submit" class={SAVE} disabled={rulesAction.pending}
-								>{m.settings_rules_save()}</Button
+							<Button
+								type="submit"
+								class={SAVE}
+								disabled={rulesAction.pending}
+								aria-busy={rulesAction.pending}
 							>
+								<BusyLabel busy={rulesAction.pending}>{m.settings_rules_save()}</BusyLabel>
+							</Button>
 						</div>
 					</form>
 				</section>
@@ -327,8 +355,14 @@
 							{/each}
 
 							<div class="flex justify-end">
-								<Button type="submit" class={SAVE} disabled={templatesAction.pending}>
-									{m.settings_templates_save()}
+								<Button
+									type="submit"
+									class={SAVE}
+									disabled={templatesAction.pending}
+									aria-busy={templatesAction.pending}
+								>
+									<BusyLabel busy={templatesAction.pending}>{m.settings_templates_save()}</BusyLabel
+									>
 								</Button>
 							</div>
 						</form>

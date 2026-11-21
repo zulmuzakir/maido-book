@@ -7,6 +7,7 @@
 	import DateField from '#lib/components/date-field.svelte';
 	import FieldError from '#lib/components/field-error.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
+	import BusyLabel from '#lib/components/busy-label.svelte';
 	import { Label } from '#lib/components/ui/label/index.js';
 	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
 	import ResponsiveDialog from '#lib/components/responsive-dialog.svelte';
@@ -248,9 +249,10 @@
 					type="submit"
 					form="customer-schedule-form"
 					disabled={scheduleAction.pending}
+					aria-busy={scheduleAction.pending}
 					class="h-12 w-full text-sm font-semibold md:h-11 md:w-auto md:px-5 desk:h-11"
 				>
-					{m.customer_schedule()}
+					<BusyLabel busy={scheduleAction.pending}>{m.customer_schedule()}</BusyLabel>
 				</Button>
 			</div>
 		{/snippet}

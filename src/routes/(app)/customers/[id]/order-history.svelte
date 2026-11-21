@@ -18,6 +18,7 @@
 	import { slide } from 'svelte/transition';
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import { cn } from '#lib/utils.js';
+	import BusyLabel from '#lib/components/busy-label.svelte';
 	import type { PageData } from './$types';
 
 	let {
@@ -204,8 +205,9 @@
 					type="submit"
 					variant="destructive-solid"
 					disabled={deleteOrderAction.pending}
+					aria-busy={deleteOrderAction.pending}
 				>
-					{m.customer_order_delete()}
+					<BusyLabel busy={deleteOrderAction.pending}>{m.customer_order_delete()}</BusyLabel>
 				</AlertDialog.Action>
 			</AlertDialog.Footer>
 		</form>
