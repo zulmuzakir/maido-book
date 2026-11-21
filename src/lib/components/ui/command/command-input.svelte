@@ -12,9 +12,9 @@
 	}: CommandPrimitive.InputProps = $props();
 </script>
 
-<div data-slot="command-input-wrapper" class="p-1 pb-0">
+<div data-slot="command-input-wrapper">
 	<InputGroup.Root
-		class="h-8! rounded-lg! border-input/30 bg-input/30 shadow-none! *:data-[slot=input-group-addon]:pl-2!"
+		class="rounded-none! border-0! bg-transparent! shadow-none! ring-0! *:data-[slot=input-group-addon]:pl-3!"
 	>
 		<CommandPrimitive.Input
 			{value}
@@ -30,7 +30,7 @@
 			{/snippet}
 		</CommandPrimitive.Input>
 		<InputGroup.Addon>
-			<SearchIcon class="size-4 shrink-0 opacity-50" />
+			<SearchIcon class="size-4 shrink-0 text-muted-foreground" />
 		</InputGroup.Addon>
 	</InputGroup.Root>
 </div>

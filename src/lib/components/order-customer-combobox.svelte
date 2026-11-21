@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { untrack } from 'svelte';
-	import SearchIcon from '@lucide/svelte/icons/search';
+	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
 	import UserIcon from '@lucide/svelte/icons/user';
 	import * as Command from '#lib/components/ui/command/index.js';
 	import * as Popover from '#lib/components/ui/popover/index.js';
@@ -100,7 +100,7 @@
 		aria-invalid={invalid ? 'true' : undefined}
 		class={cn(
 			buttonVariants({ variant: 'outline', size: 'default' }),
-			'h-11 w-full justify-start gap-2.5 rounded-lg px-3 text-[15px] font-normal aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 desk:h-11 desk:px-3 desk:text-[15px]'
+			'h-11 w-full justify-start gap-2.5 rounded-lg border-input px-3 text-[15px] font-normal hover:bg-card aria-expanded:border-primary aria-expanded:bg-card aria-expanded:ring-3 aria-expanded:ring-ring aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 desk:h-10 desk:px-3 desk:text-[15px]'
 		)}
 	>
 		{#if selected && selected.id === value}
@@ -113,13 +113,14 @@
 				>{m.order_customer_change()}</span
 			>
 		{:else}
-			<SearchIcon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-			<span class="text-muted-foreground">{m.order_customer_choose()}</span>
+			<UserIcon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+			<span class="flex-1 text-left text-muted-foreground">{m.order_customer_choose()}</span>
+			<ChevronDownIcon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
 		{/if}
 	</Popover.Trigger>
 	<Popover.Content align="start" class="w-(--bits-popover-anchor-width) min-w-72 p-0">
 		<Command.Root shouldFilter={false}>
-			<div class="relative border-b border-rule p-1">
+			<div class="relative border-b border-rule">
 				<Command.Input bind:value={() => query, setQuery} placeholder={m.order_customer_search()} />
 				{#if loading}
 					<Spinner
