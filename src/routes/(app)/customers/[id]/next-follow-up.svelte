@@ -7,6 +7,7 @@
 	import FieldError from '#lib/components/field-error.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
+	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
 	import ResponsiveDialog from '#lib/components/responsive-dialog.svelte';
 	import { addDays, formatDate, isIsoDate } from '#lib/domain/dates.ts';
 	import { supplyStatus } from '#lib/domain/follow-up.ts';
@@ -15,6 +16,7 @@
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import { dueState } from '#lib/queue.ts';
+	import { dateChip } from '#lib/styles.ts';
 	import { cn } from '#lib/utils.js';
 	import type { ActionData, PageData } from './$types';
 
@@ -117,6 +119,11 @@
 			: customerName
 	);
 	const PRESETS = [1, 3, 7] as const;
+	const presetDates = $derived(PRESETS.map((days) => addDays(today, days)));
+	// A ToggleGroup clears its value when the chosen chip is clicked again; keep the date instead.
+	function pickDate(v: string) {
+		if (v) scheduleDate = v;
+	}
 	let scheduleOpen = $state(false);
 	let scheduleDate = $state('');
 	const scheduleAction = new FormAction(async ({ result, update }) => {
@@ -193,21 +200,18 @@
 			<Label for="schedule-date" class="text-ui leading-4 font-semibold"
 				>{m.customer_schedule_date()}</Label
 			>
-			<div class="flex gap-2">
+			<ToggleGroup.Root
+				type="single"
+				spacing={2}
+				aria-label={m.customer_schedule_date()}
+				bind:value={() => (presetDates.includes(scheduleDate) ? scheduleDate : ''), pickDate}
+			>
 				{#each PRESETS as days (days)}
-					{@const value = addDays(today, days)}
-					{@const on = scheduleDate === value}
-					<Button
-						type="button"
-						variant={on ? 'default' : 'outline'}
-						aria-pressed={on}
-						class="h-11 px-4 font-semibold desk:h-11"
-						onclick={() => (scheduleDate = value)}
-					>
+					<ToggleGroup.Item value={addDays(today, days)} class={dateChip}>
 						{days === 1 ? m.snooze_tomorrow() : m.today_plus_days({ count: days })}
-					</Button>
+					</ToggleGroup.Item>
 				{/each}
-			</div>
+			</ToggleGroup.Root>
 			<div
 				class="relative flex h-11 items-center gap-2 rounded-lg border border-input bg-card px-3 text-base has-[:focus-visible]:border-primary has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring desk:text-[15px]"
 			>

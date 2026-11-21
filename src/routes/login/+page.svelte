@@ -3,6 +3,7 @@
 	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
 	import { localeName } from '#lib/components/app-shell/preference-items.svelte';
 	import GoogleButton from '#lib/components/google-button.svelte';
+	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale, locales, setLocale } from '#lib/paraglide/runtime.js';
 	import { cn } from '#lib/utils.js';
@@ -46,27 +47,26 @@
 			class={cn('text-[13px] font-semibold', onHero ? 'text-white/80' : 'text-muted-foreground')}
 			>{m.language()}</span
 		>
-		<div
-			class={cn('flex h-[42px] rounded-[10px] p-[3px]', onHero ? 'bg-white/15' : 'bg-secondary')}
-			role="group"
+		<ToggleGroup.Root
+			type="single"
+			size="sm"
+			spacing={0.5}
 			aria-label={m.language()}
+			class={cn('flex h-[42px] rounded-[10px] p-[3px]', onHero ? 'bg-white/15' : 'bg-secondary')}
+			bind:value={() => getLocale(), (v) => v && setLocale(v as never)}
 		>
 			{#each locales as locale (locale)}
-				<button
-					type="button"
-					aria-pressed={getLocale() === locale}
-					onclick={() => setLocale(locale)}
+				<ToggleGroup.Item
+					value={locale}
 					class={cn(
-						'rounded-[8px] px-3.5 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring',
-						getLocale() === locale
-							? 'bg-card font-bold text-foreground shadow-sm'
-							: onHero
-								? 'font-medium text-white/85 hover:text-white'
-								: 'font-medium text-muted-foreground hover:text-foreground'
-					)}>{localeName(locale)}</button
+						'h-full rounded-[8px] px-3.5 text-sm font-medium hover:bg-transparent focus-visible:ring-2 focus-visible:ring-ring data-[state=on]:bg-card data-[state=on]:font-bold data-[state=on]:text-foreground data-[state=on]:shadow-sm data-[state=on]:hover:bg-card data-[state=on]:hover:text-foreground',
+						onHero
+							? 'text-white/85 hover:text-white'
+							: 'text-muted-foreground hover:text-foreground'
+					)}>{localeName(locale)}</ToggleGroup.Item
 				>
 			{/each}
-		</div>
+		</ToggleGroup.Root>
 	</div>
 {/snippet}
 

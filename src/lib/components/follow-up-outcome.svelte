@@ -22,6 +22,7 @@
 	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Textarea } from '#lib/components/ui/textarea/index.js';
+	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
 	import { addDays, formatDate } from '#lib/domain/dates.ts';
 	import type { ManualOutcome, RuleSettings } from '#lib/domain/types.ts';
 	import { FormAction } from '#lib/form-action.svelte.ts';
@@ -30,6 +31,7 @@
 	import type { QueueRowItem } from '#lib/queue.ts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
+	import { dateChip } from '#lib/styles.ts';
 	import { cn } from '#lib/utils.js';
 
 	let {
@@ -68,6 +70,11 @@
 	// Each pick starts from its own default date (set in the radio's change handler).
 	function pick(o: ManualOutcome) {
 		nextDate = addDays(today, defaultOffset(o));
+	}
+	const chipDates = $derived(DATE_OFFSETS.map((n) => addDays(today, n)));
+	// A ToggleGroup clears its value when the chosen chip is clicked again; keep the date instead.
+	function pickDate(v: string) {
+		if (v) nextDate = v;
 	}
 
 	const lastAttempt = $derived(item.attempt >= rules.maxAttempts);
@@ -200,21 +207,19 @@
 					<label for="next-date-{item.followUpId}" class="text-ui font-semibold text-foreground">
 						{m.today_next_date()}
 					</label>
-					<div class="flex flex-wrap gap-2">
+					<ToggleGroup.Root
+						type="single"
+						spacing={2}
+						aria-label={m.today_next_date()}
+						class="flex-wrap"
+						bind:value={() => (chipDates.includes(nextDate) ? nextDate : ''), pickDate}
+					>
 						{#each DATE_OFFSETS as n (n)}
-							{@const target = addDays(today, n)}
-							{@const on = nextDate === target}
-							<Button
-								type="button"
-								variant={on ? 'default' : 'outline'}
-								class={cn('h-11 px-4 desk:h-10', !on && 'border-input')}
-								aria-pressed={on}
-								onclick={() => (nextDate = target)}
-							>
+							<ToggleGroup.Item value={addDays(today, n)} class={dateChip}>
 								{m.today_plus_days({ count: n })}
-							</Button>
+							</ToggleGroup.Item>
 						{/each}
-					</div>
+					</ToggleGroup.Root>
 					<div
 						class="relative flex h-11 items-center gap-2.5 rounded-lg border border-input bg-card px-3 text-[15px] has-[:focus-visible]:border-primary has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring"
 					>

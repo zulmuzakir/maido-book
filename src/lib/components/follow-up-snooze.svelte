@@ -61,7 +61,7 @@
 			type="submit"
 			name="dueDate"
 			value={addDays(today, 1)}
-			variant="outline"
+			variant="secondary"
 			class={chipClass}
 			disabled={snooze.pending}
 		>
@@ -71,7 +71,7 @@
 			type="submit"
 			name="dueDate"
 			value={addDays(today, 3)}
-			variant="outline"
+			variant="secondary"
 			class={chipClass}
 			disabled={snooze.pending}
 		>
@@ -81,7 +81,7 @@
 			type="submit"
 			name="dueDate"
 			value={addDays(today, 7)}
-			variant="outline"
+			variant="secondary"
 			class={chipClass}
 			disabled={snooze.pending}
 		>

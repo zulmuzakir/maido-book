@@ -7,3 +7,11 @@ export const fieldLabel = 'text-ui leading-4 font-semibold';
 
 /** One field: label, control, then hint or error. */
 export const fieldStack = 'space-y-1.5';
+
+/** A date chip in a ToggleGroup (next contact, schedule): secondary fill, primary once chosen. */
+export const dateChip =
+	'h-11 rounded-lg bg-secondary px-4 text-sm font-semibold text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] hover:text-secondary-foreground focus-visible:ring-3 focus-visible:ring-ring desk:h-10 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary';
+
+/** One option of a segmented control (theme, language) in a `size="sm"` ToggleGroup on a `secondary` track. */
+export const segment =
+	'h-[34px] min-w-0 flex-1 rounded-[5px] px-2 text-ui font-normal text-muted-foreground hover:bg-transparent hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring data-[state=on]:bg-card data-[state=on]:font-semibold data-[state=on]:text-foreground data-[state=on]:shadow-[0_1px_2px_color-mix(in_oklch,var(--foreground)_12%,transparent)] data-[state=on]:hover:bg-card';

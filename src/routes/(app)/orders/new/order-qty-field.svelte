@@ -9,6 +9,7 @@
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
+	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import { choiceChip, fieldLabel, fieldStack } from '#lib/styles.ts';
 	import { cn } from '#lib/utils.js';
@@ -26,6 +27,11 @@
 		invalid?: boolean;
 		error?: string | null;
 	} = $props();
+
+	// A ToggleGroup clears its value when the chosen chip is clicked again; keep the quantity instead.
+	function pickQty(v: string) {
+		if (v) qty = Number(v);
+	}
 
 	function stepQty(delta: number) {
 		qty = Math.min(QTY_MAX, Math.max(1, (qty ?? 0) + delta));
@@ -75,18 +81,18 @@
 		</div>
 		<!-- The error sits between the number and the presets, next to what it is about. -->
 		<FieldError message={error} />
-		<div class="grid grid-cols-5 gap-2">
+		<ToggleGroup.Root
+			type="single"
+			spacing={2}
+			aria-label={m.order_qty({ unit: unitLabel })}
+			class="grid w-full grid-cols-5"
+			bind:value={() => (qty !== null && QTY_CHIPS.includes(qty) ? String(qty) : ''), pickQty}
+		>
 			{#each QTY_CHIPS as n (n)}
-				<button
-					type="button"
-					aria-pressed={qty === n}
-					data-state={qty === n ? 'on' : 'off'}
-					onclick={() => (qty = n)}
-					class={cn(choiceChip, 'px-2 num')}
-				>
+				<ToggleGroup.Item value={String(n)} class={cn(choiceChip, 'min-w-0 px-2 num desk:h-11')}>
 					{n}
-				</button>
+				</ToggleGroup.Item>
 			{/each}
-		</div>
+		</ToggleGroup.Root>
 	</div>
 </div>

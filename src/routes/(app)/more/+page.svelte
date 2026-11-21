@@ -13,22 +13,17 @@
 	import MessageCircle from '@lucide/svelte/icons/message-circle';
 	import Moon from '@lucide/svelte/icons/moon';
 	import PageHeader from '#lib/components/page-header.svelte';
+	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
 	import { firstName } from '#lib/format.ts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale, locales, setLocale } from '#lib/paraglide/runtime.js';
+	import { segment } from '#lib/styles.ts';
 	import { cn } from '#lib/utils.js';
 
 	const user = $derived((page.data as { user: { name: string; email: string } }).user);
 
 	const row = 'flex items-center gap-3.5 border-b border-row-rule px-4';
 	const trackClass = 'flex rounded-[8px] bg-secondary p-[3px]';
-	const optionClass = (on: boolean) =>
-		cn(
-			'flex h-[34px] flex-1 items-center justify-center rounded-[5px] text-ui outline-none has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring',
-			on
-				? 'bg-card font-semibold shadow-[0_1px_2px_color-mix(in_oklch,var(--foreground)_12%,transparent)]'
-				: 'font-normal text-muted-foreground'
-		);
 </script>
 
 {#snippet band()}
@@ -67,44 +62,38 @@
 		{/each}
 
 		{@render band()}
-		<div role="radiogroup" aria-label={m.nav_theme()} class={cn(row, 'h-14')}>
+		<div class={cn(row, 'h-14')}>
 			<Moon class="size-5 text-muted-foreground" aria-hidden="true" />
-			<span class="flex-1 text-[15px] leading-[18px]">{m.nav_theme()}</span>
-			<div class={cn(trackClass, 'w-[206px]')}>
+			<span id="more-theme-label" class="flex-1 text-[15px] leading-[18px]">{m.nav_theme()}</span>
+			<ToggleGroup.Root
+				type="single"
+				size="sm"
+				spacing={0.5}
+				aria-labelledby="more-theme-label"
+				class={cn(trackClass, 'w-[206px]')}
+				bind:value={() => userPrefersMode.current, (v) => v && applyTheme(v)}
+			>
 				{#each themes as t (t.value)}
-					<label class={optionClass(userPrefersMode.current === t.value)}>
-						<input
-							type="radio"
-							name="theme"
-							value={t.value}
-							class="sr-only"
-							checked={userPrefersMode.current === t.value}
-							onchange={() => applyTheme(t.value)}
-						/>
-						{t.label()}
-					</label>
+					<ToggleGroup.Item value={t.value} class={segment}>{t.label()}</ToggleGroup.Item>
 				{/each}
-			</div>
+			</ToggleGroup.Root>
 		</div>
 
-		<div role="radiogroup" aria-label={m.language()} class={cn(row, 'h-14 border-b-0')}>
+		<div class={cn(row, 'h-14 border-b-0')}>
 			<MessageCircle class="size-5 text-muted-foreground" aria-hidden="true" />
-			<span class="flex-1 text-[15px] leading-[18px]">{m.language()}</span>
-			<div class={cn(trackClass, 'w-[206px]')}>
+			<span id="more-language-label" class="flex-1 text-[15px] leading-[18px]">{m.language()}</span>
+			<ToggleGroup.Root
+				type="single"
+				size="sm"
+				spacing={0.5}
+				aria-labelledby="more-language-label"
+				class={cn(trackClass, 'w-[206px]')}
+				bind:value={() => getLocale(), (v) => v && setLocale(v as never)}
+			>
 				{#each locales as locale (locale)}
-					<label class={optionClass(getLocale() === locale)}>
-						<input
-							type="radio"
-							name="locale"
-							value={locale}
-							class="sr-only"
-							checked={getLocale() === locale}
-							onchange={() => setLocale(locale as never)}
-						/>
-						{localeName(locale)}
-					</label>
+					<ToggleGroup.Item value={locale} class={segment}>{localeName(locale)}</ToggleGroup.Item>
 				{/each}
-			</div>
+			</ToggleGroup.Root>
 		</div>
 
 		{@render band()}
