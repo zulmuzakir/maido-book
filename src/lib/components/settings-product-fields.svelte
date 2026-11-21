@@ -5,7 +5,7 @@
 	import { Label } from '#lib/components/ui/label/index.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
-	import type { Product } from '#lib/server/crm/settings.ts';
+	import type { ProductFields } from '#lib/domain/types.ts';
 	import { fieldLabel } from '#lib/styles.ts';
 
 	let {
@@ -14,7 +14,7 @@
 		errors = {}
 	}: {
 		idPrefix: string;
-		product?: Product | null;
+		product?: ProductFields | null;
 		errors?: Record<string, string>;
 	} = $props();
 

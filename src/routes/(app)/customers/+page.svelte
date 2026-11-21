@@ -13,11 +13,11 @@
 	import PageHeader from '#lib/components/page-header.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { m } from '#lib/paraglide/messages.js';
-	import type { PageData } from './$types';
+	import type { PageProps } from './$types';
 	import CustomerList from './customer-list.svelte';
 	import CustomerPager from './customer-pager.svelte';
 
-	let { data }: { data: PageData } = $props();
+	let { data }: PageProps = $props();
 
 	const STATUS_ITEMS = ['all', 'interested', 'lead', 'active', 'dormant'] as const;
 	type StatusKey = (typeof STATUS_ITEMS)[number];

@@ -10,9 +10,9 @@
 	import PageHeader from '#lib/components/page-header.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { m } from '#lib/paraglide/messages.js';
-	import type { ActionData, PageData } from './$types';
+	import type { PageProps } from './$types';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	let { data, form }: PageProps = $props();
 
 	const save = new FormAction(({ update }) => update({ reset: false }));
 

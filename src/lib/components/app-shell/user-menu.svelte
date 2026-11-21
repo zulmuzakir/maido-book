@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import Ellipsis from '@lucide/svelte/icons/ellipsis';
 	import { firstName } from '#lib/format.ts';
 	import InitialsAvatar from '#lib/components/initials-avatar.svelte';
@@ -31,7 +32,7 @@
 		<DropdownMenu.Separator />
 		<PreferenceItems />
 		<DropdownMenu.Separator />
-		<form method="post" action="/logout">
+		<form method="post" action={resolve('/logout')}>
 			<DropdownMenu.Item>
 				{#snippet child({ props })}
 					<button type="submit" {...props} class="{props.class as string} w-full">

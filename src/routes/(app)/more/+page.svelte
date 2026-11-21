@@ -108,7 +108,7 @@
 		</div>
 
 		{@render band()}
-		<form method="post" action="/logout" class="p-4">
+		<form method="post" action={resolve('/logout')} class="p-4">
 			<button
 				type="submit"
 				class="h-11 w-full rounded-lg border border-alert-border bg-card text-[15px] font-semibold text-status-overdue outline-none hover:bg-alert focus-visible:ring-3 focus-visible:ring-ring"

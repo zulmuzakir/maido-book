@@ -7,9 +7,9 @@
 	import NextFollowUp from './next-follow-up.svelte';
 	import OrderHistory from './order-history.svelte';
 	import SupplySection from './supply-section.svelte';
-	import type { ActionData, PageData } from './$types';
+	import type { PageProps } from './$types';
 
-	let { data, form }: { data: PageData; form: ActionData } = $props();
+	let { data, form }: PageProps = $props();
 
 	const c = $derived(data.customer);
 	const latest = $derived(data.orders[0] ?? null);

@@ -35,6 +35,14 @@ export interface RuleSettings {
 	winbackDays: number;
 }
 
+/** The editable fields of a product, as the settings forms show them. */
+export interface ProductFields {
+	name: string;
+	unitLabel: string;
+	servingsPerUnit: number;
+	price: number;
+}
+
 /** What the customer forms' side panel shows about one customer (the duplicate, or the one being edited). */
 export interface CustomerSnapshot {
 	id: string;
