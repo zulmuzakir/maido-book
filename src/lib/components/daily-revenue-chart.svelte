@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { formatRupiah } from '#lib/format.ts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
 
@@ -38,13 +39,25 @@
 	const anchors = $derived(
 		[0, days.length - 1, days.findIndex((d) => d.date === today)].filter((i) => i >= 0)
 	);
+	// The bars are hidden from screen readers; this sentence carries the numbers instead.
+	const summary = $derived.by(() => {
+		const total = days.reduce((sum, d) => sum + d.revenue, 0);
+		if (total === 0) return m.insights_daily_title();
+		const best = days.reduce((a, b) => (b.revenue > a.revenue ? b : a));
+		return m.insights_daily_aria({
+			title: m.insights_daily_title(),
+			total: formatRupiah(total),
+			max: formatRupiah(best.revenue),
+			day: dayNumber(best.date)
+		});
+	});
 	const showLabel = (iso: string, i: number) =>
 		slot >= 22 ||
 		anchors.includes(i) ||
 		(dayNumber(iso) % 5 === 0 && anchors.every((a) => Math.abs(a - i) >= 2));
 </script>
 
-<div bind:clientWidth={width} class="w-full" role="img" aria-label={m.insights_daily_title()}>
+<div bind:clientWidth={width} class="w-full" role="img" aria-label={summary}>
 	{#if width > 0}
 		<svg {width} height={tall} viewBox="0 0 {width} {tall}" class="block" aria-hidden="true">
 			{#each [0, 1, 2, 3] as i (i)}

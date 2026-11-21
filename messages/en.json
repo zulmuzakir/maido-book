@@ -452,6 +452,7 @@
 	"customer_data_runs_out": "Runs out on",
 	"activity_attempt": "Attempt {attempt} of {max}",
 	"insights_daily_title": "Revenue per day",
+	"insights_daily_aria": "{title}: total {total}, highest {max} on day {day}",
 	"insights_daily_sub": "IDR millions · {range}",
 	"insights_outcomes_sub": "From {count} outcomes logged this month",
 	"insights_repeat_sub": "{count} of them repeat orders",

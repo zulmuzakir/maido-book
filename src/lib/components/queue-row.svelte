@@ -94,9 +94,11 @@
 			size={44}
 			class="bg-avatar text-base font-extrabold text-avatar-foreground"
 		/>
-		<div class="flex min-w-0 flex-col gap-[5px] md:gap-[3px]">
-			<p class="truncate text-[15px] leading-[18px] font-semibold">{item.customer.name}</p>
-			<p class="truncate text-[12.5px] leading-4 text-muted-foreground num md:text-ui">
+		<span class="flex min-w-0 flex-col gap-[5px] md:gap-[3px]">
+			<span class="block truncate text-[15px] leading-[18px] font-semibold"
+				>{item.customer.name}</span
+			>
+			<span class="block truncate text-[12.5px] leading-4 text-muted-foreground num md:text-ui">
 				{#if orderLine}
 					{orderLine}<span class="xl:hidden">
 						&nbsp;· <span class="md:hidden">{qty}</span><span class="max-md:hidden"
@@ -106,13 +108,13 @@
 				{:else}
 					{m.queue_no_order()}
 				{/if}
-			</p>
-			<div class="md:hidden">{@render status()}</div>
-		</div>
+			</span>
+			<span class="block md:hidden">{@render status()}</span>
+		</span>
 		<span class="hidden truncate text-ui text-muted-foreground num xl:block"
 			>{waiting ? qty : dose}</span
 		>
-		<div class="hidden min-w-0 md:block">{@render status()}</div>
+		<span class="hidden min-w-0 md:block">{@render status()}</span>
 	</button>
 
 	<form bind:this={form} method="post" action="?/sent" use:enhance={sent.enhance}>

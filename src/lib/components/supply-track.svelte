@@ -120,19 +120,20 @@
 <!-- Small: one plain bar on the track. Its length is the days left (a full bar is 14 days or more,
      and an out-of-stock bar is full); its colour is the band. -->
 {#if size === 'sm'}
-	<div class={cn('flex min-w-0 flex-col gap-[7px]', className)}>
+	<!-- Spans (laid out as blocks) so the bar is valid inside a button, as in the queue row. -->
+	<span class={cn('flex min-w-0 flex-col gap-[7px]', className)}>
 		{#if showLabel}
 			<span class="truncate text-ui leading-4 font-semibold num {tone}">{smallText}</span>
 		{/if}
-		<div
-			class="h-1.5 w-full overflow-hidden rounded-[3px] bg-track"
+		<span
+			class="block h-1.5 w-full overflow-hidden rounded-[3px] bg-track"
 			role={decorative ? undefined : 'img'}
 			aria-label={decorative ? undefined : smallText}
 			aria-hidden={decorative || undefined}
 		>
-			<div class="h-full rounded-[3px] {barColour}" style:width={barWidth}></div>
-		</div>
-	</div>
+			<span class="block h-full rounded-[3px] {barColour}" style:width={barWidth}></span>
+		</span>
+	</span>
 {:else}
 	<div class={cn('space-y-2', className)}>
 		{#if showLabel}

@@ -362,6 +362,7 @@
 	"customer_data_runs_out": "Habis pada",
 	"activity_attempt": "Percobaan {attempt} dari {max}",
 	"insights_daily_title": "Omzet per hari",
+	"insights_daily_aria": "{title}: total {total}, tertinggi {max} pada tanggal {day}",
 	"insights_daily_sub": "Rp juta · {range}",
 	"insights_outcomes_sub": "Dari {count} hasil yang dicatat bulan ini",
 	"insights_repeat_sub": "{count} di antaranya repeat order",

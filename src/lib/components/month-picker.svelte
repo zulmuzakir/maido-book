@@ -208,7 +208,12 @@
 		</a>
 		{@render picker()}
 		{#if nextDisabled}
-			<span class={cn(navButton, 'text-disabled-foreground')} aria-disabled="true">
+			<span
+				class={cn(navButton, 'text-disabled-foreground')}
+				aria-disabled="true"
+				aria-label={m.next()}
+				role="link"
+			>
 				<ChevronRightIcon class="size-[18px]" />
 			</span>
 		{:else}
