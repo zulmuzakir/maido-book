@@ -102,7 +102,10 @@
 		if (a.type === 'customer_created') return '';
 		if (a.type === 'order') {
 			if (a.orderQty == null) return '';
-			const what = `${a.orderQty} ${a.orderUnit ?? ''} ${a.orderProduct ?? ''}`.trim();
+			const what = m
+				.order_items({ qty: a.orderQty, unit: a.orderUnit ?? '', product: a.orderProduct ?? '' })
+				.replace(/\s+/g, ' ')
+				.trim();
 			return a.orderTotal != null ? `${what} · ${formatRupiah(a.orderTotal)}` : what;
 		}
 		return [

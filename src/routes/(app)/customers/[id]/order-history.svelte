@@ -108,9 +108,7 @@
 					<div class="min-w-0 self-center">
 						<p class="sr-only xl:hidden">{formatDate(o.orderDate, locale, 'medium')}</p>
 						<p class="truncate text-[14.5px] leading-5 font-semibold">
-							{o.qty}
-							{o.unitLabel}
-							{o.productName}
+							{m.order_items({ qty: o.qty, unit: o.unitLabel, product: o.productName })}
 						</p>
 						{#if i === 0 && latest}
 							{#if outNow && newest}

@@ -37,7 +37,7 @@
 		{ label: m.customer_data_product(), value: latest?.productName ?? '—', tone: '' },
 		{
 			label: m.customer_data_qty(),
-			value: latest ? `${latest.qty} ${latest.unitLabel}` : '—',
+			value: latest ? m.queue_row_qty({ qty: latest.qty, unit: latest.unitLabel }) : '—',
 			tone: ''
 		},
 		{ label: m.dose_per_day(), value: `${customer.dosePerDay}`, tone: '' },

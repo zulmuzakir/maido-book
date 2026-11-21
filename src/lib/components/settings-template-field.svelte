@@ -103,7 +103,7 @@
 					{#each parts as part, i (i)}{#if part.filled}<b>{part.text}</b
 							>{:else}{part.text}{/if}{:else}—{/each}
 					<div class="mt-0.5 text-right text-[11.5px] text-muted-foreground num" aria-hidden="true">
-						09.12
+						{m.settings_template_preview_time()}
 					</div>
 				</div>
 			</div>

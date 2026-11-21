@@ -343,7 +343,7 @@
 		>
 			<div>
 				<h2 id="insights-customers-heading" class={H2}>{m.insights_panel_customers()}</h2>
-				<p class={SUB}>{m.insights_repeat_rate()}: {pct(ins.repeatCustomerRate)}</p>
+				<p class={SUB}>{m.insights_repeat_rate_value({ rate: pct(ins.repeatCustomerRate) })}</p>
 			</div>
 			{#if customerTotal === 0}
 				<p class="text-sm text-muted-foreground">{m.insights_outcomes_empty()}</p>

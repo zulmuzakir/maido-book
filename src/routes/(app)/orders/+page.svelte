@@ -183,13 +183,11 @@
 								<div class="min-w-0">
 									<p class="truncate text-[15px] leading-5 font-semibold">{item.customerName}</p>
 									<p class="mt-0.5 text-[13px] text-muted-foreground num xl:hidden">
-										{item.qty}
-										{item.unitLabel}
+										{m.queue_row_qty({ qty: item.qty, unit: item.unitLabel })}
 									</p>
 								</div>
 								<p class="hidden text-sm text-muted-foreground num xl:block">
-									{item.qty}
-									{item.unitLabel}
+									{m.queue_row_qty({ qty: item.qty, unit: item.unitLabel })}
 								</p>
 								<p class="text-right text-[15px] font-semibold num">
 									{@render amount(item.totalPaid)}
