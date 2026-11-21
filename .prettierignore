@@ -13,3 +13,7 @@ bun.lockb
 # Inlang generated files
 /project.inlang/*
 !/project.inlang/settings.json
+
+# Vendored agent skills (managed by `npx skills`)
+/.agents/
+/skills-lock.json

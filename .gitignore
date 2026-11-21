@@ -33,7 +33,8 @@ project.inlang/cache/
 # Design tooling
 .impeccable/
 
-# Agent skills/tooling (local only)
-/.claude/
+# Agent tooling: .claude/ is shared, these stay local
+/.claude/settings.local.json
+/.claude/worktrees/
 /.omp/
 /.pi/
