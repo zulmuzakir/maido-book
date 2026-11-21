@@ -4,7 +4,8 @@
 	import QueueHandled from './queue-handled.svelte';
 	import QueueProgress from './queue-progress.svelte';
 	import QueueSection, { type Section, type Tab } from './queue-section.svelte';
-	import { MediaQuery } from 'svelte/reactivity';
+	import { tick } from 'svelte';
+	import { MediaQuery, SvelteSet } from 'svelte/reactivity';
 	import { fade, fly, slide } from 'svelte/transition';
 	import { resolve } from '$app/paths';
 	import { afterNavigate, goto } from '$app/navigation';
@@ -41,14 +42,32 @@
 	// A message with no reply after the retry window is work again: it joins the overdue list
 	// instead of hiding under "Menunggu balasan" while the day reads as done.
 	const isStale = (i: QueueRowItem) => dueState(i, data.today, data.rules).stale;
-	const overdue = $derived([
+	// Optimistic: a saved outcome or a snooze takes its follow-up out of the queue as the save goes
+	// out, so the row folds and the detail closes on the tap instead of after the save and the
+	// reload. The id is dropped once the save is over: by then the reloaded data has the real state,
+	// or (a failed save) the row slides back in.
+	const leaving = new SvelteSet<string>();
+	const stays = (i: QueueRowItem) => !leaving.has(i.followUpId);
+	const workItems = $derived([
 		...data.overdue.filter((i) => !isWinback(i)),
-		...data.waiting.filter(isStale)
+		...data.waiting.filter(isStale),
+		...data.dueToday.filter((i) => !isWinback(i))
 	]);
-	const dueToday = $derived(data.dueToday.filter((i) => !isWinback(i)));
-	const waiting = $derived(data.waiting.filter((i) => !isStale(i)));
-	const winback = $derived([...data.overdue, ...data.dueToday].filter(isWinback));
+	const overdue = $derived(
+		[...data.overdue.filter((i) => !isWinback(i)), ...data.waiting.filter(isStale)].filter(stays)
+	);
+	const dueToday = $derived(data.dueToday.filter((i) => !isWinback(i) && stays(i)));
+	const waiting = $derived(data.waiting.filter((i) => !isStale(i) && stays(i)));
+	const winback = $derived(
+		[...data.overdue, ...data.dueToday].filter((i) => isWinback(i) && stays(i))
+	);
+	const upcoming = $derived(data.upcoming.filter(stays));
 	const workCount = $derived(overdue.length + dueToday.length);
+	// A customer who left today's work counts as done straight away, so "N dari M" never dips while
+	// the save is under way.
+	const doneToday = $derived(
+		data.doneToday + workItems.filter((i) => leaving.has(i.followUpId)).length
+	);
 	// Before the first import or customer there is no day to finish: the queue shows how to start.
 	const firstRun = $derived(!data.hasCustomers);
 	// The day is done when nobody is left to contact, even if fresh replies are still pending.
@@ -62,6 +81,23 @@
 	// Forward, a link), not when `?item=` does; picking a chip overrides it until then.
 	const tabParam = $derived(page.url.searchParams.get('tab'));
 	let tab = $derived(parseTab(tabParam));
+
+	// A tab switch reuses the rows both tabs share instead of rebuilding the whole list (a remount of
+	// every row cost a 130-190ms frame on a slow phone). For that one update nothing folds, slides
+	// or flips (`listMotion` off); then the list fades in as a whole.
+	let listMotion = $state(true);
+	let listEl: HTMLElement | undefined;
+	async function switchTab(key: Tab) {
+		listMotion = false;
+		tab = key;
+		selectedId = null;
+		await tick();
+		listMotion = true;
+		listEl?.animate([{ opacity: 0 }, { opacity: 1 }], {
+			duration: motionMs(DURATION.fast),
+			easing: 'cubic-bezier(0.215, 0.61, 0.355, 1)'
+		});
+	}
 	// One tab per section. The week ahead has no tab: it only closes the "Semua" list.
 	const tabItems = $derived([
 		{
@@ -96,7 +132,7 @@
 					items: winback,
 					hint: m.queue_winback_hint()
 				},
-				{ id: 'upcoming', title: m.bucket_upcoming(), items: data.upcoming }
+				{ id: 'upcoming', title: m.bucket_upcoming(), items: upcoming }
 			] as Section[]
 		).filter((s) => s.items.length > 0)
 	);
@@ -125,7 +161,7 @@
 		collapses(s) ? Math.max(0, s.items.length - COLLAPSED_ROWS) : 0;
 
 	// Done counts every customer who left today's work, by message, outcome, snooze or order.
-	const total = $derived(data.doneToday + workCount);
+	const total = $derived(doneToday + workCount);
 
 	// Selection follows the list order, including rows behind "Lihat N lainnya": stepping must never
 	// skip a customer. When the selected follow-up is closed, or snoozed out of the open sections, it
@@ -141,7 +177,16 @@
 	// Which way the last ‹ › (or j / k) went: the next card slides in from that side. 0 for a pick
 	// from the list, Back or a fallback, which only fade.
 	let stepDir = $state<1 | -1 | 0>(0);
-	const presentIds = $derived(new Set(pool.map((i) => i.followUpId)));
+	// Selection looks follow-ups up in the data as loaded, rows still leaving included: an open phone
+	// detail or tablet sheet keeps showing the customer being saved while it closes, instead of
+	// switching to the neighbour on the way out.
+	const everyItem = $derived([
+		...data.overdue,
+		...data.dueToday,
+		...data.waiting,
+		...data.upcoming
+	]);
+	const presentIds = $derived(new Set(everyItem.map((i) => i.followUpId)));
 	// What the detail shows: the pick while it is open, else whoever took its slot, else (desktop,
 	// "Semua") the first row. Derived, so nothing has to repair `selectedId` after a reload.
 	const currentId = $derived(
@@ -155,7 +200,7 @@
 		})
 	);
 	const selected = $derived(
-		currentId === null ? null : (pool.find((i) => i.followUpId === currentId) ?? null)
+		currentId === null ? null : (everyItem.find((i) => i.followUpId === currentId) ?? null)
 	);
 	const position = $derived(selected ? flat.indexOf(selected) : -1);
 	const sentHere = $derived(sentFrom && sentFrom.id === currentId ? sentFrom : null);
@@ -184,7 +229,12 @@
 	// a link such as "Buka di antrian" can open it. The queue's load ignores the URL, so opening
 	// it does not reload anything.
 	const urlItem = $derived(page.url.searchParams.get('item'));
-	const phoneDetail = $derived(!tablet.current && urlItem !== null && !!selected);
+	// Closing does not wait for the URL: `history.back()` and the navigation behind it take ~180ms
+	// before `?item=` goes, so the detail is marked dismissed and starts to leave on the tap.
+	let dismissed = $state<string | null>(null);
+	const phoneDetail = $derived(
+		!tablet.current && urlItem !== null && urlItem !== dismissed && !!selected
+	);
 	// The list URL, keeping a `?tab=` the page was opened with so the detail does not reset the tab.
 	const listHref = (item?: string) => {
 		const query = [
@@ -199,6 +249,7 @@
 	// The selection follows `?item=`: a deep link, or Back/Forward between details.
 	afterNavigate(() => {
 		const id = page.url.searchParams.get('item');
+		if (!id) dismissed = null;
 		if (!id || id === currentId) return;
 		const item = pool.find((i) => i.followUpId === id);
 		if (!item) return;
@@ -210,6 +261,7 @@
 	});
 
 	function closePhone() {
+		dismissed = urlItem;
 		if (pushed) {
 			pushed = false;
 			history.back();
@@ -237,6 +289,7 @@
 		sentFrom = null;
 		selectedId = item.followUpId;
 		lastIndex = Math.max(0, flat.indexOf(item));
+		dismissed = null;
 		if (wide.current) return;
 		if (tablet.current) {
 			sheetOpen = true;
@@ -278,12 +331,24 @@
 		};
 	}
 
-	// A saved outcome takes the customer out of the list: on desktop the panel moves to whoever
-	// takes their place; on tablet and phone the detail closes. The toast carries the undo.
-	function outcomeSaved() {
-		if (wide.current) return;
-		sheetOpen = false;
-		if (phoneDetail) closePhone();
+	// An outcome or a snooze is going out (see `leaving`): the row folds now. On tablet and phone
+	// the detail closes, still showing this customer. On desktop the panel moves to the customer who
+	// takes the slot, set explicitly: a snoozed follow-up keeps its id and would pull the panel back
+	// once the reload brings it into "7 hari ke depan". The toast carries the undo.
+	function leave(id: string, settled: Promise<void>) {
+		const at = flat.findIndex((i) => i.followUpId === id);
+		if (wide.current && currentId === id && at >= 0) {
+			const next = flat.slice(at + 1).find(stays) ?? flat.slice(0, at).findLast(stays);
+			selectedId = next?.followUpId ?? null;
+			lastIndex = at;
+			stepDir = 0;
+		}
+		leaving.add(id);
+		if (!wide.current) {
+			sheetOpen = false;
+			if (phoneDetail) closePhone();
+		}
+		void settled.then(() => leaving.delete(id));
 	}
 
 	// Keyboard: on desk j / k step through the queue like a mail client. Ignored while typing.
@@ -367,7 +432,7 @@
 					{m.queue_summary({ todo: workCount, waiting: waiting.length })}
 				</p>
 				{#if total > 0}
-					<QueueProgress sent={data.doneToday} {total} />
+					<QueueProgress sent={doneToday} {total} />
 				{/if}
 				{#if tabletRow}
 					<div class="mt-1.5">
@@ -386,10 +451,7 @@
 					items={tabItems}
 					active={tab}
 					label={m.queue_title()}
-					onselect={(key) => {
-						tab = key as Tab;
-						selectedId = null;
-					}}
+					onselect={(key) => void switchTab(key as Tab)}
 				/>
 			</div>
 		{/if}
@@ -419,7 +481,7 @@
 				<QueueDone
 					variant="banner"
 					today={data.today}
-					doneToday={data.doneToday}
+					{doneToday}
 					waitingCount={waiting.length}
 					next={data.upcoming[0]}
 				/>
@@ -432,30 +494,27 @@
 			</p>
 		{/if}
 
-		<!-- Rebuilt per tab: a tab switch fades the new list in instead of folding sections and rows
-		     away (their transitions are local, so they do not run when the whole block goes). Within a
-		     tab, a section whose last customer leaves folds away. -->
-		{#key tab}
-			<div in:fade={{ duration: motionMs(DURATION.fast) }}>
-				{#each shown as section (section.id)}
-					<div out:slide={{ duration: motionMs(DURATION.base, !query), easing: EASE }}>
-						<QueueSection
-							{section}
-							open
-							animate={!query}
-							rows={visibleRows(section)}
-							hiddenCount={hiddenRows(section)}
-							ontoggle={undefined}
-							onshowmore={() => (expanded = { ...expanded, [section.id]: true })}
-							today={data.today}
-							rules={data.rules}
-							selectedId={currentId}
-							onselect={select}
-						/>
-					</div>
-				{/each}
-			</div>
-		{/key}
+		<!-- A tab switch keeps the rows both tabs share (see switchTab); within a tab, a section whose
+		     last customer leaves folds away. -->
+		<div bind:this={listEl}>
+			{#each shown as section (section.id)}
+				<div out:slide={{ duration: motionMs(DURATION.base, !query && listMotion), easing: EASE }}>
+					<QueueSection
+						{section}
+						open
+						animate={!query && listMotion}
+						rows={visibleRows(section)}
+						hiddenCount={hiddenRows(section)}
+						ontoggle={undefined}
+						onshowmore={() => (expanded = { ...expanded, [section.id]: true })}
+						today={data.today}
+						rules={data.rules}
+						selectedId={currentId}
+						onselect={select}
+					/>
+				</div>
+			{/each}
+		</div>
 
 		{#if tab === 'all' && data.handled.length > 0}
 			{@const open = !(handledFolded ?? !dayDone)}
@@ -476,7 +535,7 @@
 								item={selected}
 								today={data.today}
 								rules={data.rules}
-								onsaved={outcomeSaved}
+								onleave={leave}
 								onsent={cardSent}
 							/>
 						</div>
@@ -487,7 +546,7 @@
 					<QueueDone
 						variant="panel"
 						today={data.today}
-						doneToday={data.doneToday}
+						{doneToday}
 						waitingCount={waiting.length}
 						next={data.upcoming[0]}
 					/>
@@ -536,7 +595,7 @@
 								item={selected}
 								today={data.today}
 								rules={data.rules}
-								onsaved={outcomeSaved}
+								onleave={leave}
 								onsent={cardSent}
 							/>
 						</div>
@@ -576,7 +635,7 @@
 						item={selected}
 						today={data.today}
 						rules={data.rules}
-						onsaved={outcomeSaved}
+						onleave={leave}
 						onsent={cardSent}
 						stickySend
 					/>

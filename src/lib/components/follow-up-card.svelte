@@ -37,6 +37,7 @@
 		onsaved,
 		onundo,
 		onsent,
+		onleave,
 		stickySend = false
 	}: {
 		item: QueueRowItem;
@@ -48,6 +49,11 @@
 		onundo?: () => void;
 		/** Reports a logged send, so the page can keep "next" pointing into today's work. */
 		onsent?: () => void;
+		/**
+		 * An outcome or a snooze is going out: the page takes this follow-up out of the queue at once.
+		 * `settled` resolves when the save is over, either way.
+		 */
+		onleave?: (followUpId: string, settled: Promise<void>) => void;
 		/** Phone detail: the send sits in a bar pinned to the bottom instead of under the message. */
 		stickySend?: boolean;
 	} = $props();
@@ -294,11 +300,23 @@
 			</section>
 		{/if}
 
-		<FollowUpOutcome {item} {today} {rules} {onsaved} {onundo} bind:choice={outcomeChoice} />
+		<FollowUpOutcome
+			{item}
+			{today}
+			{rules}
+			{onsaved}
+			{onundo}
+			onleave={(settled) => onleave?.(item.followUpId, settled)}
+			bind:choice={outcomeChoice}
+		/>
 
 		{#if !outcomeChoice}
 			<div transition:slide={{ duration: motionMs(DURATION.base), easing: EASE }}>
-				<FollowUpSnooze followUpId={item.followUpId} {today} />
+				<FollowUpSnooze
+					followUpId={item.followUpId}
+					{today}
+					onleave={(settled) => onleave?.(item.followUpId, settled)}
+				/>
 			</div>
 		{/if}
 	</div>

@@ -70,3 +70,37 @@ describe('FormAction.pendingFor', () => {
 		expect(action.pendingFor('order')).toBe(true);
 	});
 });
+
+describe('FormAction.optimistic', () => {
+	it('starts once per submit that goes out and settles after the result, even if it throws', async () => {
+		const action = new FormAction(async () => {
+			throw new Error('boom');
+		});
+		const onstart = vi.fn();
+		const submitFn = action.optimistic(onstart);
+		const after = submitFn({ cancel: vi.fn(), submitter: null } as unknown as EnhanceInput);
+		const again = vi.fn();
+		submitFn({ cancel: again, submitter: null } as unknown as EnhanceInput);
+
+		expect(onstart).toHaveBeenCalledOnce();
+		expect(again).toHaveBeenCalledOnce();
+		let settled = false;
+		void (onstart.mock.calls[0][0] as Promise<void>).then(() => (settled = true));
+		await respond(after).catch(() => {});
+		await Promise.resolve();
+		expect(settled).toBe(true);
+		expect(action.pending).toBe(false);
+	});
+
+	it('settle() ends the optimistic phase before the result arrives', async () => {
+		const action = new FormAction();
+		const onstart = vi.fn();
+		action.optimistic(onstart)({ cancel: vi.fn(), submitter: null } as unknown as EnhanceInput);
+		let settled = false;
+		void (onstart.mock.calls[0][0] as Promise<void>).then(() => (settled = true));
+		action.settle();
+		await Promise.resolve();
+		expect(settled).toBe(true);
+		expect(action.pending).toBe(true);
+	});
+});

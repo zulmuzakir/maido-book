@@ -16,6 +16,9 @@ export interface AfterSubmitInput {
 	}) => Promise<void>;
 }
 
+/** The callback a `SubmitFunction` returns for a submit that goes ahead. */
+type AfterSubmit = Exclude<Awaited<ReturnType<SubmitFunction>>, void>;
+
 /**
  * Wraps `use:enhance` for one form: tracks `pending`, ignores repeat submits while a request is in
  * flight, and turns thrown action errors and network failures into a toast instead of SvelteKit's
@@ -54,6 +57,40 @@ export class FormAction {
 	 */
 	pendingFor(value = ''): boolean {
 		return this.pending && this.submitter === value;
+	}
+
+	#settle: (() => void) | null = null;
+
+	/**
+	 * `enhance` for an optimistic form: `onstart(settled)` runs as a submit goes out (not for a
+	 * repeat submit that is ignored), so the page can show the result at once; `settled` resolves
+	 * when the action is over, whatever the outcome (success, failure, error or a throw), so the
+	 * page can drop its optimistic state and let the real data, or the old row, show.
+	 */
+	optimistic(onstart: (settled: Promise<void>) => void): SubmitFunction {
+		return (input) => {
+			const after = this.enhance(input) as AfterSubmit | undefined;
+			if (!after) return;
+			let done!: () => void;
+			const settled = new Promise<void>((resolve) => (done = resolve));
+			this.#settle = done;
+			onstart(settled);
+			return async (raw) => {
+				try {
+					await after(raw);
+				} finally {
+					done();
+				}
+			};
+		};
+	}
+
+	/**
+	 * Ends the optimistic phase of the last submit early: an undo pressed in the toast before the
+	 * reload lands must let the restored row show.
+	 */
+	settle() {
+		this.#settle?.();
 	}
 
 	enhance: SubmitFunction = ({ cancel, submitter }) => {

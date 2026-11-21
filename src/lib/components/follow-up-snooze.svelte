@@ -17,10 +17,13 @@
 	let {
 		followUpId,
 		today,
-		label
+		label,
+		onleave
 	}: {
 		followUpId: string;
 		today: string;
+		/** As on the outcome: runs as the snooze goes out; `settled` resolves when it is over. */
+		onleave?: (settled: Promise<void>) => void;
 		/** Heading override, e.g. when the chips move the follow-up that an outcome just scheduled. */
 		label?: string;
 	} = $props();
@@ -37,7 +40,14 @@
 			const u = result.data?.undo;
 			toast.success(m.today_snoozed({ date: formatDate(d, locale, 'short') }), {
 				duration: UNDO_MS,
-				action: { label: m.undo(), onClick: () => undoFollowUp('undoSnooze', u) }
+				action: {
+					label: m.undo(),
+					onClick: () => {
+						// The page may still be hiding the row while the reload runs.
+						snooze.settle();
+						return undoFollowUp('undoSnooze', u);
+					}
+				}
 			});
 			await update();
 		} else if (result.type === 'failure') {
@@ -52,7 +62,7 @@
 	<form
 		method="post"
 		action="?/snooze"
-		use:enhance={snooze.enhance}
+		use:enhance={snooze.optimistic((settled) => onleave?.(settled))}
 		class="flex flex-wrap items-center gap-2"
 	>
 		<h3 class="mr-0.5 text-ui font-normal text-muted-foreground">
