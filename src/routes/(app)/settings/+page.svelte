@@ -24,7 +24,6 @@
 	import Plus from '@lucide/svelte/icons/plus';
 	import Receipt from '@lucide/svelte/icons/receipt';
 	import Upload from '@lucide/svelte/icons/upload';
-	import { cn } from '#lib/utils.js';
 
 	let { data, form }: PageProps = $props();
 
@@ -178,31 +177,14 @@
 		<SettingsSectionNav {sections} active={activeId} ongo={go} />
 
 		<div class="min-w-0">
-			<!-- Phone: pill chips that scroll to their section. -->
+			<!-- Phone: pill chips; tablet: an underlined tab strip over the 600px column. Both scroll
+			     to their section. Desktop uses the side nav instead. -->
 			<nav
 				aria-label={m.nav_settings()}
-				class="sticky top-0 z-10 -mb-3 flex [scrollbar-width:none] gap-2 overflow-x-auto bg-card px-4 py-2 md:hidden"
-			>
-				{#each sections as sec (sec.id)}
-					<button
-						type="button"
-						aria-current={activeId === sec.id ? 'true' : undefined}
-						onclick={() => go(sec.id)}
-						class={cn(
-							'h-10 shrink-0 rounded-full border px-4 text-sm font-semibold whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-ring',
-							activeId === sec.id
-								? 'border-primary bg-primary text-primary-foreground'
-								: 'border-border bg-card text-foreground'
-						)}>{sec.label()}</button
-					>
-				{/each}
-			</nav>
-			<!-- Tablet: an underlined tab strip over the 600px column. -->
-			<div
-				class="sticky top-0 z-10 hidden border-b border-rule bg-card px-[max(24px,calc((100%-600px)/2))] md:block xl:hidden"
+				class="sticky top-0 z-10 -mb-3 bg-card px-4 py-2 md:mb-0 md:border-b md:border-rule md:px-[max(24px,calc((100%-600px)/2))] md:py-0 xl:hidden"
 			>
 				<FilterTabs items={sectionItems} active={activeId} onselect={go} label={m.nav_settings()} />
-			</div>
+			</nav>
 
 			<div class="px-4 pb-8 md:mx-auto md:max-w-[648px] md:px-6 xl:max-w-[800px] xl:px-10">
 				<section id="products" class={sectionClass} aria-labelledby="settings-products-heading">
