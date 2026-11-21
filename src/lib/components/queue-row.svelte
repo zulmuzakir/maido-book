@@ -20,12 +20,19 @@
 		today,
 		rules,
 		selected = false,
+		morph = null,
 		onselect
 	}: {
 		item: QueueRowItem;
 		today: string;
 		rules: RuleSettings;
 		selected?: boolean;
+		/**
+		 * The phone detail's open and close morph: `shared` names the avatar and name so they fly
+		 * to the detail header (or back); `hidden` keeps them out of view while the detail, which
+		 * shows them, is on top.
+		 */
+		morph?: 'shared' | 'hidden' | null;
 		onselect: () => void;
 	} = $props();
 
@@ -93,10 +100,19 @@
 		<InitialsAvatar
 			name={item.customer.name}
 			size={44}
-			class="bg-avatar text-base font-extrabold text-avatar-foreground"
+			vtName={morph === 'shared' ? 'queue-avatar' : undefined}
+			class={cn(
+				'bg-avatar text-base font-extrabold text-avatar-foreground',
+				morph === 'hidden' && 'invisible'
+			)}
 		/>
 		<span class="flex min-w-0 flex-col gap-[5px] md:gap-[3px]">
-			<span class="block truncate text-[15px] leading-[18px] font-semibold"
+			<span
+				class={cn(
+					'block truncate text-[15px] leading-[18px] font-semibold',
+					morph === 'hidden' && 'invisible'
+				)}
+				style:view-transition-name={morph === 'shared' ? 'queue-name' : undefined}
 				>{item.customer.name}</span
 			>
 			<span class="block truncate text-[12.5px] leading-4 text-muted-foreground num md:text-ui">

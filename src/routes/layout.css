@@ -333,10 +333,54 @@
 }
 
 /* The theme switch cross-fades the whole page (applyTheme in preference-items.svelte). */
+::view-transition-group(root),
 ::view-transition-old(root),
 ::view-transition-new(root) {
 	animation-duration: var(--motion-fast);
 	animation-timing-function: var(--ease-motion);
+}
+
+/* The queue's phone detail (see withMorph in routes/(app)/+page.svelte): the tapped row's avatar
+   and name fly to the detail header while the detail slides in from the right, and back on Back.
+   The page behind does not change, so the root stays put. The name's snapshots keep their own
+   size (no stretching between 15px and 18px text) and cross-fade inside the moving box. */
+html[data-vt]::view-transition-group(*) {
+	animation-duration: var(--motion-base);
+	animation-timing-function: var(--ease-motion);
+}
+html[data-vt]::view-transition-old(root),
+html[data-vt]::view-transition-new(root) {
+	animation: none;
+}
+html[data-vt='open']::view-transition-new(queue-detail) {
+	animation: queue-detail-in var(--motion-base) var(--ease-motion) both;
+}
+html[data-vt='close']::view-transition-old(queue-detail) {
+	animation: queue-detail-out var(--motion-base) var(--ease-motion) both;
+}
+/* The avatar and the name travel above the sliding detail, not under it. */
+::view-transition-group(queue-avatar),
+::view-transition-group(queue-name) {
+	z-index: 1;
+}
+::view-transition-old(queue-name),
+::view-transition-new(queue-name) {
+	height: 100%;
+	width: auto;
+	object-fit: none;
+	object-position: left center;
+}
+@keyframes queue-detail-in {
+	from {
+		opacity: 0;
+		transform: translateX(48px);
+	}
+}
+@keyframes queue-detail-out {
+	to {
+		opacity: 0;
+		transform: translateX(48px);
+	}
 }
 
 /* A `<details class="disclosure">` slides open and shut. `::details-content` is Baseline; the

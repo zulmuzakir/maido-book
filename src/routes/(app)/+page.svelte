@@ -4,7 +4,8 @@
 	import QueueHandled from './queue-handled.svelte';
 	import QueueProgress from './queue-progress.svelte';
 	import QueueSection, { type Section, type Tab } from './queue-section.svelte';
-	import { tick } from 'svelte';
+	import { flushSync, tick } from 'svelte';
+	import { prefersReducedMotion } from 'svelte/motion';
 	import { MediaQuery, SvelteSet } from 'svelte/reactivity';
 	import { fade, fly, slide } from 'svelte/transition';
 	import { resolve } from '$app/paths';
@@ -229,12 +230,47 @@
 	// a link such as "Buka di antrian" can open it. The queue's load ignores the URL, so opening
 	// it does not reload anything.
 	const urlItem = $derived(page.url.searchParams.get('item'));
-	// Closing does not wait for the URL: `history.back()` and the navigation behind it take ~180ms
-	// before `?item=` goes, so the detail is marked dismissed and starts to leave on the tap.
+	// Neither opening nor closing waits for the URL: the navigation behind `?item=` takes ~180ms.
+	// A tap shows the detail at once (`opening`, until the URL carries it); a close marks it
+	// dismissed and it starts to leave on the tap.
+	let opening = $state<string | null>(null);
 	let dismissed = $state<string | null>(null);
+	const detailId = $derived(urlItem ?? opening);
 	const phoneDetail = $derived(
-		!tablet.current && urlItem !== null && urlItem !== dismissed && !!selected
+		!tablet.current && detailId !== null && detailId !== dismissed && !!selected
 	);
+	// Back tapped before the URL carried the detail: close once it lands.
+	let closeOnLand = false;
+
+	// The in-app open and Back morph the row's avatar and name into the detail header (and back)
+	// with a View Transition while the detail slides; the Svelte fly sits out. System back, deep
+	// links, stepping and a save keep the fly. See `queue-*` in layout.css.
+	let morphId = $state<string | null>(null);
+	const rowMorph = $derived(
+		morphId ? { id: morphId, mode: phoneDetail ? ('hidden' as const) : ('shared' as const) } : null
+	);
+	function withMorph(kind: 'open' | 'close', id: string, update: () => void) {
+		if (!document.startViewTransition || prefersReducedMotion.current) {
+			update();
+			return;
+		}
+		// Name the row (or the header) before the old state is captured.
+		morphId = id;
+		flushSync();
+		const root = document.documentElement;
+		root.dataset.vt = kind;
+		const vt = document.startViewTransition(() => {
+			update();
+			flushSync();
+		});
+		vt.ready.catch(() => {});
+		vt.finished
+			.catch(() => {})
+			.finally(() => {
+				delete root.dataset.vt;
+				morphId = null;
+			});
+	}
 	// The list URL, keeping a `?tab=` the page was opened with so the detail does not reset the tab.
 	const listHref = (item?: string) => {
 		const query = [
@@ -249,7 +285,13 @@
 	// The selection follows `?item=`: a deep link, or Back/Forward between details.
 	afterNavigate(() => {
 		const id = page.url.searchParams.get('item');
-		if (!id) dismissed = null;
+		if (id) opening = null;
+		else dismissed = null;
+		if (id && closeOnLand) {
+			closeOnLand = false;
+			closePhone();
+			return;
+		}
 		if (!id || id === currentId) return;
 		const item = pool.find((i) => i.followUpId === id);
 		if (!item) return;
@@ -260,8 +302,21 @@
 		if (tablet.current && !wide.current) sheetOpen = true;
 	});
 
-	function closePhone() {
-		dismissed = urlItem;
+	function closePhone(morph = false) {
+		const id = detailId;
+		// The View Transition runs this a frame later; by then the navigation may have landed
+		// (afterNavigate cleared the flags), and a stale `dismissed` would hide a later Forward.
+		const hide = () => {
+			opening = null;
+			if (urlItem === id) dismissed = id;
+		};
+		if (morph && id) withMorph('close', id, hide);
+		else hide();
+		// The push has not landed yet: there is no entry to go back from until it does.
+		if (urlItem === null) {
+			closeOnLand = pushed;
+			return;
+		}
 		if (pushed) {
 			pushed = false;
 			history.back();
@@ -297,7 +352,13 @@
 		}
 		// Stepping inside the open phone detail replaces the entry, so Back still means "list".
 		const replace = urlItem !== null;
-		if (!replace) pushed = true;
+		if (!replace) {
+			pushed = true;
+			// Only while the URL has not caught up (the push can land before the morph's update).
+			withMorph('open', item.followUpId, () => {
+				if (urlItem !== item.followUpId) opening = item.followUpId;
+			});
+		}
 		// eslint-disable-next-line svelte/no-navigation-without-resolve -- listHref() wraps resolve()
 		void goto(listHref(item.followUpId), { replace, reset: false });
 	}
@@ -503,6 +564,7 @@
 						{section}
 						open
 						animate={!query && listMotion}
+						morph={rowMorph}
 						rows={visibleRows(section)}
 						hiddenCount={hiddenRows(section)}
 						ontoggle={undefined}
@@ -612,7 +674,13 @@
 	<section
 		class="fixed inset-x-0 top-0 bottom-[calc(72px+env(safe-area-inset-bottom))] z-20 flex flex-col bg-card md:hidden"
 		aria-label={selected.customer.name}
-		transition:fly={{ x: 48, opacity: 0, duration: motionMs(DURATION.base), easing: EASE }}
+		style:view-transition-name="queue-detail"
+		transition:fly={{
+			x: 48,
+			opacity: 0,
+			duration: motionMs(DURATION.base, morphId === null),
+			easing: EASE
+		}}
 	>
 		<div class="flex min-h-14 shrink-0 items-center gap-1 border-b border-rule pr-3 pl-1">
 			<!-- Opening the detail moves focus here, so keyboard and screen-reader users land in it. -->
@@ -620,7 +688,7 @@
 				type="button"
 				class="grid size-11 shrink-0 place-items-center rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring"
 				aria-label={m.back()}
-				onclick={closePhone}
+				onclick={() => closePhone(true)}
 				{@attach (el) => el.focus()}
 			>
 				<ChevronLeftIcon class="size-[22px]" aria-hidden="true" />
@@ -638,6 +706,7 @@
 						onleave={leave}
 						onsent={cardSent}
 						stickySend
+						morph={morphId === selected.followUpId && phoneDetail}
 					/>
 				</div>
 			{/key}

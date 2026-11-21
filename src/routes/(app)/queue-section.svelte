@@ -28,6 +28,7 @@
 		rules,
 		selectedId,
 		onselect,
+		morph = null,
 		animate = true
 	}: {
 		section: Section;
@@ -40,6 +41,8 @@
 		rules: PageData['rules'];
 		selectedId: string | null;
 		onselect: (item: QueueRowItem) => void;
+		/** The row taking part in the phone detail's morph, and its part (see QueueRow). */
+		morph?: { id: string; mode: 'shared' | 'hidden' } | null;
 		/** Off while the list is being filtered, so typing does not set every row in motion. */
 		animate?: boolean;
 	} = $props();
@@ -84,6 +87,7 @@
 					{today}
 					{rules}
 					selected={item.followUpId === selectedId}
+					morph={morph?.id === item.followUpId ? morph.mode : null}
 					onselect={() => onselect(item)}
 				/>
 			</div>

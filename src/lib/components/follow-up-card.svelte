@@ -38,6 +38,7 @@
 		onundo,
 		onsent,
 		onleave,
+		morph = false,
 		stickySend = false
 	}: {
 		item: QueueRowItem;
@@ -54,6 +55,8 @@
 		 * `settled` resolves when the save is over, either way.
 		 */
 		onleave?: (followUpId: string, settled: Promise<void>) => void;
+		/** Phone detail: the header's avatar and name are the ends of the row's morph. */
+		morph?: boolean;
 		/** Phone detail: the send sits in a bar pinned to the bottom instead of under the message. */
 		stickySend?: boolean;
 	} = $props();
@@ -141,10 +144,14 @@
 			<InitialsAvatar
 				name={item.customer.name}
 				size={48}
+				vtName={morph ? 'queue-avatar' : undefined}
 				class="bg-avatar text-[17px] font-extrabold text-avatar-foreground"
 			/>
 			<div class="min-w-0 flex-1">
-				<h2 class="text-lg leading-[22px] font-bold tracking-[-0.01em] break-words">
+				<h2
+					class="text-lg leading-[22px] font-bold tracking-[-0.01em] break-words"
+					style:view-transition-name={morph ? 'queue-name' : undefined}
+				>
 					{item.customer.name}
 				</h2>
 				<p class="mt-0.5 text-ui text-muted-foreground num">

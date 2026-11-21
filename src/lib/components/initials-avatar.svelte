@@ -19,8 +19,16 @@
 		name,
 		size = 36,
 		mdSize,
+		vtName,
 		class: className
-	}: { name: string; size?: Size; mdSize?: Size; class?: string } = $props();
+	}: {
+		name: string;
+		size?: Size;
+		mdSize?: Size;
+		/** A `view-transition-name`, for an avatar that morphs into another (the queue detail). */
+		vtName?: string;
+		class?: string;
+	} = $props();
 
 	// `mdSize` sets the size from `md` up; `size` applies below it.
 	const sizeClasses = $derived(
@@ -36,5 +44,6 @@
 		sizeClasses,
 		className
 	)}
+	style:view-transition-name={vtName}
 	aria-hidden="true">{initialsOf(name)}</span
 >
