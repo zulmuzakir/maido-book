@@ -102,10 +102,11 @@
 	const templateTabLabel = (kind: (typeof FOLLOW_UP_KINDS)[number]) =>
 		kind === 'closing' ? m.settings_kind_closing() : followUpKindLabel(kind);
 
-	// One shared pending flag per form group; every submit carries the current values.
-	const productAction = new FormAction();
-	const rulesAction = new FormAction();
-	const templatesAction = new FormAction();
+	// One shared pending flag per form group; every submit carries the current values. A success
+	// must not reset the <form>: hydrated inputs have no default value, so a reset would blank them.
+	const productAction = new FormAction(({ update }) => update({ reset: false }));
+	const rulesAction = new FormAction(({ update }) => update({ reset: false }));
+	const templatesAction = new FormAction(({ update }) => update({ reset: false }));
 
 	type SectionId = 'products' | 'rules' | 'templates' | 'data';
 	const sections: { id: SectionId; label: () => string; icon: typeof Receipt }[] = [

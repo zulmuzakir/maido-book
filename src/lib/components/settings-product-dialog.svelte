@@ -15,7 +15,9 @@
 	} = $props();
 
 	const save = new FormAction(async ({ result, update }) => {
-		await update();
+		// No reset: hydrated inputs have no default value, so a reset would blank the fields while the
+		// dialog closes. The content unmounts on close and reopens with fresh defaults.
+		await update({ reset: false });
 		if (result.type === 'success') open = false;
 	});
 </script>
