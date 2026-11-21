@@ -104,10 +104,6 @@ export function toQueue(
 	return out;
 }
 
-export async function getQueue(db: Db, today: string): Promise<Record<QueueBucket, QueueItem[]>> {
-	return toQueue(await queueQuery(db, today), today);
-}
-
 /**
  * The queue's "Perlu dihubungi" count: follow-ups due today or earlier and not yet sent (win-backs
  * wait in their own fold), plus messages left without a reply for `retryDays` calendar days.

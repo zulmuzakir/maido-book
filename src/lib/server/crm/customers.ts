@@ -184,11 +184,15 @@ export function toCustomerList(
 	};
 }
 
-export async function customerCountsByStatus(db: Db): Promise<Record<CustomerStatus, number>> {
-	const rows = await db
+export const customerStatusCountsQuery = (db: Db) =>
+	db
 		.select({ status: customer.status, n: sql<number>`count(*)` })
 		.from(customer)
 		.groupBy(customer.status);
+
+export function toCustomerStatusCounts(
+	rows: Awaited<ReturnType<typeof customerStatusCountsQuery>>
+): Record<CustomerStatus, number> {
 	const out: Record<CustomerStatus, number> = { lead: 0, active: 0, dormant: 0 };
 	for (const r of rows) out[r.status] = r.n;
 	return out;

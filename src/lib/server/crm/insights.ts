@@ -4,8 +4,8 @@ import { activity, customerOrder, followUp } from '#lib/server/db/schema.ts';
 import { addDays, monthKey, monthStart, nextMonthStart } from '#lib/domain/dates.ts';
 import { supplyStatus } from '#lib/domain/follow-up.ts';
 import type { FollowUpOutcome } from '#lib/domain/types.ts';
-import { customerCountsByStatus } from './customers.ts';
-import { getQueue } from './follow-ups.ts';
+import { customerStatusCountsQuery, toCustomerStatusCounts } from './customers.ts';
+import { queueQuery, toQueue } from './follow-ups.ts';
 
 /** An order counts toward the conversion if its customer got a WhatsApp message in the 14 days
  * up to and including its order date (Asia/Jakarta). */
@@ -33,33 +33,39 @@ export async function getInsights(db: Db, today: string, month: string) {
 	for (let i = 0; i <= 5; i++) months.push(monthKey(shiftMonth(anchor, -i)));
 	const oldest = months[months.length - 1];
 
+	// Orders per buyer, for the repeat-customer rate.
+	const perBuyer = db
+		.select({ c: sql<number>`count(*)`.as('c') })
+		.from(customerOrder)
+		.groupBy(customerOrder.customerId)
+		.as('per_buyer');
+
+	// One D1 round trip for the whole page.
 	const [
-		queue,
-		monthRow,
-		previousRow,
-		repeatRow,
-		convertedRow,
-		custRows,
-		contactRow,
+		queueRows,
+		monthRows,
+		previousRows,
+		repeatRows,
+		convertedRows,
+		buyerRows,
+		contactRows,
 		outcomeRows,
-		byStatus,
+		statusRows,
 		history,
 		dailyRows
-	] = await Promise.all([
-		getQueue(db, today),
+	] = await db.batch([
+		queueQuery(db, today),
 		db
 			.select({
 				n: sql<number>`count(*)`,
 				revenue: sql<number>`coalesce(sum(${customerOrder.totalPaid}), 0)`
 			})
 			.from(customerOrder)
-			.where(inMonth)
-			.get(),
+			.where(inMonth),
 		db
 			.select({ revenue: sql<number>`coalesce(sum(${customerOrder.totalPaid}), 0)` })
 			.from(customerOrder)
-			.where(and(gte(customerOrder.orderDate, prevStart), lt(customerOrder.orderDate, start)))
-			.get(),
+			.where(and(gte(customerOrder.orderDate, prevStart), lt(customerOrder.orderDate, start))),
 		db
 			.select({ n: sql<number>`count(*)` })
 			.from(customerOrder)
@@ -68,8 +74,7 @@ export async function getInsights(db: Db, today: string, month: string) {
 					inMonth,
 					sql`exists (select 1 from customer_order o2 where o2.customer_id = ${customerOrder.customerId} and (o2.order_date < ${customerOrder.orderDate} or (o2.order_date = ${customerOrder.orderDate} and o2.created_at < ${customerOrder.createdAt})))`
 				)
-			)
-			.get(),
+			),
 		db
 			.select({ n: sql<number>`count(*)` })
 			.from(customerOrder)
@@ -79,12 +84,13 @@ export async function getInsights(db: Db, today: string, month: string) {
 					// created_at is epoch ms; 25200 s shifts UTC midnight to Jakarta midnight.
 					sql`exists (select 1 from activity a where a.customer_id = ${customerOrder.customerId} and a.type = 'wa_sent' and a.created_at >= (unixepoch(${customerOrder.orderDate}, ${`-${CONVERSION_WINDOW_DAYS} days`}) - 25200) * 1000 and a.created_at < (unixepoch(${customerOrder.orderDate}, '+1 day') - 25200) * 1000)`
 				)
-			)
-			.get(),
+			),
 		db
-			.select({ c: sql<number>`count(*)` })
-			.from(customerOrder)
-			.groupBy(customerOrder.customerId),
+			.select({
+				buyers: sql<number>`count(*)`,
+				repeaters: sql<number>`coalesce(sum(${perBuyer.c} >= 2), 0)`
+			})
+			.from(perBuyer),
 		db
 			.select({ n: sql<number>`count(*)` })
 			.from(activity)
@@ -94,8 +100,7 @@ export async function getInsights(db: Db, today: string, month: string) {
 					gte(activity.createdAt, startMs),
 					lt(activity.createdAt, endMs)
 				)
-			)
-			.get(),
+			),
 		db
 			.select({ outcome: followUp.outcome, n: sql<number>`count(*)` })
 			.from(followUp)
@@ -107,7 +112,7 @@ export async function getInsights(db: Db, today: string, month: string) {
 				)
 			)
 			.groupBy(followUp.outcome),
-		customerCountsByStatus(db),
+		customerStatusCountsQuery(db),
 		db
 			.select({
 				month: sql<string>`substr(${customerOrder.orderDate}, 1, 7)`,
@@ -127,6 +132,16 @@ export async function getInsights(db: Db, today: string, month: string) {
 			.groupBy(customerOrder.orderDate)
 	]);
 
+	const queue = toQueue(queueRows, today);
+	const byStatus = toCustomerStatusCounts(statusRows);
+	const [monthRow] = monthRows;
+	const [previousRow] = previousRows;
+	const [repeatRow] = repeatRows;
+	const [convertedRow] = convertedRows;
+	const [contactRow] = contactRows;
+	const buyers = buyerRows[0]?.buyers ?? 0;
+	const repeaters = buyerRows[0]?.repeaters ?? 0;
+
 	const outcomes: Record<FollowUpOutcome, number> = {
 		ordered: 0,
 		interested: 0,
@@ -135,8 +150,6 @@ export async function getInsights(db: Db, today: string, month: string) {
 		not_interested: 0
 	};
 	for (const r of outcomeRows) if (r.outcome) outcomes[r.outcome] = r.n;
-	const buyers = custRows.length;
-	const repeaters = custRows.filter((r) => r.c >= 2).length;
 	const byMonth = new Map(history.map((h) => [h.month, h]));
 
 	// one bar per day, zero-filled, up to the last day of the month or today
