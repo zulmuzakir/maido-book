@@ -1,5 +1,6 @@
 <script lang="ts">
 	import CalendarIcon from '@lucide/svelte/icons/calendar';
+	import { openDatePicker } from '#lib/date-picker.ts';
 	import { formatDate, isIsoDate } from '#lib/domain/dates.ts';
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import { cn } from '#lib/utils.js';
@@ -54,6 +55,7 @@
 		{max}
 		{required}
 		bind:value
+		onclick={openDatePicker}
 		aria-label={label}
 		aria-invalid={invalid ? 'true' : undefined}
 		aria-describedby={describedby || undefined}

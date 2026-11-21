@@ -5,6 +5,7 @@
 	import { toast } from 'svelte-sonner';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
+	import { openDatePicker } from '#lib/date-picker.ts';
 	import { addDays, formatDate } from '#lib/domain/dates.ts';
 	import { fieldError } from '#lib/labels.ts';
 	import { FormAction } from '#lib/form-action.svelte.ts';
@@ -90,6 +91,7 @@
 		<Input
 			type="date"
 			bind:value={snoozeDate}
+			onclick={openDatePicker}
 			min={minDate}
 			aria-label={m.today_snooze_date()}
 			aria-invalid={errors.dueDate ? true : undefined}
