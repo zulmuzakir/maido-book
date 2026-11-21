@@ -27,12 +27,16 @@
 				: m.error_page_body()
 	);
 
+	// The app shell passes its own retry when it caught an offline navigation (it repeats that
+	// navigation); error pages reload the current one.
+	let { onretry = invalidateAll }: { onretry?: () => Promise<unknown> } = $props();
+
 	let retrying = $state(false);
 
 	async function retry() {
 		retrying = true;
 		try {
-			await invalidateAll();
+			await onretry();
 		} catch {
 			// A failed retry keeps the current view; the user can try again.
 		} finally {
