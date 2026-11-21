@@ -127,7 +127,9 @@ SELECT
 	CASE WHEN i BETWEEN 31 AND 36
 		THEN (cast(unixepoch('now', '-' || ((i - 31) * 18 + 2) || ' hours') AS integer) * 1000) END,
 	'open',
-	o.id,
+	-- order_id marks a follow-up closed by an order (orders.ts); an open one has none, or the
+	-- queue's "Urungkan" refuses to undo its outcome.
+	NULL,
 	o.created_at
 FROM n JOIN customer_order o ON o.id = 'seed_o' || printf('%03d', i) || '_0';
 
