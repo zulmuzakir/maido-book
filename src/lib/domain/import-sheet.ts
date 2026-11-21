@@ -18,7 +18,8 @@ export interface ImportRow {
 	plan: ImportPlan;
 }
 
-const HEADERS = {
+/** Headers the Customer sheet is matched on, lowercased (cells are trimmed and lowercased). */
+export const HEADERS = {
 	name: 'nama customer',
 	phone: 'no. wa',
 	productName: 'produk',
@@ -29,6 +30,18 @@ const HEADERS = {
 	notes: 'catatan'
 } as const;
 type Field = keyof typeof HEADERS;
+
+/** The same headers as written in the downloadable template, in its column order. */
+export const TEMPLATE_HEADERS = {
+	name: 'Nama Customer',
+	phone: 'No. WA',
+	productName: 'Produk',
+	qty: 'Qty',
+	dosePerDay: 'Pola Minum',
+	lastOrderDate: 'Tgl Order Terakhir',
+	lastAction: 'Last Action',
+	notes: 'Catatan'
+} as const satisfies Record<Field, string>;
 
 /** Server-side limits for imported rows. Cells are fitted to them here so one oversized cell
  * cannot reject the whole import. */

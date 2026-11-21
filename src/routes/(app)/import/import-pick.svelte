@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { asset } from '$app/paths';
+	import Download from '@lucide/svelte/icons/download';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import TriangleAlert from '@lucide/svelte/icons/triangle-alert';
 	import Upload from '@lucide/svelte/icons/upload';
@@ -19,6 +21,10 @@
 	} = $props();
 
 	let dragging = $state(false);
+
+	const TEMPLATE_HREF = asset('templates/maido-book-import.xlsx');
+	const LINK =
+		'inline-flex min-h-11 items-center gap-1.5 rounded-sm text-[13.5px] leading-[18px] font-semibold text-primary-text outline-none hover:underline focus-visible:ring-3 focus-visible:ring-ring md:min-h-0 md:py-1';
 
 	function onPick(event: Event) {
 		const input = event.currentTarget as HTMLInputElement;
@@ -56,6 +62,13 @@
 					})}
 				{:else}
 					{m.import_no_rows({ sheet: problem.sheet })}
+				{/if}
+				{#if problem.kind === 'missing' || problem.kind === 'empty'}
+					{m.import_template_fix()}
+					<a href={TEMPLATE_HREF} download class={LINK}>
+						<Download class="size-4" aria-hidden="true" />
+						{m.import_template_download()}
+					</a>
 				{/if}
 			</span>
 		</div>
@@ -100,4 +113,13 @@
 		</span>
 		<input class="sr-only" type="file" accept=".xlsx" disabled={reading} onchange={onPick} />
 	</label>
+	<p
+		class="-mt-2 flex flex-wrap items-center justify-center gap-x-2 text-sm leading-5 text-muted-foreground"
+	>
+		{m.import_template_prompt()}
+		<a href={TEMPLATE_HREF} download class={LINK}>
+			<Download class="size-4" aria-hidden="true" />
+			{m.import_template_download()}
+		</a>
+	</p>
 </section>

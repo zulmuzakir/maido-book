@@ -52,6 +52,7 @@ flowchart LR
 | `src/lib/paraglide/`                      | **Generated** i18n runtime (gitignored)                                                                                                                    |
 | `messages/{id,en}.json`                   | Translation source of truth                                                                                                                                |
 | `drizzle/`                                | SQL migrations, applied by wrangler D1 (`migrations_dir`)                                                                                                  |
+| `static/templates/`                       | Import template `.xlsx` linked from `/import`, built by `pnpm template:build`; `import-template.test.ts` checks it against the parser                      |
 | `scripts/seed/local.sql`                  | Local demo data (`pnpm db:seed:local`). Idempotent, only touches ids starting with `seed_`, dates relative to today. Never run against the remote database |
 | `.agents/skills/`, `.claude/skills/`      | Vendored agent skills and their Claude Code symlinks (see Agent Skills)                                                                                    |
 | `DESIGN.md`, `PRODUCT.md`                 | Design system (colors, type, components) and product context. Read before UI work                                                                          |
@@ -76,6 +77,7 @@ pnpm db:migrate:local   # apply to local D1 (crm-db)
 pnpm db:migrate:remote  # apply to remote D1
 pnpm db:seed:local      # load scripts/seed/local.sql into local D1
 pnpm auth:schema        # regenerate src/lib/server/db/auth.schema.ts from auth config
+pnpm template:build     # rebuild the import template (after changing import headers, LAST_ACTIONS or limits)
 pnpm paraglide          # recompile messages (the vite plugin also does this on dev/build)
 ```
 

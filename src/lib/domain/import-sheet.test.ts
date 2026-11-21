@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { IMPORT_LIMITS, mapCustomerSheet } from './import-sheet.ts';
+import { HEADERS, IMPORT_LIMITS, mapCustomerSheet, TEMPLATE_HEADERS } from './import-sheet.ts';
 
 const rules = { leadDays: 3, retryDays: 2, maxAttempts: 3, winbackDays: 30 };
 const header = [
@@ -13,6 +13,14 @@ const header = [
 	'Last Action ',
 	'Catatan'
 ];
+
+describe('TEMPLATE_HEADERS', () => {
+	it('matches the parsed headers', () => {
+		expect(Object.values(TEMPLATE_HEADERS).map((h) => h.toLowerCase())).toEqual(
+			Object.values(HEADERS)
+		);
+	});
+});
 
 describe('mapCustomerSheet', () => {
 	it('maps rows and flags issues', () => {

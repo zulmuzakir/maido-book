@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
 	daysOfSupply,
+	LAST_ACTIONS,
 	planAfterOutcome,
 	planImportedCustomer,
 	reorderDueDate
@@ -112,6 +113,21 @@ describe('planImportedCustomer', () => {
 	});
 	it('interested with order is closing too', () => {
 		expect(plan('Customer Berminat', '2026-10-30', 50, 2).followUp?.kind).toBe('closing');
+	});
+	it('every listed Last Action changes the plan in at least one case', () => {
+		const cases = [
+			[null, null, null],
+			['2026-10-30', 50, 2],
+			['2026-06-10', 50, 2]
+		] as const;
+		for (const action of LAST_ACTIONS) {
+			const changed = cases.some(
+				([date, qty, dose]) =>
+					JSON.stringify(plan(action, date, qty, dose)) !==
+					JSON.stringify(plan(null, date, qty, dose))
+			);
+			expect(changed, action).toBe(true);
+		}
 	});
 	it('not interested is dormant without follow-up', () => {
 		const p = plan('Customer Belum Berminat', null, null, null);

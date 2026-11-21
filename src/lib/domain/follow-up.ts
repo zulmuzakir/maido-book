@@ -84,6 +84,19 @@ export interface ImportPlan {
 	followUp: { kind: FollowUpKind; dueDate: string; contacted: boolean } | null;
 }
 
+/** The Excel "Last Action" values `planImportedCustomer()` understands, in display casing. Matching
+ * ignores case. The import template offers these as its dropdown. */
+export const LAST_ACTIONS = [
+	'Customer berminat',
+	'Menunggu balasan',
+	'Customer membalas',
+	'Follow up ulang',
+	'Sudah follow up',
+	'Closing / Order',
+	'Tidak ada respon',
+	'Customer belum berminat'
+] as const;
+
 export function planImportedCustomer(
 	a: {
 		lastAction: string | null;
