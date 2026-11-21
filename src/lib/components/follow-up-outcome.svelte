@@ -42,6 +42,7 @@
 		today,
 		rules,
 		choice = $bindable(null),
+		onleave,
 		onsaved,
 		onundo
 	}: {
@@ -50,6 +51,12 @@
 		rules: RuleSettings;
 		/** The picked result. The card hides its message and snooze while one is picked. */
 		choice?: ManualOutcome | null;
+		/**
+		 * Runs as the save goes out, so the page can take the customer out of the queue at once
+		 * instead of after the save and the reload. `settled` resolves when the save is over, either
+		 * way; a failed save then brings the row back.
+		 */
+		onleave?: (settled: Promise<void>) => void;
 		/** Reports a successful save so the page keeps this customer open. */
 		onsaved?: (result: SavedOutcome) => void;
 		/** Runs once an undo from the toast has finished and the customer is back in the queue. */
@@ -116,6 +123,8 @@
 						// Wait for the reload, so the restored customer is back in the list before the page
 						// lets go of the saved card; otherwise the selection jumps to a neighbour.
 						onClick: async () => {
+							// The page may still be hiding the row while the reload runs.
+							save.settle();
 							await undoFollowUp('undoOutcome', u);
 							onundo?.();
 						}
@@ -136,7 +145,12 @@
 	});
 </script>
 
-<form method="post" action="?/outcome" use:enhance={save.enhance} class="flex flex-col">
+<form
+	method="post"
+	action="?/outcome"
+	use:enhance={save.optimistic((settled) => onleave?.(settled))}
+	class="flex flex-col"
+>
 	<input type="hidden" name="followUpId" value={item.followUpId} />
 	<fieldset class="flex flex-col gap-3 border-t border-rule px-6 py-[18px]">
 		<legend class="float-left mb-3 text-ui font-semibold text-foreground">
@@ -185,10 +199,12 @@
 
 	{#if choice}
 		{@const hint = hintFor(choice)}
-		<!-- Slides open as the card's message folds away. No exit: cancelling must not wait. -->
+		<!-- Slides open as the card's message folds away, and folds shut on Batal while the message
+		     slides back: removing it in one frame would shrink the page and snap the scroll by the
+		     whole block. Neither direction blocks input. -->
 		<div
 			class="flex flex-col gap-3 border-t border-rule px-6 py-[18px]"
-			in:slide={{ duration: motionMs(DURATION.base), easing: EASE }}
+			transition:slide={{ duration: motionMs(DURATION.base), easing: EASE }}
 		>
 			{#if hint}
 				<p
@@ -261,8 +277,11 @@
 			</div>
 		</div>
 
-		<!-- Pinned to the bottom of the panel (or sheet) while the result is being filled in. -->
+		<!-- Pinned to the bottom of the panel (or sheet) while the result is being filled in. Folds
+		     with the details above: left alone, it would stay until their exit ends and then drop out
+		     in one frame. -->
 		<div
+			transition:slide={{ duration: motionMs(DURATION.base), easing: EASE }}
 			class="sticky bottom-0 z-10 flex gap-2 border-t border-rule bg-card px-6 py-3.5 shadow-[0_-6px_16px_color-mix(in_oklch,var(--shadow-tint)_5%,transparent)]"
 		>
 			<Button
