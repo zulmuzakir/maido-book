@@ -463,17 +463,14 @@
 					next={data.upcoming[0]}
 				/>
 			{:else}
-				<div class="m-auto flex max-w-[260px] flex-col items-center gap-1.5 text-center">
-					<span
-						class="mb-2 grid size-[52px] place-items-center rounded-full bg-avatar text-avatar-foreground"
-					>
-						<TextAlignStartIcon class="size-[22px]" aria-hidden="true" />
-					</span>
-					<p class="text-[15px] leading-5 font-semibold text-foreground">
-						{m.queue_select_title()}
-					</p>
-					<p class="text-sm leading-5 text-muted-foreground">{m.queue_select_hint()}</p>
-				</div>
+				<EmptyState
+					icon={TextAlignStartIcon}
+					tone="brand"
+					size="sm"
+					title={m.queue_select_title()}
+					description={m.queue_select_hint()}
+					class="m-auto max-w-[300px]"
+				/>
 			{/if}
 		</aside>
 	{/if}

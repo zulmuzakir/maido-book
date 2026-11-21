@@ -3,13 +3,13 @@
 	import { resolve } from '$app/paths';
 	import { untrack } from 'svelte';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
-	import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
 	import ReceiptIcon from '@lucide/svelte/icons/receipt';
 	import RotateCcwIcon from '@lucide/svelte/icons/rotate-ccw';
 	import SettingsIcon from '@lucide/svelte/icons/settings';
 	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 	import WifiOffIcon from '@lucide/svelte/icons/wifi-off';
 	import DateField from '#lib/components/date-field.svelte';
+	import EmptyState from '#lib/components/empty-state.svelte';
 	import DoseField from '#lib/components/dose-field.svelte';
 	import FieldError from '#lib/components/field-error.svelte';
 	import FormActions from '#lib/components/form-actions.svelte';
@@ -20,6 +20,7 @@
 	import { FormAction } from '#lib/form-action.svelte.ts';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
+	import { Spinner } from '#lib/components/ui/spinner/index.js';
 	import * as InputGroup from '#lib/components/ui/input-group/index.js';
 	import * as NativeSelect from '#lib/components/ui/native-select/index.js';
 	import { Textarea } from '#lib/components/ui/textarea/index.js';
@@ -154,22 +155,22 @@
 	<div class="px-4 pt-3 pb-6 md:px-6 md:pt-7">
 		{#if data.products.length === 0}
 			<section
-				class="mx-auto flex max-w-[560px] flex-col items-center gap-3 rounded-[12px] bg-background px-6 py-8 text-center shadow-[inset_0_0_0_1px_var(--rule)]"
+				class="mx-auto max-w-[560px] rounded-[12px] bg-background shadow-[inset_0_0_0_1px_var(--rule)]"
 			>
-				<span
-					class="grid size-12 place-items-center rounded-full bg-avatar text-primary-text"
-					aria-hidden="true"
+				<EmptyState
+					icon={ReceiptIcon}
+					tone="brand"
+					size="sm"
+					title={m.order_no_products_title()}
+					description={m.order_no_products()}
 				>
-					<ReceiptIcon class="size-[22px]" />
-				</span>
-				<h2 class="text-[17px] leading-[22px] font-bold">{m.order_no_products_title()}</h2>
-				<p class="max-w-[400px] text-sm leading-[21px] text-muted-foreground">
-					{m.order_no_products()}
-				</p>
-				<Button href={resolve('/(app)/settings')} class="mt-2 font-semibold">
-					<SettingsIcon class="size-[18px]" aria-hidden="true" />
-					{m.order_no_products_action()}
-				</Button>
+					{#snippet actions()}
+						<Button href={resolve('/(app)/settings')}>
+							<SettingsIcon class="size-[18px]" aria-hidden="true" />
+							{m.order_no_products_action()}
+						</Button>
+					{/snippet}
+				</EmptyState>
 			</section>
 		{:else}
 			<form
@@ -352,7 +353,7 @@
 					{/snippet}
 					<Button size="lg" type="submit" disabled={save.pending}>
 						{#if save.pending}
-							<LoaderCircleIcon class="size-4 animate-spin" aria-hidden="true" />
+							<Spinner data-icon="inline-start" />
 							{m.saving()}
 						{:else if save.networkFailed}
 							<RotateCcwIcon class="size-4" aria-hidden="true" />

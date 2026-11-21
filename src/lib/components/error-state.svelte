@@ -55,15 +55,15 @@
 >
 	<span
 		class={[
-			'grid size-16 place-items-center rounded-full',
+			'grid size-[72px] place-items-center rounded-full',
 			notFound ? 'bg-secondary text-muted-foreground' : 'bg-alert text-status-overdue'
 		]}
 		aria-hidden="true"
 	>
-		<Icon class="size-6" />
+		<Icon class="size-[30px]" />
 	</span>
 	<div class="flex max-w-[300px] flex-col items-center gap-1.5">
-		<h2 class="text-xl leading-6 font-bold tracking-[-0.02em]">{title}</h2>
+		<h2 class="text-[21px] leading-[26px] font-bold tracking-[-0.015em]">{title}</h2>
 		<p class="text-[15px] leading-[22px] text-muted-foreground">{description}</p>
 	</div>
 	<div class="flex w-full flex-col items-stretch gap-2 md:w-auto md:flex-row md:items-center">
