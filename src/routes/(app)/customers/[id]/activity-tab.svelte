@@ -18,6 +18,8 @@
 	import { firstName, formatRupiah } from '#lib/format.ts';
 	import { fieldError, outcomeLabel } from '#lib/labels.ts';
 	import { m } from '#lib/paraglide/messages.js';
+	import { DURATION, EASE, motionMs } from '#lib/motion.ts';
+	import { slide } from 'svelte/transition';
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import { cn } from '#lib/utils.js';
 	import type { ActionData, PageData } from './$types';
@@ -173,48 +175,52 @@
 		{#if activities.length === 0}
 			<p class="pt-4 text-sm text-muted-foreground">{m.customer_no_activity()}</p>
 		{:else}
+			<!-- A new note (or a send, an order) slides into the list; the list it opens with does not. -->
 			{#each days as group (group.day)}
-				<h3 class="pt-3.5 pb-1.5 text-[13px] leading-4 font-bold text-avatar-foreground num">
-					{dayLabel(group.day)}
-				</h3>
-				<ol>
-					{#each group.items as a (a.id)}
-						{@const Icon = icons[a.type]}
-						{@const meta = activityMeta(a)}
-						<li
-							class="grid grid-cols-[36px_minmax(0,1fr)_auto] items-start gap-x-3 border-b border-rule py-2.5"
-						>
-							<span
-								class="flex size-9 items-center justify-center rounded-full bg-avatar text-primary-text"
+				<div in:slide={{ duration: motionMs(DURATION.base), easing: EASE }}>
+					<h3 class="pt-3.5 pb-1.5 text-[13px] leading-4 font-bold text-avatar-foreground num">
+						{dayLabel(group.day)}
+					</h3>
+					<ol>
+						{#each group.items as a (a.id)}
+							{@const Icon = icons[a.type]}
+							{@const meta = activityMeta(a)}
+							<li
+								class="grid grid-cols-[36px_minmax(0,1fr)_auto] items-start gap-x-3 border-b border-rule py-2.5"
+								in:slide={{ duration: motionMs(DURATION.base), easing: EASE }}
 							>
-								<Icon class="size-[17px]" aria-hidden="true" />
-							</span>
-							<div class="flex min-h-9 min-w-0 flex-col justify-center">
-								<p class="text-[14.5px] leading-5 font-semibold">{activityText(a)}</p>
-								{#if a.body && a.type !== 'snooze' && a.type !== 'scheduled'}
-									<p
-										class="mt-0.5 line-clamp-3 text-sm break-words whitespace-pre-line text-muted-foreground"
-									>
-										{a.body}
-									</p>
-								{/if}
-								{#if meta}
-									<p class="mt-0.5 text-[13px] leading-[18px] text-muted-foreground">{meta}</p>
-								{/if}
-							</div>
-							{#if group.day === today}
-								<time
-									datetime={a.createdAt.toISOString()}
-									class="pt-2 text-[13px] text-muted-foreground num"
+								<span
+									class="flex size-9 items-center justify-center rounded-full bg-avatar text-primary-text"
 								>
-									{timeFmt.format(a.createdAt)}
-								</time>
-							{:else}
-								<span></span>
-							{/if}
-						</li>
-					{/each}
-				</ol>
+									<Icon class="size-[17px]" aria-hidden="true" />
+								</span>
+								<div class="flex min-h-9 min-w-0 flex-col justify-center">
+									<p class="text-[14.5px] leading-5 font-semibold">{activityText(a)}</p>
+									{#if a.body && a.type !== 'snooze' && a.type !== 'scheduled'}
+										<p
+											class="mt-0.5 line-clamp-3 text-sm break-words whitespace-pre-line text-muted-foreground"
+										>
+											{a.body}
+										</p>
+									{/if}
+									{#if meta}
+										<p class="mt-0.5 text-[13px] leading-[18px] text-muted-foreground">{meta}</p>
+									{/if}
+								</div>
+								{#if group.day === today}
+									<time
+										datetime={a.createdAt.toISOString()}
+										class="pt-2 text-[13px] text-muted-foreground num"
+									>
+										{timeFmt.format(a.createdAt)}
+									</time>
+								{:else}
+									<span></span>
+								{/if}
+							</li>
+						{/each}
+					</ol>
+				</div>
 			{/each}
 			{#if truncated}
 				<p class="mt-3 text-ui leading-[18px] text-muted-foreground">

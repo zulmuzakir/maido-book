@@ -44,7 +44,7 @@
 	rel={external ? 'noopener' : undefined}
 	aria-label={label}
 	class={cn(
-		'inline-flex size-11 shrink-0 items-center justify-center gap-2 rounded-lg border transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring aria-disabled:opacity-45',
+		'inline-flex size-11 shrink-0 items-center justify-center gap-2 rounded-lg border transition-[color,background-color,border-color,scale] duration-(--motion-fast) outline-none focus-visible:ring-3 focus-visible:ring-ring active:scale-95 aria-disabled:opacity-45 aria-disabled:active:scale-100',
 		text
 			? filled
 				? 'border-whatsapp bg-whatsapp text-whatsapp-foreground hover:bg-[color-mix(in_oklch,var(--whatsapp),var(--foreground)_18%)]'

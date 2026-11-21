@@ -13,6 +13,9 @@
 	import { supplySteps } from '#lib/domain/supply.ts';
 	import { formatRupiah } from '#lib/format.ts';
 	import { m } from '#lib/paraglide/messages.js';
+	import { DURATION, EASE, motionMs } from '#lib/motion.ts';
+	import { flip } from 'svelte/animate';
+	import { slide } from 'svelte/transition';
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import { cn } from '#lib/utils.js';
 	import type { PageData } from './$types';
@@ -97,7 +100,12 @@
 		<ul>
 			{#each orders as o, i (o.id)}
 				{@const gap = gapBefore(i)}
-				<li class="{cols} min-h-16 border-b border-rule py-2.5 xl:min-h-14 xl:py-2">
+				<!-- A deleted order folds away and the rows below close the gap. -->
+				<li
+					class="{cols} min-h-16 border-b border-rule py-2.5 xl:min-h-14 xl:py-2"
+					animate:flip={{ duration: motionMs(DURATION.base), easing: EASE }}
+					out:slide={{ duration: motionMs(DURATION.base), easing: EASE }}
+				>
 					<span class="flex flex-col items-center leading-none num xl:hidden" aria-hidden="true">
 						<span class="text-[17px] leading-[22px] font-bold"
 							>{dayFmt.format(utc(o.orderDate))}</span

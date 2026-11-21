@@ -21,7 +21,9 @@
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Spinner } from '#lib/components/ui/spinner/index.js';
 	import { mapCustomerSheet, type ImportRow } from '#lib/domain/import-sheet.ts';
+	import { DURATION, EASE, motionMs } from '#lib/motion.ts';
 	import { m } from '#lib/paraglide/messages.js';
+	import { fade } from 'svelte/transition';
 	import { cn } from '#lib/utils.js';
 	import type { PageProps } from './$types';
 
@@ -217,43 +219,51 @@
 		<div class="flex min-w-0 flex-1 flex-col gap-5 xl:max-w-[760px]">
 			<ImportStepper {step} finished={step === 3 && !!outcome} />
 
-			{#if step === 3 && outcome}
-				<ImportDone {outcome} onreset={reset} />
-			{:else if step === 1}
-				<ImportPick {reading} {problem} onfile={readFile} />
-				{@render notes('import-notes-list', 'flex flex-col gap-2 xl:hidden')}
-			{:else if step === 2 && preview}
-				<form id="import-form" method="post" use:enhance={submitImport} hidden>
-					<input type="hidden" name="rows" value={payload} />
-					<input type="hidden" name="skippedExisting" value={counts.existing + counts.dup} />
-					<input type="hidden" name="skippedInvalid" value={counts.invalid} />
-				</form>
-
-				{#if tooMany}
-					<p role="alert" class={ALERT}>{m.import_too_many()}</p>
-				{/if}
-				{#if failureText}
-					<p role="alert" class={ALERT}>{failureText}</p>
-				{/if}
-
-				<ImportReview {preview} rows={classified} {counts} onchangefile={reset} />
-
-				<!-- Desktop: right-aligned under the table. -->
-				<div class="hidden justify-end gap-2.5 xl:flex">
-					{@render actionButtons('')}
-				</div>
-				<!-- Tablet: a sticky bar with the summary. Phone: Batal and Impor above the bottom nav. -->
+			<!-- Each step fades in. Opacity only: a transform would detach the fixed action bar. -->
+			{#key step}
 				<div
-					class="sticky bottom-[calc(72px+env(safe-area-inset-bottom))] z-10 -mx-4 flex items-center gap-2 border-t border-rule bg-card px-4 py-2.5 shadow-[0_-6px_16px_color-mix(in_oklch,var(--shadow-tint)_5%,transparent)] md:fixed md:inset-x-0 md:bottom-0 md:left-[84px] md:mx-0 md:gap-2.5 md:px-[max(24px,calc((100vw-84px-600px)/2))] md:py-3 xl:hidden"
+					class="flex flex-col gap-5"
+					in:fade={{ duration: motionMs(DURATION.base), easing: EASE }}
 				>
-					<p class="hidden flex-1 text-sm text-muted-foreground md:block">
-						{skippedCount
-							? m.import_review_summary({ count: skippedCount })
-							: m.import_review_summary_none()}
-					</p>
-					{@render actionButtons('md:h-11')}
+					{#if step === 3 && outcome}
+						<ImportDone {outcome} onreset={reset} />
+					{:else if step === 1}
+						<ImportPick {reading} {problem} onfile={readFile} />
+						{@render notes('import-notes-list', 'flex flex-col gap-2 xl:hidden')}
+					{:else if step === 2 && preview}
+						<form id="import-form" method="post" use:enhance={submitImport} hidden>
+							<input type="hidden" name="rows" value={payload} />
+							<input type="hidden" name="skippedExisting" value={counts.existing + counts.dup} />
+							<input type="hidden" name="skippedInvalid" value={counts.invalid} />
+						</form>
+
+						{#if tooMany}
+							<p role="alert" class={ALERT}>{m.import_too_many()}</p>
+						{/if}
+						{#if failureText}
+							<p role="alert" class={ALERT}>{failureText}</p>
+						{/if}
+
+						<ImportReview {preview} rows={classified} {counts} onchangefile={reset} />
+
+						<!-- Desktop: right-aligned under the table. -->
+						<div class="hidden justify-end gap-2.5 xl:flex">
+							{@render actionButtons('')}
+						</div>
+						<!-- Tablet: a sticky bar with the summary. Phone: Batal and Impor above the bottom nav. -->
+						<div
+							class="sticky bottom-[calc(72px+env(safe-area-inset-bottom))] z-10 -mx-4 flex items-center gap-2 border-t border-rule bg-card px-4 py-2.5 shadow-[0_-6px_16px_color-mix(in_oklch,var(--shadow-tint)_5%,transparent)] md:fixed md:inset-x-0 md:bottom-0 md:left-[84px] md:mx-0 md:gap-2.5 md:px-[max(24px,calc((100vw-84px-600px)/2))] md:py-3 xl:hidden"
+						>
+							<p class="hidden flex-1 text-sm text-muted-foreground md:block">
+								{skippedCount
+									? m.import_review_summary({ count: skippedCount })
+									: m.import_review_summary_none()}
+							</p>
+							{@render actionButtons('md:h-11')}
+						</div>
+					{/if}
 				</div>
-			{/if}
+			{/key}
 		</div>
 
 		{@render notes(
