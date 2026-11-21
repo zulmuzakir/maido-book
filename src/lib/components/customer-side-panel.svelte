@@ -152,7 +152,7 @@
 		<div class="h-px bg-rule" aria-hidden="true"></div>
 		<h3 class="text-[13px] font-semibold">{m.customer_panel_after_save()}</h3>
 		<ol class="flex flex-col gap-2.5">
-			{#each [m.customer_panel_step_list(), m.customer_panel_step_order(), m.customer_panel_step_follow_up()] as step, i (i)}
+			{#each [m.customer_panel_step_list(), m.customer_panel_step_order(), m.customer_panel_step_follow_up()] as step, i (step)}
 				<li class="flex items-start gap-2.5 text-sm leading-5">
 					<span
 						class={cn(

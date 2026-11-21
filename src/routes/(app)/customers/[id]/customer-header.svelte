@@ -84,20 +84,20 @@
 				<DropdownMenu.Item>
 					{#snippet child({ props })}
 						<a href={editHref} {...props}>
-							<PencilIcon class="size-4" />
+							<PencilIcon aria-hidden="true" />
 							{m.customer_edit_title()}
 						</a>
 					{/snippet}
 				</DropdownMenu.Item>
 				<DropdownMenu.Item onSelect={copyPhone}>
-					<CopyIcon class="size-4" />
+					<CopyIcon aria-hidden="true" />
 					{m.customer_action_copy()}
 				</DropdownMenu.Item>
 			</DropdownMenu.Group>
 			<DropdownMenu.Separator />
 			<DropdownMenu.Group>
 				<DropdownMenu.Item variant="destructive" onSelect={() => (deleteOpen = true)}>
-					<Trash2Icon class="size-4" />
+					<Trash2Icon aria-hidden="true" />
 					{m.customer_delete()}
 				</DropdownMenu.Item>
 			</DropdownMenu.Group>

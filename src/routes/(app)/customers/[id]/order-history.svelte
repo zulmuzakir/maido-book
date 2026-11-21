@@ -31,15 +31,19 @@
 		class?: string;
 	} = $props();
 
-	const locale = getLocale() === 'id' ? 'id' : 'en';
-	const dayFmt = new Intl.DateTimeFormat(locale === 'id' ? 'id-ID' : 'en-GB', {
-		day: 'numeric',
-		timeZone: 'UTC'
-	});
-	const monthFmt = new Intl.DateTimeFormat(locale === 'id' ? 'id-ID' : 'en-GB', {
-		month: 'short',
-		timeZone: 'UTC'
-	});
+	const locale = $derived(getLocale() === 'id' ? 'id' : 'en');
+	const dayFmt = $derived(
+		new Intl.DateTimeFormat(locale === 'id' ? 'id-ID' : 'en-GB', {
+			day: 'numeric',
+			timeZone: 'UTC'
+		})
+	);
+	const monthFmt = $derived(
+		new Intl.DateTimeFormat(locale === 'id' ? 'id-ID' : 'en-GB', {
+			month: 'short',
+			timeZone: 'UTC'
+		})
+	);
 	const utc = (iso: string) => new Date(`${iso}T00:00:00Z`);
 	// Same grid for the desktop header row and every order row.
 	const cols =
@@ -151,7 +155,7 @@
 									})}
 									class="size-11 justify-self-end text-muted-foreground desk:size-10"
 								>
-									<EllipsisIcon class="size-4" />
+									<EllipsisIcon aria-hidden="true" />
 								</Button>
 							{/snippet}
 						</DropdownMenu.Trigger>
@@ -164,7 +168,7 @@
 										orderDeleteOpen = true;
 									}}
 								>
-									<Trash2Icon class="size-4" />
+									<Trash2Icon aria-hidden="true" />
 									{m.customer_order_delete()}
 								</DropdownMenu.Item>
 							</DropdownMenu.Group>

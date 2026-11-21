@@ -39,7 +39,7 @@
 		class?: string;
 	} = $props();
 
-	const locale = getLocale() === 'id' ? 'id' : 'en';
+	const locale = $derived(getLocale() === 'id' ? 'id' : 'en');
 
 	const act = $derived(form && 'action' in form ? form.action : null);
 	const formErrors = $derived(
@@ -119,12 +119,15 @@
 	}
 
 	const thisYear = $derived(today.slice(0, 4));
-	const timeFmt = new Intl.DateTimeFormat(locale === 'id' ? 'id-ID' : 'en-GB', {
-		hour: '2-digit',
-		minute: '2-digit',
-		hour12: false,
-		timeZone: 'Asia/Jakarta'
-	});
+	const timeFmt = $derived.by(
+		() =>
+			new Intl.DateTimeFormat(locale === 'id' ? 'id-ID' : 'en-GB', {
+				hour: '2-digit',
+				minute: '2-digit',
+				hour12: false,
+				timeZone: 'Asia/Jakarta'
+			})
+	);
 
 	/** Newest first, one group per Jakarta day. */
 	const days = $derived.by(() => {

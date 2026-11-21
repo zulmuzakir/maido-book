@@ -43,7 +43,7 @@
 		class?: string;
 	} = $props();
 
-	const locale = getLocale() === 'id' ? 'id' : 'en';
+	const locale = $derived(getLocale() === 'id' ? 'id' : 'en');
 
 	const act = $derived(form && 'action' in form ? form.action : null);
 	const formErrors = $derived(

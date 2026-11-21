@@ -25,11 +25,11 @@
 
 	const latest = $derived(orders[0] ?? null);
 	const gapInfo = $derived(gapSummary(supplyGaps(supplySteps(orders), today)));
-	const locale = getLocale() === 'id' ? 'id' : 'en';
+	const locale = $derived(getLocale() === 'id' ? 'id' : 'en');
 </script>
 
-<section class={cn(latest ? 'space-y-5' : 'space-y-3', className)}>
-	<div class="space-y-1">
+<section class={cn('flex flex-col', latest ? 'gap-5' : 'gap-3', className)}>
+	<div class="flex flex-col gap-1">
 		<h2 class="text-[17px] leading-[22px] font-bold">{m.customer_supply_title()}</h2>
 		{#if latest}
 			<p class="text-[13.5px] leading-5 text-muted-foreground">
@@ -55,7 +55,7 @@
 		{/if}
 	</div>
 	{#if latest}
-		<div class="space-y-2">
+		<div class="flex flex-col gap-2">
 			<SupplyChart {orders} {today} />
 			{#if gapInfo.count > 0}
 				<!-- Phone has no room for the hint's "Garis merah" sentence, so it reads the red line here. -->

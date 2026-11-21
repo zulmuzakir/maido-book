@@ -33,7 +33,7 @@
 
 <!-- Desktop: two columns. Tablet/phone: one. -->
 <div class="grid gap-x-4 gap-y-[18px] xl:grid-cols-2">
-	<div class="space-y-1.5">
+	<div class="flex flex-col gap-1.5">
 		<Label for="{idPrefix}-name" class={fieldLabel}>{m.settings_product_name()}</Label>
 		<Input
 			id="{idPrefix}-name"
@@ -49,7 +49,7 @@
 		<FieldError id="{idPrefix}-name-error" message={errors.name} />
 	</div>
 
-	<div class="space-y-1.5">
+	<div class="flex flex-col gap-1.5">
 		<Label for="{idPrefix}-unit" class={fieldLabel}>{m.settings_product_unit()}</Label>
 		<Input
 			id="{idPrefix}-unit"
@@ -65,7 +65,7 @@
 		<FieldError id="{idPrefix}-unitLabel-error" message={errors.unitLabel} />
 	</div>
 
-	<div class="space-y-1.5">
+	<div class="flex flex-col gap-1.5">
 		<Label for="{idPrefix}-servings" class={fieldLabel}>{m.settings_product_servings()}</Label>
 		<Input
 			id="{idPrefix}-servings"
@@ -80,7 +80,7 @@
 		<FieldError id="{idPrefix}-servingsPerUnit-error" message={errors.servingsPerUnit} />
 	</div>
 
-	<div class="space-y-1.5">
+	<div class="flex flex-col gap-1.5">
 		<Label for="{idPrefix}-price" class={fieldLabel}>{m.settings_product_price()}</Label>
 		<InputGroup.Root
 			class="h-11 overflow-hidden rounded-lg shadow-none has-[[aria-invalid=true]]:border-destructive has-[[aria-invalid=true]]:ring-3 has-[[aria-invalid=true]]:ring-alert desk:h-11"

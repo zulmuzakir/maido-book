@@ -66,12 +66,12 @@
 		<nav class="flex gap-2" aria-label={m.pagination_label()}>
 			{#if prevHref}
 				<Button variant="outline" class={PAGER_BUTTON} href={prevHref}>
-					<ChevronLeftIcon class="size-4" aria-hidden="true" />
+					<ChevronLeftIcon data-icon="inline-start" aria-hidden="true" />
 					{m.previous()}
 				</Button>
 			{:else}
 				<Button variant="outline" class={PAGER_BUTTON} disabled>
-					<ChevronLeftIcon class="size-4" aria-hidden="true" />
+					<ChevronLeftIcon data-icon="inline-start" aria-hidden="true" />
 					{m.previous()}
 				</Button>
 			{/if}

@@ -23,7 +23,7 @@
 </script>
 
 <div class={cn('flex items-start justify-between gap-3', className)}>
-	<div class={cn('min-w-0', size === 'sm' && 'space-y-[3px]')}>
+	<div class={cn('min-w-0', size === 'sm' && 'flex flex-col gap-[3px]')}>
 		<h2
 			{id}
 			class={size === 'sm'

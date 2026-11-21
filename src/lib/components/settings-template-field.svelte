@@ -100,6 +100,7 @@
 				<div
 					class="rounded-[10px_10px_10px_3px] bg-wa-bubble px-3 pt-2.5 pb-1.5 text-sm leading-5 break-words whitespace-pre-line"
 				>
+					<!-- Text fragments can repeat, so the index is the only stable key. -->
 					{#each parts as part, i (i)}{#if part.filled}<b>{part.text}</b
 							>{:else}{part.text}{/if}{:else}—{/each}
 					<div class="mt-0.5 text-right text-[11.5px] text-muted-foreground num" aria-hidden="true">

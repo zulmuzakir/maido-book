@@ -4,6 +4,7 @@
 	import FieldError from '#lib/components/field-error.svelte';
 	import { m } from '#lib/paraglide/messages.js';
 	import { fieldLabel } from '#lib/styles.ts';
+	import { cn } from '#lib/utils.js';
 
 	type DoseOption = '1' | '2' | '3' | 'other';
 
@@ -62,18 +63,21 @@
 	</label>
 {/snippet}
 
-<fieldset class="space-y-1.5" aria-describedby={hint ? `${idPrefix}-dose-hint` : undefined}>
-	<legend class={fieldLabel}>{m.dose_per_day()}</legend>
-	{#if hint}
-		<p id="{idPrefix}-dose-hint" class="text-ui text-muted-foreground">{m.dose_per_day_hint()}</p>
-	{/if}
-	<div class="pt-0.5">
-		<DoseChips
-			{name}
-			{selected}
-			onselect={choose}
-			extra={selected === 'other' ? otherInput : undefined}
-		/>
+<fieldset aria-describedby={hint ? `${idPrefix}-dose-hint` : undefined}>
+	<legend class={cn(fieldLabel, 'mb-1.5')}>{m.dose_per_day()}</legend>
+	<!-- The legend sits outside flex layout, so it keeps its own margin; the rest stack with a gap. -->
+	<div class="flex flex-col gap-1.5">
+		{#if hint}
+			<p id="{idPrefix}-dose-hint" class="text-ui text-muted-foreground">{m.dose_per_day_hint()}</p>
+		{/if}
+		<div class="pt-0.5">
+			<DoseChips
+				{name}
+				{selected}
+				onselect={choose}
+				extra={selected === 'other' ? otherInput : undefined}
+			/>
+		</div>
+		<FieldError message={error} />
 	</div>
-	<FieldError message={error} />
 </fieldset>

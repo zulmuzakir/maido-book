@@ -218,7 +218,7 @@
 							class="-mr-2.5 h-9 gap-1.5 px-2.5 text-[13.5px] desk:h-9"
 							onclick={() => (editing = true)}
 						>
-							<PencilIcon class="size-4" aria-hidden="true" />
+							<PencilIcon data-icon="inline-start" aria-hidden="true" />
 							{m.edit()}
 						</Button>
 					{/if}

@@ -42,7 +42,7 @@
 	<Label for="order-qty" class={fieldLabel}>
 		{m.order_qty({ unit: unitLabel })}
 	</Label>
-	<div class="space-y-2">
+	<div class="flex flex-col gap-2">
 		<div class="flex items-center gap-2">
 			<Button
 				type="button"

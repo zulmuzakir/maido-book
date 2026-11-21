@@ -81,7 +81,7 @@
 						class="shrink-0 border-alert-border font-semibold desk:h-10"
 						onclick={() => (deleteOpen = true)}
 					>
-						<Trash2Icon class="size-4" aria-hidden="true" />
+						<Trash2Icon data-icon="inline-start" aria-hidden="true" />
 						{m.customer_delete_short()}
 					</Button>
 				</section>

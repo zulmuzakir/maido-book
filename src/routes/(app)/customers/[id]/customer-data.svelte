@@ -19,7 +19,7 @@
 		class?: string;
 	} = $props();
 
-	const locale = getLocale() === 'id' ? 'id' : 'en';
+	const locale = $derived(getLocale() === 'id' ? 'id' : 'en');
 
 	const newest = $derived(
 		latest

@@ -6,7 +6,7 @@ export const choiceChip =
 export const fieldLabel = 'text-ui leading-4 font-semibold';
 
 /** One field: label, control, then hint or error. */
-export const fieldStack = 'space-y-1.5';
+export const fieldStack = 'flex flex-col gap-1.5';
 
 /** A date chip in a ToggleGroup (next contact, schedule): secondary fill, primary once chosen. */
 export const dateChip =

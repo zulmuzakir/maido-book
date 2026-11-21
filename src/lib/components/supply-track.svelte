@@ -135,7 +135,7 @@
 		</span>
 	</span>
 {:else}
-	<div class={cn('space-y-2', className)}>
+	<div class={cn('flex flex-col gap-2', className)}>
 		{#if showLabel}
 			<p class="text-lg leading-[22px] font-semibold tracking-[-0.3px] num {tone}">{text}</p>
 		{/if}

@@ -165,7 +165,7 @@
 	<aside class={cls} aria-labelledby={id}>
 		<h2 {id} class="text-sm font-bold">{m.import_notes_title()}</h2>
 		<ul class="flex flex-col gap-3 text-[13.5px] leading-5 max-xl:gap-2 max-xl:text-sm xl:gap-3">
-			{#each [m.import_sheet_note(), m.import_existing_note(), m.import_limit_note()] as note, i (i)}
+			{#each [m.import_sheet_note(), m.import_existing_note(), m.import_limit_note()] as note (note)}
 				<li class="flex gap-2.5">
 					<Check
 						class="mt-0.5 hidden size-4 shrink-0 text-primary-text xl:block"
@@ -209,9 +209,10 @@
 	</PageHeader>
 
 	<div
-		class="flex items-start gap-10 px-4 pt-1 pb-8 md:mx-auto {step === 2
-			? 'md:pb-28 xl:pb-8'
-			: ''} md:max-w-[648px] md:px-6 md:pt-7 xl:mx-0 xl:max-w-none xl:px-[54px]"
+		class={cn(
+			'flex items-start gap-10 px-4 pt-1 pb-8 md:mx-auto md:max-w-[648px] md:px-6 md:pt-7 xl:mx-0 xl:max-w-none xl:px-[54px]',
+			step === 2 && 'md:pb-28 xl:pb-8'
+		)}
 	>
 		<div class="flex min-w-0 flex-1 flex-col gap-5 xl:max-w-[760px]">
 			<ImportStepper {step} finished={step === 3 && !!outcome} />

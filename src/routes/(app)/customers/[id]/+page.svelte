@@ -1,6 +1,7 @@
 <script lang="ts">
 	import FilterTabs from '#lib/components/filter-tabs.svelte';
 	import { m } from '#lib/paraglide/messages.js';
+	import { cn } from '#lib/utils.js';
 	import ActivityTab from './activity-tab.svelte';
 	import CustomerData from './customer-data.svelte';
 	import CustomerHeader from './customer-header.svelte';
@@ -90,7 +91,7 @@
 				{form}
 			/>
 			<CustomerData
-				class="order-4 {summary ? '' : 'hidden xl:grid'}"
+				class={cn('order-4', !summary && 'hidden xl:grid')}
 				customer={c}
 				{latest}
 				today={data.today}

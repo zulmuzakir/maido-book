@@ -252,7 +252,7 @@
 					>
 						<div class="grid gap-x-4 gap-y-[18px] xl:grid-cols-2">
 							{#each ruleFields as f (f.key)}
-								<div class="space-y-1.5">
+								<div class="flex flex-col gap-1.5">
 									<Label for={f.key} class="text-ui leading-4 font-semibold">{f.label}</Label>
 									<div class="relative">
 										<Input

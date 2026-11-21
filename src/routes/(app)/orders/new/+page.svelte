@@ -271,7 +271,7 @@
 								class="size-[18px] shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
 							/>
 						</summary>
-						<div class="space-y-[18px] px-4 pt-0.5 pb-4">
+						<div class="flex flex-col gap-[18px] px-4 pt-0.5 pb-4">
 							<div class={fieldStack}>
 								<div class="flex items-baseline gap-1.5">
 									<Label for="order-total" class={fieldLabel}>{m.order_total()}</Label>
@@ -356,7 +356,7 @@
 							<Spinner data-icon="inline-start" />
 							{m.saving()}
 						{:else if save.networkFailed}
-							<RotateCcwIcon class="size-4" aria-hidden="true" />
+							<RotateCcwIcon data-icon="inline-start" aria-hidden="true" />
 							{m.order_retry()}
 						{:else}
 							{m.order_submit()}

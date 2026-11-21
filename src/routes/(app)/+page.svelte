@@ -329,7 +329,7 @@
 <!-- "Hari ini · 1 dari 5": the place within the section. After a send the customer sits in
      "Menunggu balasan"; its place there is not the agent's, so the label is left out. -->
 {#snippet placeLabel(cls: string)}
-	<p class="min-w-0 flex-1 truncate {cls} num">
+	<p class={cn('min-w-0 flex-1 truncate num', cls)}>
 		{position >= 0 && !sentHere ? m.queue_position(place) : ''}
 	</p>
 {/snippet}
@@ -389,11 +389,11 @@
 			>
 				{#snippet actions()}
 					<Button href={resolve('/(app)/import')} class="text-ui desk:h-10">
-						<UploadIcon class="size-4" aria-hidden="true" />
+						<UploadIcon data-icon="inline-start" aria-hidden="true" />
 						{m.customers_import()}
 					</Button>
 					<Button variant="outline" href={resolve('/(app)/orders/new')} class="text-ui desk:h-10">
-						<PlusIcon class="size-4" aria-hidden="true" />
+						<PlusIcon data-icon="inline-start" aria-hidden="true" />
 						{m.new_order()}
 					</Button>
 				{/snippet}
