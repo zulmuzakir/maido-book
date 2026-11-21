@@ -33,6 +33,9 @@
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import { dateChip } from '#lib/styles.ts';
 	import { cn } from '#lib/utils.js';
+	import BusyLabel from '#lib/components/busy-label.svelte';
+	import { DURATION, EASE, motionMs } from '#lib/motion.ts';
+	import { slide } from 'svelte/transition';
 
 	let {
 		item,
@@ -63,7 +66,7 @@
 	/** Berminat comes back sooner than a plain reply: +3 days; everything else uses the retry window. */
 	const defaultOffset = (o: ManualOutcome | null) => (o === 'interested' ? 3 : rules.retryDays);
 	const optionClass =
-		'flex h-[46px] w-full items-center justify-between gap-2 rounded-lg border border-border bg-card px-3.5 text-left text-sm font-semibold text-foreground transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring';
+		'flex h-[46px] w-full items-center justify-between gap-2 rounded-lg border border-border bg-card px-3.5 text-left text-sm font-semibold text-foreground transition-colors duration-(--motion-fast) ease-motion outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring';
 
 	let nextDate = $state(untrack(() => addDays(today, rules.retryDays)));
 	let errors = $state<Record<string, string>>({});
@@ -182,7 +185,11 @@
 
 	{#if choice}
 		{@const hint = hintFor(choice)}
-		<div class="flex flex-col gap-3 border-t border-rule px-6 py-[18px]">
+		<!-- Slides open as the card's message folds away. No exit: cancelling must not wait. -->
+		<div
+			class="flex flex-col gap-3 border-t border-rule px-6 py-[18px]"
+			in:slide={{ duration: motionMs(DURATION.base), easing: EASE }}
+		>
 			{#if hint}
 				<p
 					class={cn(
@@ -203,7 +210,10 @@
 			{/if}
 
 			{#if showDate}
-				<div class="flex flex-col gap-2">
+				<div
+					class="flex flex-col gap-2"
+					transition:slide={{ duration: motionMs(DURATION.base), easing: EASE }}
+				>
 					<label for="next-date-{item.followUpId}" class="text-ui font-semibold text-foreground">
 						{m.today_next_date()}
 					</label>
@@ -255,8 +265,13 @@
 		<div
 			class="sticky bottom-0 z-10 flex gap-2 border-t border-rule bg-card px-6 py-3.5 shadow-[0_-6px_16px_color-mix(in_oklch,var(--shadow-tint)_5%,transparent)]"
 		>
-			<Button type="submit" class="h-11 flex-1 desk:h-11" disabled={save.pending}>
-				{m.today_outcome_save()}
+			<Button
+				type="submit"
+				class="h-11 flex-1 desk:h-11"
+				disabled={save.pending}
+				aria-busy={save.pending}
+			>
+				<BusyLabel busy={save.pending}>{m.today_outcome_save()}</BusyLabel>
 			</Button>
 			<Button
 				type="button"

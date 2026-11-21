@@ -26,6 +26,9 @@
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import { cn } from '#lib/utils.js';
+	import BusyLabel from '#lib/components/busy-label.svelte';
+	import { DURATION, EASE, motionMs } from '#lib/motion.ts';
+	import { fade, slide } from 'svelte/transition';
 
 	let {
 		item,
@@ -190,8 +193,12 @@
 					</AlertDialog.Header>
 					<AlertDialog.Footer class="mt-4">
 						<AlertDialog.Cancel type="button">{m.cancel()}</AlertDialog.Cancel>
-						<AlertDialog.Action type="submit" disabled={saveTemplate.pending}>
-							{m.queue_template_confirm()}
+						<AlertDialog.Action
+							type="submit"
+							disabled={saveTemplate.pending}
+							aria-busy={saveTemplate.pending}
+						>
+							<BusyLabel busy={saveTemplate.pending}>{m.queue_template_confirm()}</BusyLabel>
 						</AlertDialog.Action>
 					</AlertDialog.Footer>
 				</form>
@@ -205,8 +212,13 @@
 			{#if changed}<input type="hidden" name="body" value={edited} />{/if}
 		</form>
 
+		<!-- Picking an outcome folds the message (and the snooze) away while the outcome's details
+		     slide open below; cancelling brings them back the same way. -->
 		{#if !outcomeChoice}
-			<section class={section}>
+			<section
+				class={section}
+				transition:slide={{ duration: motionMs(DURATION.base), easing: EASE }}
+			>
 				<div class="flex min-h-9 items-center justify-between gap-2">
 					<h3 class="text-ui font-semibold text-foreground">{m.queue_message_label()}</h3>
 					{#if editing}
@@ -225,47 +237,54 @@
 				</div>
 
 				{#if editing}
-					<Textarea
-						bind:value={edited}
-						rows={5}
-						maxlength={1000}
-						aria-label={m.queue_message_label()}
-						class="h-[132px] min-h-0 resize-none rounded-[8px] border-field-active px-3.5 py-3 text-[14.5px] leading-[22px] ring-3 ring-ring focus-visible:ring-3"
-					/>
-					<div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-						<span class="text-ui text-muted-foreground num">
-							{m.queue_char_count({ count: edited.length })}
-						</span>
-						<div class="-mr-2.5 flex gap-1">
-							<Button
-								type="button"
-								variant="inline"
-								class="h-9 px-2.5 text-[13.5px] desk:h-9"
-								disabled={!changed}
-								onclick={() => (edited = item.message)}
-							>
-								{m.queue_reset()}
-							</Button>
-							<Button
-								type="button"
-								variant="inline"
-								class="h-9 px-2.5 text-[13.5px] desk:h-9"
-								onclick={() => (templateConfirm = true)}
-							>
-								{m.queue_save_template()}
-							</Button>
-						</div>
-					</div>
-					<p
-						class="flex items-start gap-2.5 rounded-[8px] bg-surface-inset px-3.5 py-3 text-sm leading-[21px] text-foreground"
+					<!-- The editor slides open under the label; Selesai swaps the preview back in. -->
+					<div
+						class="flex flex-col gap-3"
+						in:slide={{ duration: motionMs(DURATION.base), easing: EASE }}
 					>
-						<InfoIcon class="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-						<span class="flex-1">
-							{m.queue_edit_note({ name: firstName(item.customer.name) })}
-						</span>
-					</p>
+						<Textarea
+							bind:value={edited}
+							rows={5}
+							maxlength={1000}
+							aria-label={m.queue_message_label()}
+							class="h-[132px] min-h-0 resize-none rounded-[8px] border-field-active px-3.5 py-3 text-[14.5px] leading-[22px] ring-3 ring-ring focus-visible:ring-3"
+						/>
+						<div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+							<span class="text-ui text-muted-foreground num">
+								{m.queue_char_count({ count: edited.length })}
+							</span>
+							<div class="-mr-2.5 flex gap-1">
+								<Button
+									type="button"
+									variant="inline"
+									class="h-9 px-2.5 text-[13.5px] desk:h-9"
+									disabled={!changed}
+									onclick={() => (edited = item.message)}
+								>
+									{m.queue_reset()}
+								</Button>
+								<Button
+									type="button"
+									variant="inline"
+									class="h-9 px-2.5 text-[13.5px] desk:h-9"
+									onclick={() => (templateConfirm = true)}
+								>
+									{m.queue_save_template()}
+								</Button>
+							</div>
+						</div>
+						<p
+							class="flex items-start gap-2.5 rounded-[8px] bg-surface-inset px-3.5 py-3 text-sm leading-[21px] text-foreground"
+						>
+							<InfoIcon class="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+							<span class="flex-1">
+								{m.queue_edit_note({ name: firstName(item.customer.name) })}
+							</span>
+						</p>
+					</div>
 				{:else}
 					<blockquote
+						in:fade={{ duration: motionMs(DURATION.fast) }}
 						class="rounded-[8px] bg-background px-3.5 py-3 text-[14.5px] leading-[22px] whitespace-pre-wrap text-foreground"
 					>
 						{edited}
@@ -278,12 +297,16 @@
 		<FollowUpOutcome {item} {today} {rules} {onsaved} {onundo} bind:choice={outcomeChoice} />
 
 		{#if !outcomeChoice}
-			<FollowUpSnooze followUpId={item.followUpId} {today} />
+			<div transition:slide={{ duration: motionMs(DURATION.base), easing: EASE }}>
+				<FollowUpSnooze followUpId={item.followUpId} {today} />
+			</div>
 		{/if}
 	</div>
 
+	<!-- The bar fades in when it changes, with no exit, so two bars never show at once. -->
 	{#if stickySend && !editing && !outcomeChoice}
 		<div
+			in:fade={{ duration: motionMs(DURATION.fast) }}
 			class="sticky bottom-0 z-10 border-t border-rule bg-card px-4 py-2.5 shadow-[0_-6px_16px_color-mix(in_oklch,var(--shadow-tint)_5%,transparent)]"
 		>
 			{@render sendButton('h-12 w-full text-[15px]')}
@@ -291,6 +314,7 @@
 	{:else if editing && !outcomeChoice}
 		<!-- While editing, the send and "Selesai" stay in reach at the bottom of the panel. -->
 		<div
+			in:fade={{ duration: motionMs(DURATION.fast) }}
 			class={cn(
 				'sticky bottom-0 z-10 flex gap-2 border-t border-rule bg-card px-6 py-3.5',
 				'shadow-[0_-6px_16px_color-mix(in_oklch,var(--shadow-tint)_5%,transparent)]'

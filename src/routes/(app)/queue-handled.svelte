@@ -62,7 +62,7 @@
 {:else}
 	<section
 		aria-labelledby="q-handled"
-		in:slide={{ duration: motionMs(DURATION.base), easing: EASE }}
+		transition:slide={{ duration: motionMs(DURATION.base), easing: EASE }}
 	>
 		<GroupHeader
 			id="q-handled"
