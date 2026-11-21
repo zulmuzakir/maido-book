@@ -1,5 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { maxOrderDate, todayIso } from '#lib/domain/dates.ts';
+import { isIsoDate, maxOrderDate, todayIso } from '#lib/domain/dates.ts';
 import { parseForm } from '#lib/server/crm/form.ts';
 import { createOrder, orderFormOptions } from '#lib/server/crm/orders.ts';
 import { getRules } from '#lib/server/crm/settings.ts';
@@ -32,9 +32,18 @@ export const actions: Actions = {
 		const today = todayIso();
 		const formData = await request.formData();
 		const parsed = parseForm(formData, orderSchema);
-		if (!parsed.ok) return fail(400, { errors: parsed.errors, values: parsed.values });
+		const tooLate = (date: unknown) =>
+			typeof date === 'string' && isIsoDate(date) && date > maxOrderDate(today);
+		if (!parsed.ok) {
+			// Report a date beyond tomorrow with the other field errors, not one save later.
+			const errors =
+				!parsed.errors.orderDate && tooLate(formData.get('orderDate'))
+					? { ...parsed.errors, orderDate: 'out_of_range' }
+					: parsed.errors;
+			return fail(400, { errors, values: parsed.values });
+		}
 
-		if (parsed.data.orderDate > maxOrderDate(today)) {
+		if (tooLate(parsed.data.orderDate)) {
 			const values = Object.fromEntries(formData) as Record<string, string>;
 			const errors: Record<string, string> = { orderDate: 'out_of_range' };
 			return fail(400, { errors, values });
