@@ -22,6 +22,10 @@ export const createAuth = (db: Db) =>
 		database: drizzleAdapter(db, { provider: 'sqlite' }),
 		// createAuth runs per request; skip the per-instance schema introspection (migrations own the schema)
 		advanced: { database: { validateSchema: false } },
+		// Reads the session from a signed cookie for 5 minutes instead of 2 D1 queries per request.
+		// The hook still checks the allowlist on every request; a revoked session or a renamed user
+		// shows up within those 5 minutes.
+		session: { cookieCache: { enabled: true, maxAge: 5 * 60 } },
 		socialProviders: {
 			google: {
 				clientId: GOOGLE_CLIENT_ID,
