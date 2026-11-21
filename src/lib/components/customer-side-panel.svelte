@@ -109,8 +109,13 @@
 </script>
 
 <!-- Desktop only: a 360px panel beside the 560px form. -->
+<!-- The duplicate panel replaces the live preview after a failed save, so it fades in. -->
 <aside
-	class={cn('flex flex-col gap-3.5 self-start rounded-[12px] bg-surface-inset p-5', props.class)}
+	class={cn(
+		'flex flex-col gap-3.5 self-start rounded-[12px] bg-surface-inset p-5',
+		props.kind === 'duplicate' && 'animate-in duration-(--motion-fast) fade-in-0',
+		props.class
+	)}
 >
 	<h2 class="text-ui font-semibold text-muted-foreground">{heading}</h2>
 

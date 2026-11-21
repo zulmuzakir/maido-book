@@ -8,6 +8,8 @@
 	import { Spinner } from '#lib/components/ui/spinner/index.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import { cn } from '#lib/utils.js';
+	import { DURATION, EASE, motionMs } from '#lib/motion.ts';
+	import { slide } from 'svelte/transition';
 	import type { ReadProblem } from './import-model.ts';
 
 	let {
@@ -44,6 +46,7 @@
 <section class="flex flex-col gap-5">
 	{#if problem}
 		<div
+			in:slide={{ duration: motionMs(DURATION.fast), easing: EASE }}
 			role="alert"
 			class="flex items-start gap-2.5 rounded-[8px] bg-alert px-3.5 py-3 text-sm leading-5 text-alert-foreground"
 		>
@@ -75,7 +78,7 @@
 	{/if}
 	<label
 		class={cn(
-			'flex cursor-pointer flex-col items-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed px-5 py-8 text-center transition-colors focus-within:ring-3 focus-within:ring-ring md:px-6 md:py-14',
+			'flex cursor-pointer flex-col items-center gap-1.5 rounded-[14px] border-[1.5px] border-dashed px-5 py-8 text-center transition-colors duration-(--motion-fast) ease-motion focus-within:ring-3 focus-within:ring-ring md:px-6 md:py-14',
 			problem
 				? 'border-destructive bg-[color-mix(in_oklch,var(--destructive)_4%,var(--card))]'
 				: 'border-dropzone-border bg-dropzone',

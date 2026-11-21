@@ -30,6 +30,8 @@
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
 	import { fieldLabel, fieldStack } from '#lib/styles.ts';
+	import { DURATION, EASE, motionMs } from '#lib/motion.ts';
+	import { slide } from 'svelte/transition';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -188,7 +190,7 @@
 				<!-- While saving, the whole form dims and locks; a failed save leaves it as typed. -->
 				<fieldset
 					disabled={save.pending}
-					class="flex min-w-0 flex-col gap-[18px] transition-opacity disabled:opacity-50"
+					class="flex min-w-0 flex-col gap-[18px] transition-opacity duration-(--motion-fast) ease-motion disabled:opacity-50"
 				>
 					<div class={fieldStack}>
 						<Label for="order-customer" class={fieldLabel}>{m.order_customer()}</Label>
@@ -270,7 +272,10 @@
 					/>
 					<input type="hidden" name="dosePerDay" value={dose ?? ''} />
 
-					<details class="group rounded-[8px] border border-rule bg-card" open={hasDetailErrors}>
+					<details
+						class="group disclosure rounded-[8px] border border-rule bg-card"
+						open={hasDetailErrors}
+					>
 						<summary
 							class="flex h-[52px] cursor-pointer list-none items-center justify-between gap-3 rounded-[8px] px-4 focus-visible:ring-3 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
 						>
@@ -282,7 +287,7 @@
 								>
 							</span>
 							<ChevronDownIcon
-								class="size-[18px] shrink-0 text-muted-foreground transition-transform group-open:rotate-180"
+								class="size-[18px] shrink-0 text-muted-foreground transition-transform duration-(--motion-base) ease-motion group-open:rotate-180"
 							/>
 						</summary>
 						<div class="flex flex-col gap-[18px] px-4 pt-0.5 pb-4">
@@ -338,6 +343,7 @@
 
 				{#if save.networkFailed}
 					<div
+						in:slide={{ duration: motionMs(DURATION.fast), easing: EASE }}
 						role="alert"
 						class="hidden items-start gap-2.5 rounded-[8px] bg-alert px-4 py-3 text-sm leading-[21px] text-foreground xl:flex"
 					>
@@ -350,6 +356,7 @@
 					{#snippet note()}
 						{#if save.networkFailed}
 							<p
+								in:slide={{ duration: motionMs(DURATION.fast), easing: EASE }}
 								class="flex items-center gap-2 text-ui leading-[18px] font-medium text-destructive xl:hidden"
 								role="alert"
 							>
@@ -368,7 +375,7 @@
 					{/snippet}
 					<Button size="lg" type="submit" disabled={save.pending}>
 						{#if save.pending}
-							<Spinner data-icon="inline-start" />
+							<Spinner data-icon="inline-start" aria-hidden="true" />
 							{m.saving()}
 						{:else if save.networkFailed}
 							<RotateCcwIcon data-icon="inline-start" aria-hidden="true" />

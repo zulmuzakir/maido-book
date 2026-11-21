@@ -332,11 +332,40 @@
 	}
 }
 
+/* The theme switch cross-fades the whole page (applyTheme in preference-items.svelte). */
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: var(--motion-fast);
+	animation-timing-function: var(--ease-motion);
+}
+
+/* A `<details class="disclosure">` slides open and shut. `::details-content` is Baseline; the
+   height tween needs `interpolate-size`, which only Chromium has so far, so other browsers keep the
+   instant open. The reduced-motion rule below cuts the transition like any other. */
+@supports selector(::details-content) {
+	details.disclosure {
+		interpolate-size: allow-keywords;
+	}
+	details.disclosure::details-content {
+		block-size: 0;
+		overflow: clip;
+		transition:
+			block-size var(--motion-base) var(--ease-motion),
+			content-visibility var(--motion-base) allow-discrete;
+	}
+	details.disclosure[open]::details-content {
+		block-size: auto;
+	}
+}
+
 @media (prefers-reduced-motion: reduce) {
 	*,
 	::before,
 	::after {
 		animation-duration: 0.01ms !important;
+		/* An endless animation (a spinner) would flicker at 0.01ms; one run leaves it still. */
+		animation-iteration-count: 1 !important;
 		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
 	}
 }

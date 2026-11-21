@@ -26,6 +26,8 @@
 	import { fieldError } from '#lib/labels.ts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { fieldLabel, fieldStack } from '#lib/styles.ts';
+	import { DURATION, EASE, motionMs } from '#lib/motion.ts';
+	import { slide } from 'svelte/transition';
 
 	let {
 		values,
@@ -138,7 +140,12 @@
 		{/if}
 		{#if duplicateOf}
 			<!-- Desktop shows the existing customer in the side panel; smaller screens link inline. -->
-			<p class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-ui text-destructive">
+			<!-- Slides open here: the FieldError inside mounts with this block, so its own
+			     (local) transition does not run. -->
+			<p
+				class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-ui text-destructive"
+				in:slide={{ duration: motionMs(DURATION.fast), easing: EASE }}
+			>
 				<FieldError
 					id="{idPrefix}-phone-error"
 					message={m.customer_duplicate({ name: duplicateOf.name })}

@@ -37,7 +37,8 @@
 	<title>{m.app_name()}</title>
 </svelte:head>
 
-<ModeWatcher />
+<!-- Synchronous, so a theme switch can be snapshotted by a View Transition (see applyTheme). -->
+<ModeWatcher synchronousModeChanges />
 <!-- Bottom centre of the content area: shifted by half the rail/sidebar from md up, and
      above the 72px bottom nav on phones. -->
 <Toaster

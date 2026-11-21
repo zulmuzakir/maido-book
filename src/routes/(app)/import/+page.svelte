@@ -23,7 +23,7 @@
 	import { mapCustomerSheet, type ImportRow } from '#lib/domain/import-sheet.ts';
 	import { DURATION, EASE, motionMs } from '#lib/motion.ts';
 	import { m } from '#lib/paraglide/messages.js';
-	import { fade } from 'svelte/transition';
+	import { fade, slide } from 'svelte/transition';
 	import { cn } from '#lib/utils.js';
 	import type { PageProps } from './$types';
 
@@ -238,10 +238,22 @@
 						</form>
 
 						{#if tooMany}
-							<p role="alert" class={ALERT}>{m.import_too_many()}</p>
+							<p
+								role="alert"
+								class={ALERT}
+								in:slide={{ duration: motionMs(DURATION.fast), easing: EASE }}
+							>
+								{m.import_too_many()}
+							</p>
 						{/if}
 						{#if failureText}
-							<p role="alert" class={ALERT}>{failureText}</p>
+							<p
+								role="alert"
+								class={ALERT}
+								in:slide={{ duration: motionMs(DURATION.fast), easing: EASE }}
+							>
+								{failureText}
+							</p>
 						{/if}
 
 						<ImportReview {preview} rows={classified} {counts} onchangefile={reset} />

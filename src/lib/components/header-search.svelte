@@ -58,7 +58,9 @@
 		!block && 'md:w-auto',
 		!block &&
 			expanded &&
-			'max-md:absolute max-md:inset-x-0 max-md:top-full max-md:z-20 max-md:bg-card max-md:px-4 max-md:pb-3'
+			'max-md:absolute max-md:inset-x-0 max-md:top-full max-md:z-20 max-md:bg-card max-md:px-4 max-md:pb-3',
+		// Tapping the icon fades the field in. Not when a query from the URL keeps it open on load.
+		!block && open && 'max-md:animate-in max-md:duration-(--motion-fast) max-md:fade-in-0'
 	)}
 >
 	{#if !expanded}

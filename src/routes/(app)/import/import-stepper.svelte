@@ -26,7 +26,7 @@
 		>
 			<span
 				class={cn(
-					'grid size-7 shrink-0 place-items-center rounded-full border text-[13px] font-bold num',
+					'grid size-7 shrink-0 place-items-center rounded-full border text-[13px] font-bold num transition-colors duration-(--motion-base) ease-motion',
 					done || current
 						? 'border-primary bg-primary text-primary-foreground'
 						: 'border-border bg-card text-muted-foreground'
@@ -49,7 +49,10 @@
 			</span>
 			{#if i < steps.length - 1}
 				<span
-					class={cn('h-0.5 min-w-4 flex-1 rounded-[1px]', done ? 'bg-primary' : 'bg-rule')}
+					class={cn(
+						'h-0.5 min-w-4 flex-1 rounded-[1px] transition-colors duration-(--motion-base) ease-motion',
+						done ? 'bg-primary' : 'bg-rule'
+					)}
 					aria-hidden="true"
 				></span>
 			{/if}
