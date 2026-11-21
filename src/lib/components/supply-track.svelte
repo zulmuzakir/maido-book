@@ -131,7 +131,10 @@
 			aria-label={decorative ? undefined : smallText}
 			aria-hidden={decorative || undefined}
 		>
-			<span class="block h-full rounded-[3px] {barColour}" style:width={barWidth}></span>
+			<span
+				class="block h-full rounded-[3px] transition-[width] duration-(--motion-slow) ease-motion {barColour}"
+				style:width={barWidth}
+			></span>
 		</span>
 	</span>
 {:else}

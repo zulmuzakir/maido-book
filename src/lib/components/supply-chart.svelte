@@ -138,7 +138,7 @@
 				{width}
 				{height}
 				viewBox="0 0 {width} {height}"
-				class="block overflow-visible"
+				class="block animate-reveal-x overflow-visible"
 			>
 				{#each gridYs as gy (gy)}
 					<line

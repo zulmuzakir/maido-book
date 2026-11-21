@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { formatRupiah } from '#lib/format.ts';
+	import { DURATION, EASE, motionMs } from '#lib/motion.ts';
+	import { Tween } from 'svelte/motion';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
 
@@ -20,6 +22,15 @@
 	const STEPS = [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
 
 	const millions = $derived(days.map((d) => d.revenue / 1_000_000));
+	// The bars grow from the baseline on load and move to the new values when the month changes.
+	// Months differ in length, so a day the previous month did not have starts from 0.
+	const bars = new Tween<number[]>([], {
+		easing: EASE,
+		interpolate: (a, b) => (t) => b.map((v, i) => (a[i] ?? 0) + (v - (a[i] ?? 0)) * t)
+	});
+	$effect(() => {
+		void bars.set(millions, { duration: motionMs(DURATION.slow) });
+	});
 	const step = $derived(STEPS.find((s) => s * 3 >= Math.max(...millions, 0)) ?? 1000);
 	const top = $derived(step * 3);
 	const fmt = $derived(
@@ -76,7 +87,7 @@
 			{/each}
 			{#each days as d, i (d.date)}
 				{@const cx = AXIS + slot * (i + 0.5)}
-				{@const h = Math.max(0, base - y(millions[i]))}
+				{@const h = Math.max(0, base - y(bars.current[i] ?? 0))}
 				{@const isToday = d.date === today}
 				{@const r = Math.min(4, bar / 2, h)}
 				{#if h > 0}
