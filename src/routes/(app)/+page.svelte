@@ -446,13 +446,15 @@
 		>
 			{#if selected}
 				<div class="min-h-0 flex-1 overflow-y-auto">
-					<FollowUpCard
-						item={selected}
-						today={data.today}
-						rules={data.rules}
-						onsaved={outcomeSaved}
-						onsent={cardSent}
-					/>
+					{#key selected.followUpId}
+						<FollowUpCard
+							item={selected}
+							today={data.today}
+							rules={data.rules}
+							onsaved={outcomeSaved}
+							onsent={cardSent}
+						/>
+					{/key}
 				</div>
 			{:else if dayDone && !query && tab === 'all'}
 				<QueueDone
@@ -503,13 +505,15 @@
 			</Drawer.Header>
 			<div class="min-h-0 flex-1 overflow-y-auto">
 				{#if selected}
-					<FollowUpCard
-						item={selected}
-						today={data.today}
-						rules={data.rules}
-						onsaved={outcomeSaved}
-						onsent={cardSent}
-					/>
+					{#key selected.followUpId}
+						<FollowUpCard
+							item={selected}
+							today={data.today}
+							rules={data.rules}
+							onsaved={outcomeSaved}
+							onsent={cardSent}
+						/>
+					{/key}
 				{/if}
 			</div>
 		</Drawer.Content>
@@ -535,14 +539,16 @@
 			{@render stepButtons()}
 		</div>
 		<div class="min-h-0 flex-1 overflow-y-auto">
-			<FollowUpCard
-				item={selected}
-				today={data.today}
-				rules={data.rules}
-				onsaved={outcomeSaved}
-				onsent={cardSent}
-				stickySend
-			/>
+			{#key selected.followUpId}
+				<FollowUpCard
+					item={selected}
+					today={data.today}
+					rules={data.rules}
+					onsaved={outcomeSaved}
+					onsent={cardSent}
+					stickySend
+				/>
+			{/key}
 		</div>
 	</section>
 {/if}

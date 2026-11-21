@@ -65,11 +65,10 @@
 
 	let nextDate = $state(untrack(() => addDays(today, rules.retryDays)));
 	let errors = $state<Record<string, string>>({});
-	// Each pick starts from its own default date.
-	$effect(() => {
-		const o = choice;
-		untrack(() => (nextDate = addDays(today, defaultOffset(o))));
-	});
+	// Each pick starts from its own default date (set in the radio's change handler).
+	function pick(o: ManualOutcome) {
+		nextDate = addDays(today, defaultOffset(o));
+	}
 
 	const lastAttempt = $derived(item.attempt >= rules.maxAttempts);
 	const showDate = $derived(
@@ -158,7 +157,14 @@
 							'border-primary bg-accent text-accent-foreground shadow-[inset_0_0_0_1px_var(--primary)] hover:bg-accent'
 					)}
 				>
-					<input type="radio" name="outcome" value={o} bind:group={choice} class="sr-only" />
+					<input
+						type="radio"
+						name="outcome"
+						value={o}
+						bind:group={choice}
+						onchange={() => pick(o)}
+						class="sr-only"
+					/>
 					{outcomeLabel(o)}
 					{#if choice === o}<CheckIcon class="size-[18px]" aria-hidden="true" />{/if}
 				</label>

@@ -64,21 +64,14 @@
 	const customerHref = $derived(resolve('/(app)/customers/[id]', { id: item.customer.id }));
 	const sendFormId = $derived(`send-${item.followUpId}`);
 
-	// The message is edited per follow-up. Edits survive a template save (a reload of the same
-	// follow-up) and reset only when the queue moves to another follow-up.
+	// The message is edited per follow-up. Callers key the card by `item.followUpId`, so moving to
+	// another follow-up starts fresh, while a template save (a reload of the same follow-up) keeps
+	// the edit.
 	let editing = $state(false);
 	let edited = $state(untrack(() => item.message));
 	let templateConfirm = $state(false);
 	// A picked outcome hides the message and the snooze until it is saved or cancelled.
 	let outcomeChoice = $state<ManualOutcome | null>(null);
-	$effect(() => {
-		void item.followUpId;
-		untrack(() => {
-			edited = item.message;
-			editing = false;
-			outcomeChoice = null;
-		});
-	});
 	const changed = $derived(edited !== item.message);
 
 	// "±3 hari sisa stok · habis sekitar 12 Nov", or how long ago the stock ran out.
@@ -220,83 +213,81 @@
 			{#if changed}<input type="hidden" name="body" value={edited} />{/if}
 		</form>
 
-		{#key item.followUpId}
-			{#if !outcomeChoice}
-				<section class={section}>
-					<div class="flex min-h-9 items-center justify-between gap-2">
-						<h3 class="text-ui font-semibold text-foreground">{m.queue_message_label()}</h3>
-						{#if editing}
-							<span class="text-ui font-medium text-muted-foreground">{m.queue_editing()}</span>
-						{:else}
+		{#if !outcomeChoice}
+			<section class={section}>
+				<div class="flex min-h-9 items-center justify-between gap-2">
+					<h3 class="text-ui font-semibold text-foreground">{m.queue_message_label()}</h3>
+					{#if editing}
+						<span class="text-ui font-medium text-muted-foreground">{m.queue_editing()}</span>
+					{:else}
+						<Button
+							type="button"
+							variant="ghost"
+							class="-mr-2.5 h-9 gap-1.5 px-2.5 text-[13.5px] text-primary-text hover:bg-accent hover:text-primary-text desk:h-9"
+							onclick={() => (editing = true)}
+						>
+							<PencilIcon class="size-4" aria-hidden="true" />
+							{m.edit()}
+						</Button>
+					{/if}
+				</div>
+
+				{#if editing}
+					<Textarea
+						bind:value={edited}
+						rows={5}
+						maxlength={1000}
+						aria-label={m.queue_message_label()}
+						class="h-[132px] min-h-0 resize-none rounded-[8px] border-primary px-3.5 py-3 text-[14.5px] leading-[22px] ring-3 ring-ring focus-visible:ring-3 dark:border-selected-ring"
+					/>
+					<div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+						<span class="text-ui text-muted-foreground num">
+							{m.queue_char_count({ count: edited.length })}
+						</span>
+						<div class="-mr-2.5 flex gap-1">
 							<Button
 								type="button"
 								variant="ghost"
-								class="-mr-2.5 h-9 gap-1.5 px-2.5 text-[13.5px] text-primary-text hover:bg-accent hover:text-primary-text desk:h-9"
-								onclick={() => (editing = true)}
+								class="h-9 px-2.5 text-[13.5px] text-primary-text hover:bg-accent hover:text-primary-text desk:h-9"
+								disabled={!changed}
+								onclick={() => (edited = item.message)}
 							>
-								<PencilIcon class="size-4" aria-hidden="true" />
-								{m.edit()}
+								{m.queue_reset()}
 							</Button>
-						{/if}
-					</div>
-
-					{#if editing}
-						<Textarea
-							bind:value={edited}
-							rows={5}
-							maxlength={1000}
-							aria-label={m.queue_message_label()}
-							class="h-[132px] min-h-0 resize-none rounded-[8px] border-primary px-3.5 py-3 text-[14.5px] leading-[22px] ring-3 ring-ring focus-visible:ring-3 dark:border-selected-ring"
-						/>
-						<div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-							<span class="text-ui text-muted-foreground num">
-								{m.queue_char_count({ count: edited.length })}
-							</span>
-							<div class="-mr-2.5 flex gap-1">
-								<Button
-									type="button"
-									variant="ghost"
-									class="h-9 px-2.5 text-[13.5px] text-primary-text hover:bg-accent hover:text-primary-text desk:h-9"
-									disabled={!changed}
-									onclick={() => (edited = item.message)}
-								>
-									{m.queue_reset()}
-								</Button>
-								<Button
-									type="button"
-									variant="ghost"
-									class="h-9 px-2.5 text-[13.5px] text-primary-text hover:bg-accent hover:text-primary-text desk:h-9"
-									onclick={() => (templateConfirm = true)}
-								>
-									{m.queue_save_template()}
-								</Button>
-							</div>
+							<Button
+								type="button"
+								variant="ghost"
+								class="h-9 px-2.5 text-[13.5px] text-primary-text hover:bg-accent hover:text-primary-text desk:h-9"
+								onclick={() => (templateConfirm = true)}
+							>
+								{m.queue_save_template()}
+							</Button>
 						</div>
-						<p
-							class="flex items-start gap-2.5 rounded-[8px] bg-background px-3.5 py-3 text-sm leading-[21px] text-foreground dark:bg-secondary"
-						>
-							<InfoIcon class="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-							<span class="flex-1">
-								{m.queue_edit_note({ name: firstName(item.customer.name) })}
-							</span>
-						</p>
-					{:else}
-						<blockquote
-							class="rounded-[8px] bg-background px-3.5 py-3 text-[14.5px] leading-[22px] whitespace-pre-wrap text-foreground"
-						>
-							{edited}
-						</blockquote>
-						{#if !stickySend}{@render sendButton('h-12 w-full text-[15px] desk:h-12')}{/if}
-					{/if}
-				</section>
-			{/if}
+					</div>
+					<p
+						class="flex items-start gap-2.5 rounded-[8px] bg-background px-3.5 py-3 text-sm leading-[21px] text-foreground dark:bg-secondary"
+					>
+						<InfoIcon class="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+						<span class="flex-1">
+							{m.queue_edit_note({ name: firstName(item.customer.name) })}
+						</span>
+					</p>
+				{:else}
+					<blockquote
+						class="rounded-[8px] bg-background px-3.5 py-3 text-[14.5px] leading-[22px] whitespace-pre-wrap text-foreground"
+					>
+						{edited}
+					</blockquote>
+					{#if !stickySend}{@render sendButton('h-12 w-full text-[15px] desk:h-12')}{/if}
+				{/if}
+			</section>
+		{/if}
 
-			<FollowUpOutcome {item} {today} {rules} {onsaved} {onundo} bind:choice={outcomeChoice} />
+		<FollowUpOutcome {item} {today} {rules} {onsaved} {onundo} bind:choice={outcomeChoice} />
 
-			{#if !outcomeChoice}
-				<FollowUpSnooze followUpId={item.followUpId} {today} />
-			{/if}
-		{/key}
+		{#if !outcomeChoice}
+			<FollowUpSnooze followUpId={item.followUpId} {today} />
+		{/if}
 	</div>
 
 	{#if stickySend && !editing && !outcomeChoice}
