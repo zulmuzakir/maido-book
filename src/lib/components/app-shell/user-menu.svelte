@@ -5,6 +5,7 @@
 	import InitialsAvatar from '#lib/components/initials-avatar.svelte';
 	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
 	import { m } from '#lib/paraglide/messages.js';
+	import { cn } from '#lib/utils.js';
 	import PreferenceItems from './preference-items.svelte';
 
 	let { user }: { user: { name: string; email: string } } = $props();
@@ -32,14 +33,16 @@
 		<DropdownMenu.Separator />
 		<PreferenceItems />
 		<DropdownMenu.Separator />
-		<form method="post" action={resolve('/logout')}>
-			<DropdownMenu.Item>
-				{#snippet child({ props })}
-					<button type="submit" {...props} class="{props.class as string} w-full">
-						{m.sign_out()}
-					</button>
-				{/snippet}
-			</DropdownMenu.Item>
-		</form>
+		<DropdownMenu.Group>
+			<form method="post" action={resolve('/logout')}>
+				<DropdownMenu.Item>
+					{#snippet child({ props })}
+						<button type="submit" {...props} class={cn(props.class as string, 'w-full')}>
+							{m.sign_out()}
+						</button>
+					{/snippet}
+				</DropdownMenu.Item>
+			</form>
+		</DropdownMenu.Group>
 	</DropdownMenu.Content>
 </DropdownMenu.Root>

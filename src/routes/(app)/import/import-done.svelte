@@ -51,11 +51,7 @@
 		<Button href={resolve('/(app)/customers')} variant="outline" class={BUTTON}>
 			{m.import_view_customers()}
 		</Button>
-		<Button
-			variant="ghost"
-			class={cn(BUTTON, 'text-primary-text hover:text-primary-text')}
-			onclick={onreset}
-		>
+		<Button variant="inline" class={BUTTON} onclick={onreset}>
 			{m.import_start_over()}
 		</Button>
 	</div>

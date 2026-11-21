@@ -13,6 +13,7 @@
 	import MessageCircle from '@lucide/svelte/icons/message-circle';
 	import Moon from '@lucide/svelte/icons/moon';
 	import PageHeader from '#lib/components/page-header.svelte';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
 	import { firstName } from '#lib/format.ts';
 	import { m } from '#lib/paraglide/messages.js';
@@ -98,12 +99,9 @@
 
 		{@render band()}
 		<form method="post" action={resolve('/logout')} class="p-4">
-			<button
-				type="submit"
-				class="h-11 w-full rounded-lg border border-alert-border bg-card text-[15px] font-semibold text-status-overdue outline-none hover:bg-alert focus-visible:ring-3 focus-visible:ring-ring"
-			>
+			<Button type="submit" variant="destructive-outline" class="w-full text-[15px]">
 				{m.sign_out()}
-			</button>
+			</Button>
 		</form>
 	</div>
 </div>

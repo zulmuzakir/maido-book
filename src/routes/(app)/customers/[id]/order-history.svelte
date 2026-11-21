@@ -6,16 +6,7 @@
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
-	import {
-		AlertDialog,
-		AlertDialogAction,
-		AlertDialogCancel,
-		AlertDialogContent,
-		AlertDialogDescription,
-		AlertDialogFooter,
-		AlertDialogHeader,
-		AlertDialogTitle
-	} from '#lib/components/ui/alert-dialog/index.js';
+	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.js';
 	import StockText from '#lib/components/stock-text.svelte';
 	import { formatDate } from '#lib/domain/dates.ts';
 	import { supplyStatus } from '#lib/domain/follow-up.ts';
@@ -167,16 +158,18 @@
 							{/snippet}
 						</DropdownMenu.Trigger>
 						<DropdownMenu.Content align="end">
-							<DropdownMenu.Item
-								variant="destructive"
-								onSelect={() => {
-									pendingOrderId = o.id;
-									orderDeleteOpen = true;
-								}}
-							>
-								<Trash2Icon class="size-4" />
-								{m.customer_order_delete()}
-							</DropdownMenu.Item>
+							<DropdownMenu.Group>
+								<DropdownMenu.Item
+									variant="destructive"
+									onSelect={() => {
+										pendingOrderId = o.id;
+										orderDeleteOpen = true;
+									}}
+								>
+									<Trash2Icon class="size-4" />
+									{m.customer_order_delete()}
+								</DropdownMenu.Item>
+							</DropdownMenu.Group>
 						</DropdownMenu.Content>
 					</DropdownMenu.Root>
 				</li>
@@ -185,26 +178,26 @@
 	{/if}
 </section>
 
-<AlertDialog bind:open={orderDeleteOpen}>
-	<AlertDialogContent>
+<AlertDialog.Root bind:open={orderDeleteOpen}>
+	<AlertDialog.Content>
 		<form method="post" action="?/deleteOrder" use:enhance={deleteOrderAction.enhance}>
-			<AlertDialogHeader>
-				<AlertDialogTitle>{m.customer_order_delete_title()}</AlertDialogTitle>
-				<AlertDialogDescription>
+			<AlertDialog.Header>
+				<AlertDialog.Title>{m.customer_order_delete_title()}</AlertDialog.Title>
+				<AlertDialog.Description>
 					{m.customer_order_delete_description()}
-				</AlertDialogDescription>
-			</AlertDialogHeader>
+				</AlertDialog.Description>
+			</AlertDialog.Header>
 			<input type="hidden" name="orderId" value={pendingOrderId ?? ''} />
-			<AlertDialogFooter class="mt-4">
-				<AlertDialogCancel type="button">{m.cancel()}</AlertDialogCancel>
-				<AlertDialogAction
+			<AlertDialog.Footer class="mt-4">
+				<AlertDialog.Cancel type="button">{m.cancel()}</AlertDialog.Cancel>
+				<AlertDialog.Action
 					type="submit"
 					variant="destructive-solid"
 					disabled={deleteOrderAction.pending}
 				>
 					{m.customer_order_delete()}
-				</AlertDialogAction>
-			</AlertDialogFooter>
+				</AlertDialog.Action>
+			</AlertDialog.Footer>
 		</form>
-	</AlertDialogContent>
-</AlertDialog>
+	</AlertDialog.Content>
+</AlertDialog.Root>

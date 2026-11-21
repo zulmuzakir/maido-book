@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { toast } from 'svelte-sonner';
 	import { FormAction } from '#lib/form-action.svelte.ts';
@@ -80,19 +79,28 @@
 			{/snippet}
 		</DropdownMenu.Trigger>
 		<DropdownMenu.Content align="end" class="min-w-48">
-			<DropdownMenu.Item onSelect={() => goto(editHref)}>
-				<PencilIcon class="size-4" />
-				{m.customer_edit_title()}
-			</DropdownMenu.Item>
-			<DropdownMenu.Item onSelect={copyPhone}>
-				<CopyIcon class="size-4" />
-				{m.customer_action_copy()}
-			</DropdownMenu.Item>
+			<DropdownMenu.Group>
+				<!-- A real link, so it can open in a new tab like any other. -->
+				<DropdownMenu.Item>
+					{#snippet child({ props })}
+						<a href={editHref} {...props}>
+							<PencilIcon class="size-4" />
+							{m.customer_edit_title()}
+						</a>
+					{/snippet}
+				</DropdownMenu.Item>
+				<DropdownMenu.Item onSelect={copyPhone}>
+					<CopyIcon class="size-4" />
+					{m.customer_action_copy()}
+				</DropdownMenu.Item>
+			</DropdownMenu.Group>
 			<DropdownMenu.Separator />
-			<DropdownMenu.Item variant="destructive" onSelect={() => (deleteOpen = true)}>
-				<Trash2Icon class="size-4" />
-				{m.customer_delete()}
-			</DropdownMenu.Item>
+			<DropdownMenu.Group>
+				<DropdownMenu.Item variant="destructive" onSelect={() => (deleteOpen = true)}>
+					<Trash2Icon class="size-4" />
+					{m.customer_delete()}
+				</DropdownMenu.Item>
+			</DropdownMenu.Group>
 		</DropdownMenu.Content>
 	</DropdownMenu.Root>
 {/snippet}

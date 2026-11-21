@@ -10,16 +10,7 @@
 	import { Textarea } from '#lib/components/ui/textarea/index.js';
 	import FollowUpOutcome, { type SavedOutcome } from '#lib/components/follow-up-outcome.svelte';
 	import FollowUpSnooze from '#lib/components/follow-up-snooze.svelte';
-	import {
-		AlertDialog,
-		AlertDialogAction,
-		AlertDialogCancel,
-		AlertDialogContent,
-		AlertDialogDescription,
-		AlertDialogFooter,
-		AlertDialogHeader,
-		AlertDialogTitle
-	} from '#lib/components/ui/alert-dialog/index.js';
+	import * as AlertDialog from '#lib/components/ui/alert-dialog/index.js';
 	import InitialsAvatar from '#lib/components/initials-avatar.svelte';
 	import SupplyTrack from '#lib/components/supply-track.svelte';
 	import { addDays, formatDate } from '#lib/domain/dates.ts';
@@ -186,25 +177,26 @@
 			</section>
 		{/if}
 
-		<AlertDialog bind:open={templateConfirm}>
-			<AlertDialogContent>
+		<AlertDialog.Root bind:open={templateConfirm}>
+			<AlertDialog.Content>
 				<form method="post" action="?/saveTemplate" use:enhance={saveTemplate.enhance}>
 					<input type="hidden" name="kind" value={item.kind} />
 					<input type="hidden" name="body" value={toTemplate(edited, item.vars)} />
-					<AlertDialogHeader>
-						<AlertDialogTitle>{m.queue_template_confirm_title()}</AlertDialogTitle>
-						<AlertDialogDescription>{m.queue_template_confirm_description()}</AlertDialogDescription
+					<AlertDialog.Header>
+						<AlertDialog.Title>{m.queue_template_confirm_title()}</AlertDialog.Title>
+						<AlertDialog.Description
+							>{m.queue_template_confirm_description()}</AlertDialog.Description
 						>
-					</AlertDialogHeader>
-					<AlertDialogFooter class="mt-4">
-						<AlertDialogCancel type="button">{m.cancel()}</AlertDialogCancel>
-						<AlertDialogAction type="submit" disabled={saveTemplate.pending}>
+					</AlertDialog.Header>
+					<AlertDialog.Footer class="mt-4">
+						<AlertDialog.Cancel type="button">{m.cancel()}</AlertDialog.Cancel>
+						<AlertDialog.Action type="submit" disabled={saveTemplate.pending}>
 							{m.queue_template_confirm()}
-						</AlertDialogAction>
-					</AlertDialogFooter>
+						</AlertDialog.Action>
+					</AlertDialog.Footer>
 				</form>
-			</AlertDialogContent>
-		</AlertDialog>
+			</AlertDialog.Content>
+		</AlertDialog.Root>
 
 		<!-- The send form holds only the data; its buttons sit in the message section, or in the
 		     bottom bar while editing. -->
@@ -222,8 +214,8 @@
 					{:else}
 						<Button
 							type="button"
-							variant="ghost"
-							class="-mr-2.5 h-9 gap-1.5 px-2.5 text-[13.5px] text-primary-text hover:bg-accent hover:text-primary-text desk:h-9"
+							variant="inline"
+							class="-mr-2.5 h-9 gap-1.5 px-2.5 text-[13.5px] desk:h-9"
 							onclick={() => (editing = true)}
 						>
 							<PencilIcon class="size-4" aria-hidden="true" />
@@ -247,8 +239,8 @@
 						<div class="-mr-2.5 flex gap-1">
 							<Button
 								type="button"
-								variant="ghost"
-								class="h-9 px-2.5 text-[13.5px] text-primary-text hover:bg-accent hover:text-primary-text desk:h-9"
+								variant="inline"
+								class="h-9 px-2.5 text-[13.5px] desk:h-9"
 								disabled={!changed}
 								onclick={() => (edited = item.message)}
 							>
@@ -256,8 +248,8 @@
 							</Button>
 							<Button
 								type="button"
-								variant="ghost"
-								class="h-9 px-2.5 text-[13.5px] text-primary-text hover:bg-accent hover:text-primary-text desk:h-9"
+								variant="inline"
+								class="h-9 px-2.5 text-[13.5px] desk:h-9"
 								onclick={() => (templateConfirm = true)}
 							>
 								{m.queue_save_template()}

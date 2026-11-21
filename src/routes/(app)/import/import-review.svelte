@@ -43,8 +43,7 @@
 	const tableRows = $derived(showAll ? shownRows : sampleRows);
 	const hiddenCount = $derived(visible.length - shownRows.length);
 
-	const LINK =
-		'h-11 self-start px-0 font-semibold text-primary-text hover:bg-transparent hover:text-primary-text hover:underline desk:h-9';
+	const LINK = '-ml-2.5 h-11 self-start px-2.5 font-semibold desk:h-9';
 	// Desktop sample: Baris · Nama · No. WA · Order terakhir · Status · Follow up.
 	const COLS = 'grid grid-cols-[52px_minmax(0,1fr)_150px_110px_64px_80px] items-center gap-x-3';
 </script>
@@ -112,7 +111,7 @@
 				{/each}
 			</ul>
 			{#if skipped.length > skipLimit}
-				<Button variant="ghost" class={LINK} onclick={() => (skipLimit += PREVIEW_PAGE)}>
+				<Button variant="inline" class={LINK} onclick={() => (skipLimit += PREVIEW_PAGE)}>
 					{m.import_show_more({ count: Math.min(skipped.length - skipLimit, PREVIEW_PAGE) })}
 				</Button>
 			{/if}
@@ -189,12 +188,12 @@
 		{/if}
 
 		{#if !showAll && preview.rows.length > SAMPLE_ROWS}
-			<Button variant="ghost" class={LINK} onclick={() => (showAll = true)}>
+			<Button variant="inline" class={LINK} onclick={() => (showAll = true)}>
 				{m.import_show_all({ count: preview.rows.length })}
 			</Button>
 		{/if}
 		{#if showAll && hiddenCount > 0}
-			<Button variant="ghost" class={LINK} onclick={() => (previewLimit += PREVIEW_PAGE)}>
+			<Button variant="inline" class={LINK} onclick={() => (previewLimit += PREVIEW_PAGE)}>
 				{m.import_show_more({ count: Math.min(hiddenCount, PREVIEW_PAGE) })}
 			</Button>
 		{/if}
