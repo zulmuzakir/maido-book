@@ -282,7 +282,7 @@
 						</p>
 					{:else}
 						<blockquote
-							class="rounded-[8px] bg-background px-3.5 py-3 text-[14.5px] leading-[22px] whitespace-pre-wrap text-foreground dark:bg-secondary"
+							class="rounded-[8px] bg-background px-3.5 py-3 text-[14.5px] leading-[22px] whitespace-pre-wrap text-foreground"
 						>
 							{edited}
 						</blockquote>

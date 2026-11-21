@@ -32,7 +32,7 @@
 {#snippet logo(size: string)}
 	<span
 		class={cn(
-			'grid shrink-0 place-items-center rounded-[10px] bg-accent font-extrabold text-accent-foreground',
+			'grid shrink-0 place-items-center rounded-[10px] bg-accent font-extrabold text-primary-text',
 			size
 		)}
 		aria-hidden="true">{m.app_name().slice(0, 1)}</span
@@ -92,7 +92,7 @@
 <main class="min-h-dvh bg-card text-foreground">
 	<!-- Desktop: gradient hero on the left, a 560px sign-in panel on the right. -->
 	<div class="hidden min-h-dvh xl:grid xl:grid-cols-[minmax(0,1fr)_560px]">
-		<section class={cn('flex flex-col justify-between p-14', HERO)}>
+		<section class={cn('flex flex-col justify-between px-14 py-12', HERO)}>
 			<div class="flex items-center gap-3">
 				{@render logo('size-10 text-lg')}
 				<span class="text-xl font-bold tracking-[-0.02em]">{m.app_name()}</span>

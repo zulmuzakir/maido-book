@@ -133,7 +133,13 @@
 		<legend class="float-left mb-3 text-ui font-semibold text-foreground">
 			{m.today_outcome_choice()}
 		</legend>
-		<div class="clear-left flex flex-col gap-2">
+		<!-- Tablet (the 480px sheet): two columns until a result is picked, then one, as on the boards. -->
+		<div
+			class={cn(
+				'clear-left flex flex-col gap-2',
+				choice === null && 'md:grid md:grid-cols-2 xl:flex'
+			)}
+		>
 			<!-- eslint-disable svelte/no-navigation-without-resolve -->
 			<a
 				href={resolve('/(app)/orders/new') + `?customer=${item.customer.id}&from=queue`}

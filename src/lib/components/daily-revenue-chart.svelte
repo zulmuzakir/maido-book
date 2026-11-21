@@ -33,8 +33,15 @@
 	const bar = $derived(Math.max(4, Math.min(40, slot * 0.55)));
 	const y = (v: number) => base - (v / top) * plot;
 	const dayNumber = (iso: string) => Number(iso.slice(8));
+	// Narrow: label the first and last days, today, and every fifth day, but drop a fifth day that
+	// sits next to one of the others ("20" and "21" would run together as "2021").
+	const anchors = $derived(
+		[0, days.length - 1, days.findIndex((d) => d.date === today)].filter((i) => i >= 0)
+	);
 	const showLabel = (iso: string, i: number) =>
-		slot >= 22 || iso === today || i === 0 || i === days.length - 1 || dayNumber(iso) % 5 === 0;
+		slot >= 22 ||
+		anchors.includes(i) ||
+		(dayNumber(iso) % 5 === 0 && anchors.every((a) => Math.abs(a - i) >= 2));
 </script>
 
 <div bind:clientWidth={width} class="w-full" role="img" aria-label={m.insights_daily_title()}>

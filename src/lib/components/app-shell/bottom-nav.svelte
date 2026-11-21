@@ -41,7 +41,8 @@
 	</a>
 {/snippet}
 
-<!-- 72px bar plus the home-indicator inset; the centre "+" rises 24px above it. -->
+<!-- 72px bar plus the home-indicator inset. As on the boards, the centre "+" has a -24px top
+     margin inside a vertically centred slot, so it sits about 5px above the bar. -->
 <nav
 	aria-label={m.nav_main_label()}
 	class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-sidebar-border bg-sidebar px-1.5 pb-[env(safe-area-inset-bottom)] md:hidden"
@@ -49,7 +50,7 @@
 	<div class="contents *:h-[66px]">
 		{@render tab(tabs[0])}
 		{@render tab(tabs[1])}
-		<div class="flex justify-center">
+		<div class="flex items-center justify-center">
 			<a
 				href={resolve('/(app)/orders/new')}
 				aria-label={m.new_order()}
