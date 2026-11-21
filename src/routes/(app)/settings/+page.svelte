@@ -150,10 +150,6 @@
 	const HINT = 'mt-0.5 text-sm leading-5 text-muted-foreground';
 </script>
 
-<svelte:head>
-	<title>{m.nav_settings()}</title>
-</svelte:head>
-
 {#snippet heading(id: string, title: string, hint?: string)}
 	<div>
 		<h2 {id} class={H2}>{title}</h2>

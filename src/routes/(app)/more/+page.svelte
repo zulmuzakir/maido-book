@@ -31,8 +31,6 @@
 		);
 </script>
 
-<svelte:head><title>{m.nav_more()} · {m.app_name()}</title></svelte:head>
-
 {#snippet band()}
 	<div class="h-2 border-y border-rule bg-background" aria-hidden="true"></div>
 {/snippet}

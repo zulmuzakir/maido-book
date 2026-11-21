@@ -93,10 +93,6 @@
 	);
 </script>
 
-<svelte:head>
-	<title>{data.title}</title>
-</svelte:head>
-
 {#snippet searchField()}
 	<form
 		method="get"

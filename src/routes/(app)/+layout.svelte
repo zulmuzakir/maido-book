@@ -34,11 +34,15 @@
 		if (navigator.onLine && offlineTarget) location.assign(offlineTarget.href);
 	}
 
-	const title = $derived((page.data as { title?: string }).title ?? m.app_name());
+	// The one owner of the tab title: each page's load returns its `title`; pages do not set one.
+	const title = $derived.by(() => {
+		const pageTitle = (page.data as { title?: string }).title;
+		return pageTitle ? `${pageTitle} · ${m.app_name()}` : m.app_name();
+	});
 </script>
 
 <svelte:head>
-	<title>{title} · {m.app_name()}</title>
+	<title>{title}</title>
 </svelte:head>
 
 <FlashToast />

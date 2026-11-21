@@ -140,10 +140,6 @@
 	});
 </script>
 
-<svelte:head>
-	<title>{data.title}</title>
-</svelte:head>
-
 <!-- Desktop: a 560px form and a 360px sticky preview, centred together. Tablet: a 600px column
      with the preview under "Total dan catatan" and a sticky action bar. Phone: one column with
      the action bar above the bottom nav. -->

@@ -22,10 +22,6 @@
 	const summary = $derived(tab === 'summary');
 </script>
 
-<svelte:head>
-	<title>{data.title}</title>
-</svelte:head>
-
 <!-- Phone/tablet: one column (follow-up first). Desktop: the tab's content on the left and a
      360px aside with the follow-up card, customer data and notes, on both tabs. -->
 <div class="min-h-dvh bg-card pb-[72px] md:pb-0">

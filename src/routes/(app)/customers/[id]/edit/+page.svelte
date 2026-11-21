@@ -34,10 +34,6 @@
 	const duplicateOf = $derived(updateForm?.duplicateOf ?? null);
 </script>
 
-<svelte:head>
-	<title>{data.title}</title>
-</svelte:head>
-
 <!-- Same frame as Pelanggan baru; the panel summarises the customer (or the one who already has the
      typed number), and deleting sits in its own danger-zone card under the form. -->
 <div class="min-h-dvh bg-card">

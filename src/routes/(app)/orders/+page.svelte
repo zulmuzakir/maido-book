@@ -72,10 +72,6 @@
 	{/if}
 {/snippet}
 
-<svelte:head>
-	<title>{data.title}</title>
-</svelte:head>
-
 <!-- Desktop: month picker, "Bulan ini" and "Order baru" in the header. Tablet: the picker gets its
      own row. Phone: a full-width picker; "Bulan ini" moves to the header's right. -->
 <div class="flex min-h-dvh flex-col bg-card">

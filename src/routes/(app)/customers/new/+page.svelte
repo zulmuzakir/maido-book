@@ -25,10 +25,6 @@
 	let liveDose = $state<number | null>(1);
 </script>
 
-<svelte:head>
-	<title>{data.title}</title>
-</svelte:head>
-
 <!-- Desktop: a 560px form and a 360px panel (a live preview, or the customer who already has this
      number), centred together. Tablet: a 600px column. Phone: the action bar above the nav. -->
 <div class="min-h-dvh bg-card">

@@ -151,10 +151,6 @@
 	}
 </script>
 
-<svelte:head>
-	<title>{data.title}</title>
-</svelte:head>
-
 {#snippet submitLabel()}
 	{#if submitting}
 		<Spinner />
