@@ -3,13 +3,13 @@
 	import { resolve } from '$app/paths';
 	import { untrack } from 'svelte';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
-	import CalendarIcon from '@lucide/svelte/icons/calendar';
 	import LoaderCircleIcon from '@lucide/svelte/icons/loader-circle';
 	import ReceiptIcon from '@lucide/svelte/icons/receipt';
 	import RotateCcwIcon from '@lucide/svelte/icons/rotate-ccw';
 	import SettingsIcon from '@lucide/svelte/icons/settings';
 	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 	import WifiOffIcon from '@lucide/svelte/icons/wifi-off';
+	import DateField from '#lib/components/date-field.svelte';
 	import DoseField from '#lib/components/dose-field.svelte';
 	import FieldError from '#lib/components/field-error.svelte';
 	import FormActions from '#lib/components/form-actions.svelte';
@@ -223,26 +223,16 @@
 
 					<div class={fieldStack}>
 						<Label for="order-date" class={fieldLabel}>{m.order_date()}</Label>
-						<!-- The native date input is transparent and covers the visible box, so a tap opens the picker. -->
-						<div
-							class="relative flex h-11 items-center gap-2 rounded-lg border border-input bg-card px-3 text-base has-[:focus-visible]:border-ring has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring has-[[aria-invalid]]:border-destructive has-[[aria-invalid]]:ring-3 has-[[aria-invalid]]:ring-destructive/20 desk:h-10 desk:text-sm"
-						>
-							<CalendarIcon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-							<span aria-hidden="true">
-								{isIsoDate(orderDate) ? formatDate(orderDate, getLocale(), 'long') : ''}
-							</span>
-							<input
-								id="order-date"
-								name="orderDate"
-								type="date"
-								max={data.maxDate}
-								aria-label={m.order_date()}
-								aria-invalid={errors.orderDate ? 'true' : undefined}
-								bind:value={orderDate}
-								class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-							/>
-						</div>
+						<DateField
+							id="order-date"
+							name="orderDate"
+							bind:value={orderDate}
+							max={data.maxDate}
+							invalid={!!errors.orderDate}
+							describedby={errors.orderDate ? 'order-date-error' : undefined}
+						/>
 						<FieldError
+							id="order-date-error"
 							message={errors.orderDate ? fieldError('orderDate', errors.orderDate) : null}
 						/>
 					</div>

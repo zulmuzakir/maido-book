@@ -4,12 +4,13 @@
 	import { toast } from 'svelte-sonner';
 	import CalendarIcon from '@lucide/svelte/icons/calendar';
 	import { FormAction } from '#lib/form-action.svelte.ts';
+	import DateField from '#lib/components/date-field.svelte';
 	import FieldError from '#lib/components/field-error.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
 	import * as ToggleGroup from '#lib/components/ui/toggle-group/index.js';
 	import ResponsiveDialog from '#lib/components/responsive-dialog.svelte';
-	import { addDays, formatDate, isIsoDate } from '#lib/domain/dates.ts';
+	import { addDays, formatDate } from '#lib/domain/dates.ts';
 	import { supplyStatus } from '#lib/domain/follow-up.ts';
 	import { relativeDue } from '#lib/format.ts';
 	import { fieldError } from '#lib/labels.ts';
@@ -212,25 +213,15 @@
 					</ToggleGroup.Item>
 				{/each}
 			</ToggleGroup.Root>
-			<div
-				class="relative flex h-11 items-center gap-2 rounded-lg border border-input bg-card px-3 text-base has-[:focus-visible]:border-primary has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring desk:text-[15px]"
-			>
-				<CalendarIcon class="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-				<span aria-hidden="true" class="num">
-					{isIsoDate(scheduleDate) ? formatDate(scheduleDate, getLocale(), 'long') : ''}
-				</span>
-				<input
-					id="schedule-date"
-					name="dueDate"
-					type="date"
-					required
-					min={today}
-					bind:value={scheduleDate}
-					aria-invalid={scheduleDateError ? 'true' : undefined}
-					aria-describedby={dateDescribedBy}
-					class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-				/>
-			</div>
+			<DateField
+				id="schedule-date"
+				name="dueDate"
+				bind:value={scheduleDate}
+				min={today}
+				required
+				invalid={!!scheduleDateError}
+				describedby={dateDescribedBy}
+			/>
 			<p id="schedule-date-hint" class="text-xs leading-4 text-muted-foreground">
 				{m.customer_schedule_helper()}
 			</p>

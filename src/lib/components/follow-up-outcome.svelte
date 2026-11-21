@@ -10,13 +10,13 @@
 </script>
 
 <script lang="ts">
+	import DateField from '#lib/components/date-field.svelte';
 	import FieldError from '#lib/components/field-error.svelte';
 	import { untrack } from 'svelte';
 	import { enhance } from '$app/forms';
 	import { resolve } from '$app/paths';
 	import { toast } from 'svelte-sonner';
 	import ArrowUpRightIcon from '@lucide/svelte/icons/arrow-up-right';
-	import CalendarIcon from '@lucide/svelte/icons/calendar';
 	import CheckIcon from '@lucide/svelte/icons/check';
 	import InfoIcon from '@lucide/svelte/icons/info';
 	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
@@ -220,22 +220,18 @@
 							</ToggleGroup.Item>
 						{/each}
 					</ToggleGroup.Root>
-					<div
-						class="relative flex h-11 items-center gap-2.5 rounded-lg border border-input bg-card px-3 text-[15px] has-[:focus-visible]:border-primary has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring"
-					>
-						<CalendarIcon class="size-4 text-muted-foreground" aria-hidden="true" />
-						<span class="num">{nextDate ? formatDate(nextDate, locale, 'long') : ''}</span>
-						<input
-							id="next-date-{item.followUpId}"
-							type="date"
-							name="nextDate"
-							bind:value={nextDate}
-							min={minDate}
-							aria-invalid={errors.nextDate ? true : undefined}
-							class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-						/>
-					</div>
-					<FieldError message={fieldError('nextDate', errors.nextDate)} />
+					<DateField
+						id="next-date-{item.followUpId}"
+						name="nextDate"
+						bind:value={nextDate}
+						min={minDate}
+						invalid={!!errors.nextDate}
+						describedby={errors.nextDate ? `next-date-${item.followUpId}-error` : undefined}
+					/>
+					<FieldError
+						id="next-date-{item.followUpId}-error"
+						message={fieldError('nextDate', errors.nextDate)}
+					/>
 				</div>
 			{/if}
 
