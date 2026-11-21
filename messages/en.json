@@ -402,6 +402,7 @@
 	"order_more_details": "Total and note",
 	"order_preview_title": "Supply estimate",
 	"order_preview_empty": "Enter quantity and dose to see the run-out estimate.",
+	"order_preview_date_out": "The order date can be tomorrow at the latest. Change it to see the run-out estimate.",
 	"login_footnote": "For the CS team only. Sign in with an allowed Google account.",
 	"today_done_sent": "{count} done today.",
 	"today_done_waiting": "{count} still waiting for a reply.",

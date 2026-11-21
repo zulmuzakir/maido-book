@@ -112,10 +112,13 @@
 
 	const totalText = $derived(totalDigits ? `Rp ${groupDigits(totalDigits)}` : '—');
 
+	// An order dated past tomorrow is rejected on save, so it gets no estimate either.
+	const dateOutOfRange = $derived(isIsoDate(orderDate) && orderDate > data.maxDate);
+
 	// Live estimate from in-progress values, so the run-out date is visible before saving.
 	const plan = $derived.by((): OrderPlan | null => {
 		if (!product || qtyValid === null || doseValid === null) return null;
-		if (!isIsoDate(orderDate)) return null;
+		if (!isIsoDate(orderDate) || dateOutOfRange) return null;
 		const days = daysOfSupply({
 			qty: qtyValid,
 			servingsPerUnit: product.servingsPerUnit,
@@ -317,6 +320,7 @@
 				<OrderPreview
 					{plan}
 					{orderDate}
+					{dateOutOfRange}
 					today={data.today}
 					class="xl:sticky xl:top-6 xl:col-start-2 xl:row-span-3 xl:row-start-1"
 				/>

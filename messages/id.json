@@ -312,6 +312,7 @@
 	"order_more_details": "Total dan catatan",
 	"order_preview_title": "Perkiraan persediaan",
 	"order_preview_empty": "Isi jumlah dan takaran untuk melihat perkiraan habis.",
+	"order_preview_date_out": "Tanggal order paling lambat besok. Ubah tanggalnya untuk melihat perkiraan habis.",
 	"login_footnote": "Hanya untuk tim CS. Akses dengan akun Google yang diizinkan.",
 	"today_done_sent": "{count} pelanggan selesai hari ini.",
 	"today_done_waiting": "{count} masih menunggu balasan.",

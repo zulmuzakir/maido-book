@@ -20,11 +20,14 @@
 	let {
 		plan,
 		orderDate,
+		dateOutOfRange = false,
 		today,
 		class: className
 	}: {
 		plan: OrderPlan | null;
 		orderDate: string;
+		/** The order date is past tomorrow: say so instead of asking for quantity and dose. */
+		dateOutOfRange?: boolean;
 		today: string;
 		class?: string;
 	} = $props();
@@ -98,6 +101,8 @@
 		</ul>
 	{:else}
 		<div class="mt-1 h-2.5 rounded-full bg-track" aria-hidden="true"></div>
-		<p class="text-sm leading-[21px] text-muted-foreground">{m.order_preview_empty()}</p>
+		<p class="text-sm leading-[21px] text-muted-foreground">
+			{dateOutOfRange ? m.order_preview_date_out() : m.order_preview_empty()}
+		</p>
 	{/if}
 </aside>
