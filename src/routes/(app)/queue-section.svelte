@@ -56,7 +56,15 @@
 	onMount(() => {
 		mounted = true;
 	});
-	const rowIn = (node: Element) => slide(node, { duration: mounted ? duration : 0, easing: EASE });
+	// With motion off (typing in the search, reduced motion) the row transitions return nothing to
+	// run instead of a 0ms slide or flip: those still read each row's computed style and rect, and
+	// a list that changes on every keystroke pays that per row.
+	const still = { duration: 0 };
+	const rowIn = (node: Element) =>
+		mounted && duration ? slide(node, { duration, easing: EASE }) : still;
+	const rowOut = (node: Element) => (duration ? slide(node, { duration, easing: EASE }) : still);
+	const rowMove = (node: Element, rects: { from: DOMRect; to: DOMRect }) =>
+		duration ? flip(node, rects, { duration, easing: EASE }) : still;
 </script>
 
 <section aria-labelledby="q-{section.id}">
@@ -77,11 +85,7 @@
 	/>
 	{#if open}
 		{#each rows as item (item.followUpId)}
-			<div
-				animate:flip={{ duration, easing: EASE }}
-				in:rowIn
-				out:slide={{ duration, easing: EASE }}
-			>
+			<div animate:rowMove in:rowIn out:rowOut>
 				<QueueRow
 					{item}
 					{today}

@@ -4,7 +4,7 @@
 	import QueueHandled from './queue-handled.svelte';
 	import QueueProgress from './queue-progress.svelte';
 	import QueueSection, { type Section, type Tab } from './queue-section.svelte';
-	import { flushSync, tick } from 'svelte';
+	import { flushSync } from 'svelte';
 	import { prefersReducedMotion } from 'svelte/motion';
 	import { MediaQuery, SvelteSet } from 'svelte/reactivity';
 	import { fade, fly, slide } from 'svelte/transition';
@@ -83,22 +83,6 @@
 	const tabParam = $derived(page.url.searchParams.get('tab'));
 	let tab = $derived(parseTab(tabParam));
 
-	// A tab switch reuses the rows both tabs share instead of rebuilding the whole list (a remount of
-	// every row cost a 130-190ms frame on a slow phone). For that one update nothing folds, slides
-	// or flips (`listMotion` off); then the list fades in as a whole.
-	let listMotion = $state(true);
-	let listEl: HTMLElement | undefined;
-	async function switchTab(key: Tab) {
-		listMotion = false;
-		tab = key;
-		selectedId = null;
-		await tick();
-		listMotion = true;
-		listEl?.animate([{ opacity: 0 }, { opacity: 1 }], {
-			duration: motionMs(DURATION.fast),
-			easing: 'cubic-bezier(0.215, 0.61, 0.355, 1)'
-		});
-	}
 	// One tab per section. The week ahead has no tab: it only closes the "Semua" list.
 	const tabItems = $derived([
 		{
@@ -512,7 +496,10 @@
 					items={tabItems}
 					active={tab}
 					label={m.queue_title()}
-					onselect={(key) => void switchTab(key as Tab)}
+					onselect={(key) => {
+						tab = key as Tab;
+						selectedId = null;
+					}}
 				/>
 			</div>
 		{/if}
@@ -555,28 +542,32 @@
 			</p>
 		{/if}
 
-		<!-- A tab switch keeps the rows both tabs share (see switchTab); within a tab, a section whose
-		     last customer leaves folds away. -->
-		<div bind:this={listEl}>
-			{#each shown as section (section.id)}
-				<div out:slide={{ duration: motionMs(DURATION.base, !query && listMotion), easing: EASE }}>
-					<QueueSection
-						{section}
-						open
-						animate={!query && listMotion}
-						morph={rowMorph}
-						rows={visibleRows(section)}
-						hiddenCount={hiddenRows(section)}
-						ontoggle={undefined}
-						onshowmore={() => (expanded = { ...expanded, [section.id]: true })}
-						today={data.today}
-						rules={data.rules}
-						selectedId={currentId}
-						onselect={select}
-					/>
-				</div>
-			{/each}
-		</div>
+		<!-- Rebuilt per tab: a tab switch fades the new list in instead of folding sections and rows
+		     away (their transitions are local, so they do not run when the whole block goes). Within a
+		     tab, a section whose last customer leaves folds away. Keeping the rows both tabs share was
+		     measured ~3x slower: their 0ms slides still read every row's computed style. -->
+		{#key tab}
+			<div in:fade={{ duration: motionMs(DURATION.fast) }}>
+				{#each shown as section (section.id)}
+					<div out:slide={{ duration: motionMs(DURATION.base, !query), easing: EASE }}>
+						<QueueSection
+							{section}
+							open
+							animate={!query}
+							morph={rowMorph}
+							rows={visibleRows(section)}
+							hiddenCount={hiddenRows(section)}
+							ontoggle={undefined}
+							onshowmore={() => (expanded = { ...expanded, [section.id]: true })}
+							today={data.today}
+							rules={data.rules}
+							selectedId={currentId}
+							onselect={select}
+						/>
+					</div>
+				{/each}
+			</div>
+		{/key}
 
 		{#if tab === 'all' && data.handled.length > 0}
 			{@const open = !(handledFolded ?? !dayDone)}
