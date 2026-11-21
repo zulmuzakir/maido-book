@@ -5,6 +5,7 @@
 	import QueueProgress from './queue-progress.svelte';
 	import QueueSection, { type Section, type Tab } from './queue-section.svelte';
 	import { MediaQuery } from 'svelte/reactivity';
+	import { fade, fly, slide } from 'svelte/transition';
 	import { resolve } from '$app/paths';
 	import { afterNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
@@ -24,6 +25,7 @@
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
 	import { searchDigits } from '#lib/domain/phone.ts';
 	import { resolveSelection } from '#lib/domain/queue-selection.ts';
+	import { DURATION, EASE, motionMs } from '#lib/motion.ts';
 	import { dueState, type QueueRowItem } from '#lib/queue.ts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { cn } from '#lib/utils.js';
@@ -136,6 +138,9 @@
 	// working. Stepping then continues from the neighbours they had in the list when it was sent.
 	let sentFrom = $state<{ id: string; prev: string | null; next: string | null } | null>(null);
 	let sheetOpen = $state(false);
+	// Which way the last ‹ › (or j / k) went: the next card slides in from that side. 0 for a pick
+	// from the list, Back or a fallback, which only fade.
+	let stepDir = $state<1 | -1 | 0>(0);
 	const presentIds = $derived(new Set(pool.map((i) => i.followUpId)));
 	// What the detail shows: the pick while it is open, else whoever took its slot, else (desktop,
 	// "Semua") the first row. Derived, so nothing has to repair `selectedId` after a reload.
@@ -198,6 +203,7 @@
 		const item = pool.find((i) => i.followUpId === id);
 		if (!item) return;
 		reveal(item);
+		stepDir = 0;
 		selectedId = item.followUpId;
 		lastIndex = Math.max(0, flat.indexOf(item));
 		if (tablet.current && !wide.current) sheetOpen = true;
@@ -225,8 +231,9 @@
 		}
 	}
 
-	function select(item: QueueRowItem) {
+	function select(item: QueueRowItem, dir: 1 | -1 | 0 = 0) {
 		reveal(item);
+		stepDir = dir;
 		sentFrom = null;
 		selectedId = item.followUpId;
 		lastIndex = Math.max(0, flat.indexOf(item));
@@ -246,12 +253,19 @@
 		if (sentHere) {
 			const id = by > 0 ? sentHere.next : sentHere.prev;
 			const target = flat.find((i) => i.followUpId === id);
-			if (target) select(target);
+			if (target) select(target, by);
 			return;
 		}
 		// Once the follow-up has left the list, step from the slot it occupied.
 		const next = position >= 0 ? flat[position + by] : flat[lastIndex + (by > 0 ? 0 : -1)];
-		if (next) select(next);
+		if (next) select(next, by);
+	}
+
+	/** The card coming in after a change of customer. */
+	function cardIn(node: Element) {
+		return stepDir
+			? fly(node, { x: 24 * stepDir, duration: motionMs(DURATION.base), easing: EASE })
+			: fade(node, { duration: motionMs(DURATION.fast) });
 	}
 
 	/** Called before the reload that moves the customer to "Menunggu balasan". */
@@ -401,13 +415,15 @@
 		{/if}
 
 		{#if dayDone && !query && tab === 'all'}
-			<QueueDone
-				variant="banner"
-				today={data.today}
-				doneToday={data.doneToday}
-				waitingCount={waiting.length}
-				next={data.upcoming[0]}
-			/>
+			<div in:slide={{ duration: motionMs(DURATION.base), easing: EASE }}>
+				<QueueDone
+					variant="banner"
+					today={data.today}
+					doneToday={data.doneToday}
+					waitingCount={waiting.length}
+					next={data.upcoming[0]}
+				/>
+			</div>
 		{/if}
 
 		{#if shown.length === 0 && (query || tab !== 'all')}
@@ -416,20 +432,28 @@
 			</p>
 		{/if}
 
-		{#each shown as section (section.id)}
-			<QueueSection
-				{section}
-				open
-				rows={visibleRows(section)}
-				hiddenCount={hiddenRows(section)}
-				ontoggle={undefined}
-				onshowmore={() => (expanded = { ...expanded, [section.id]: true })}
-				today={data.today}
-				rules={data.rules}
-				selectedId={currentId}
-				onselect={select}
-			/>
-		{/each}
+		<!-- Rebuilt per tab: a tab switch swaps the list instead of folding sections and rows away
+		     (their transitions are local, so they do not run when the whole block goes). Within a tab,
+		     a section whose last customer leaves folds away. -->
+		{#key tab}
+			{#each shown as section (section.id)}
+				<div out:slide={{ duration: motionMs(DURATION.base, !query), easing: EASE }}>
+					<QueueSection
+						{section}
+						open
+						animate={!query}
+						rows={visibleRows(section)}
+						hiddenCount={hiddenRows(section)}
+						ontoggle={undefined}
+						onshowmore={() => (expanded = { ...expanded, [section.id]: true })}
+						today={data.today}
+						rules={data.rules}
+						selectedId={currentId}
+						onselect={select}
+					/>
+				</div>
+			{/each}
+		{/key}
 
 		{#if tab === 'all' && data.handled.length > 0}
 			{@const open = !(handledFolded ?? !dayDone)}
@@ -443,25 +467,29 @@
 			aria-label={m.queue_card_label()}
 		>
 			{#if selected}
-				<div class="min-h-0 flex-1 overflow-y-auto">
+				<div class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
 					{#key selected.followUpId}
-						<FollowUpCard
-							item={selected}
-							today={data.today}
-							rules={data.rules}
-							onsaved={outcomeSaved}
-							onsent={cardSent}
-						/>
+						<div class="grid min-h-full" in:cardIn>
+							<FollowUpCard
+								item={selected}
+								today={data.today}
+								rules={data.rules}
+								onsaved={outcomeSaved}
+								onsent={cardSent}
+							/>
+						</div>
 					{/key}
 				</div>
 			{:else if dayDone && !query && tab === 'all'}
-				<QueueDone
-					variant="panel"
-					today={data.today}
-					doneToday={data.doneToday}
-					waitingCount={waiting.length}
-					next={data.upcoming[0]}
-				/>
+				<div in:fade={{ duration: motionMs(DURATION.base), easing: EASE }}>
+					<QueueDone
+						variant="panel"
+						today={data.today}
+						doneToday={data.doneToday}
+						waitingCount={waiting.length}
+						next={data.upcoming[0]}
+					/>
+				</div>
 			{:else}
 				<EmptyState
 					icon={TextAlignStartIcon}
@@ -498,16 +526,18 @@
 				{@render placeLabel('text-sm font-semibold')}
 				{@render stepButtons()}
 			</Drawer.Header>
-			<div class="min-h-0 flex-1 overflow-y-auto">
+			<div class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
 				{#if selected}
 					{#key selected.followUpId}
-						<FollowUpCard
-							item={selected}
-							today={data.today}
-							rules={data.rules}
-							onsaved={outcomeSaved}
-							onsent={cardSent}
-						/>
+						<div class="grid min-h-full" in:cardIn>
+							<FollowUpCard
+								item={selected}
+								today={data.today}
+								rules={data.rules}
+								onsaved={outcomeSaved}
+								onsent={cardSent}
+							/>
+						</div>
 					{/key}
 				{/if}
 			</div>
@@ -517,9 +547,11 @@
 
 {#if phoneDetail && selected}
 	<!-- Full-screen above the list, below the bottom nav (which stays visible). -->
+	<!-- Slides in from the right like a pushed screen, and back out on Back. -->
 	<section
 		class="fixed inset-x-0 top-0 bottom-[calc(72px+env(safe-area-inset-bottom))] z-20 flex flex-col bg-card md:hidden"
 		aria-label={selected.customer.name}
+		transition:fly={{ x: 48, opacity: 0, duration: motionMs(DURATION.base), easing: EASE }}
 	>
 		<div class="flex min-h-14 shrink-0 items-center gap-1 border-b border-rule pr-3 pl-1">
 			<!-- Opening the detail moves focus here, so keyboard and screen-reader users land in it. -->
@@ -535,16 +567,18 @@
 			{@render placeLabel('text-[17px] font-bold')}
 			{@render stepButtons()}
 		</div>
-		<div class="min-h-0 flex-1 overflow-y-auto">
+		<div class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
 			{#key selected.followUpId}
-				<FollowUpCard
-					item={selected}
-					today={data.today}
-					rules={data.rules}
-					onsaved={outcomeSaved}
-					onsent={cardSent}
-					stickySend
-				/>
+				<div class="grid min-h-full" in:cardIn>
+					<FollowUpCard
+						item={selected}
+						today={data.today}
+						rules={data.rules}
+						onsaved={outcomeSaved}
+						onsent={cardSent}
+						stickySend
+					/>
+				</div>
 			{/key}
 		</div>
 	</section>

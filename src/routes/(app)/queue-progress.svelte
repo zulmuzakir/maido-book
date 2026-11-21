@@ -17,7 +17,7 @@
 		aria-label={m.queue_progress({ sent, total })}
 	>
 		<div
-			class="h-full rounded-[3px] bg-primary transition-[width] duration-500 ease-out"
+			class="h-full rounded-[3px] bg-primary transition-[width] duration-(--motion-slow) ease-motion"
 			style:width="{progress * 100}%"
 		></div>
 	</div>

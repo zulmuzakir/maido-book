@@ -8,7 +8,9 @@
 	import { outcomeLabel } from '#lib/labels.ts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { getLocale } from '#lib/paraglide/runtime.js';
+	import { DURATION, EASE, motionMs } from '#lib/motion.ts';
 	import { cn } from '#lib/utils.js';
+	import { slide } from 'svelte/transition';
 	import type { PageData } from './$types';
 
 	let {
@@ -58,7 +60,10 @@
 		<span class="truncate num">{items.length} · {kinds}</span>
 	</button>
 {:else}
-	<section aria-labelledby="q-handled">
+	<section
+		aria-labelledby="q-handled"
+		in:slide={{ duration: motionMs(DURATION.base), easing: EASE }}
+	>
 		<GroupHeader
 			id="q-handled"
 			label={m.queue_handled_open()}

@@ -12,6 +12,10 @@
 	import GroupHeader from '#lib/components/group-header.svelte';
 	import QueueRow from '#lib/components/queue-row.svelte';
 	import { m } from '#lib/paraglide/messages.js';
+	import { DURATION, EASE, motionMs } from '#lib/motion.ts';
+	import { onMount } from 'svelte';
+	import { flip } from 'svelte/animate';
+	import { slide } from 'svelte/transition';
 
 	let {
 		section,
@@ -23,7 +27,8 @@
 		today,
 		rules,
 		selectedId,
-		onselect
+		onselect,
+		animate = true
 	}: {
 		section: Section;
 		open: boolean;
@@ -35,7 +40,20 @@
 		rules: PageData['rules'];
 		selectedId: string | null;
 		onselect: (item: QueueRowItem) => void;
+		/** Off while the list is being filtered, so typing does not set every row in motion. */
+		animate?: boolean;
 	} = $props();
+
+	// A row that leaves (outcome saved, message sent, snoozed) folds away and the rows below
+	// close the gap, so the agent sees the customer is done.
+	const duration = $derived(motionMs(DURATION.base, animate));
+	// Rows that arrive later ("Lihat N lainnya", a customer moving into this section) slide in;
+	// the rows the section opens with do not. Read when a row starts its transition, so no state.
+	let mounted = false;
+	onMount(() => {
+		mounted = true;
+	});
+	const rowIn = (node: Element) => slide(node, { duration: mounted ? duration : 0, easing: EASE });
 </script>
 
 <section aria-labelledby="q-{section.id}">
@@ -56,13 +74,19 @@
 	/>
 	{#if open}
 		{#each rows as item (item.followUpId)}
-			<QueueRow
-				{item}
-				{today}
-				{rules}
-				selected={item.followUpId === selectedId}
-				onselect={() => onselect(item)}
-			/>
+			<div
+				animate:flip={{ duration, easing: EASE }}
+				in:rowIn
+				out:slide={{ duration, easing: EASE }}
+			>
+				<QueueRow
+					{item}
+					{today}
+					{rules}
+					selected={item.followUpId === selectedId}
+					onselect={() => onselect(item)}
+				/>
+			</div>
 		{/each}
 		{#if hiddenCount > 0}
 			<button
