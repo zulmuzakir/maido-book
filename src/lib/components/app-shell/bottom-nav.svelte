@@ -17,7 +17,8 @@
 	const slotClass =
 		'relative flex h-full flex-col items-center justify-center gap-[3px] text-[11px] leading-[14px] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset';
 	const stateClass = (active: boolean) =>
-		active ? 'font-bold text-primary-text' : 'font-medium text-sidebar-muted';
+		// The active tab's icon is drawn at 2, the rest at the app-wide 1.7.
+		active ? 'font-bold text-primary-text [&_svg]:stroke-2' : 'font-medium text-sidebar-muted';
 </script>
 
 {#snippet tab(item: NavItem)}
@@ -56,7 +57,7 @@
 				aria-label={m.new_order()}
 				class="-mt-6 grid size-[52px] place-items-center rounded-2xl bg-sidebar-primary text-sidebar-primary-foreground shadow-[0_6px_16px_color-mix(in_oklch,var(--sidebar-primary)_35%,transparent)] outline-none focus-visible:ring-3 focus-visible:ring-ring"
 			>
-				<Plus class="size-6" aria-hidden="true" />
+				<Plus class="size-6 stroke-[2.2]" aria-hidden="true" />
 			</a>
 		</div>
 		{@render tab(tabs[2])}

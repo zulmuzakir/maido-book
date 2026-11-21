@@ -1,12 +1,16 @@
 <script lang="ts">
 	import './layout.css';
 	import { ModeWatcher } from 'mode-watcher';
+	import { setLucideProps } from '@lucide/svelte/context';
 	import favicon from '#lib/assets/favicon.svg';
 	import { Toaster } from '#lib/components/ui/sonner/index.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import type { LayoutProps } from './$types';
 
 	let { children }: LayoutProps = $props();
+
+	// ROOVE icons are drawn at 1.7 (buttons raise it to 1.9 in button.svelte).
+	setLucideProps({ strokeWidth: 1.7 });
 
 	// ROOVE toasts: an ink pill for normal and success, light red for errors. Each type carries its
 	// own colours so that no class competes with another on the same element.
