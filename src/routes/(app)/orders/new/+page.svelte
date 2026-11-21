@@ -66,6 +66,8 @@
 
 	// One-time prefill from the failed POST or the ?customer= preselection; later edits are the user's.
 	let customerId = $state(untrack(() => initial?.customerId ?? data.preselected?.id ?? ''));
+	/** The picked customer's option row, for the backdated-order warning. */
+	let selectedCustomer = $state.raw(untrack(() => data.preselected));
 	let productId = $state(untrack(() => initial?.productId ?? data.products[0]?.id ?? ''));
 	let orderDate = $state(untrack(() => initial?.orderDate ?? data.today));
 	let qty = $state<number | null>(toNum(initial?.qty));
@@ -131,7 +133,7 @@
 		});
 		const dueIso = reorderDueDate({ orderDate, daysSupply: days, leadDays: data.rules.leadDays });
 		const locale = getLocale();
-		const last = data.customers.find((c) => c.id === customerId)?.lastOrderDate;
+		const last = selectedCustomer?.id === customerId ? selectedCustomer.lastOrderDate : null;
 		return {
 			days,
 			daysLeft: Math.max(0, daysLeft),
@@ -192,10 +194,13 @@
 						<Label for="order-customer" class={fieldLabel}>{m.order_customer()}</Label>
 						<OrderCustomerCombobox
 							id="order-customer"
-							customers={data.customers}
+							initial={data.preselected}
 							bind:value={customerId}
 							invalid={Boolean(errors.customerId)}
-							onselect={(c) => setDoseFor(c.dosePerDay)}
+							onselect={(c) => {
+								selectedCustomer = c;
+								setDoseFor(c.dosePerDay);
+							}}
 						/>
 						<FieldError
 							message={errors.customerId ? fieldError('customerId', errors.customerId) : null}

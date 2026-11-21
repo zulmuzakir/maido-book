@@ -1,30 +1,11 @@
-import { and, asc, desc, eq, gte, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import type { Db } from '#lib/server/db/index.ts';
 import { activity, customer, customerOrder, followUp, product } from '#lib/server/db/schema.ts';
 import { nextMonthStart } from '#lib/domain/dates.ts';
 import { daysOfSupply, reorderDueDate } from '#lib/domain/follow-up.ts';
 import { runBatch, type Stmt } from './batch.ts';
-import { getRules, listProducts } from './settings.ts';
-
-export async function orderFormOptions(db: Db) {
-	const [customers, products] = await Promise.all([
-		db
-			.select({
-				id: customer.id,
-				name: customer.name,
-				phone: customer.phone,
-				dosePerDay: customer.dosePerDay,
-				lastOrderDate: sql<
-					string | null
-				>`(select max(o.order_date) from customer_order o where o.customer_id = ${customer.id})`
-			})
-			.from(customer)
-			.orderBy(asc(customer.name)),
-		listProducts(db, { activeOnly: true })
-	]);
-	return { customers, products };
-}
+import { getRules } from './settings.ts';
 
 export interface OrderInput {
 	customerId: string;

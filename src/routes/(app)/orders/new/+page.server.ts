@@ -1,24 +1,29 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { isIsoDate, maxOrderDate, todayIso } from '#lib/domain/dates.ts';
 import { parseForm } from '#lib/server/crm/form.ts';
-import { createOrder, orderFormOptions } from '#lib/server/crm/orders.ts';
-import { getRules } from '#lib/server/crm/settings.ts';
+import { customerOptionQuery } from '#lib/server/crm/customers.ts';
+import { createOrder } from '#lib/server/crm/orders.ts';
+import { productsQuery, rulesQuery, toRules } from '#lib/server/crm/settings.ts';
 import { orderSchema } from '#lib/server/crm/schemas.ts';
 import { m } from '#lib/paraglide/messages.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const today = todayIso();
-	const [options, rules] = await Promise.all([orderFormOptions(locals.db), getRules(locals.db)]);
-	const requested = url.searchParams.get('customer');
-	const preselected = options.customers.find((c) => c.id === requested) ?? null;
+	const db = locals.db;
+	// Customers are searched from the picker (orders/new/customers); only a preselected one loads here.
+	const [products, ruleRows, preselectedRows] = await db.batch([
+		productsQuery(db, { activeOnly: true }),
+		rulesQuery(db),
+		customerOptionQuery(db, url.searchParams.get('customer') ?? '')
+	]);
+	const preselected = preselectedRows[0] ?? null;
 	// Opened from the queue's "Sudah order": saving and going back both return to the queue.
 	const fromQueue = url.searchParams.get('from') === 'queue';
 
 	return {
-		customers: options.customers,
-		products: options.products,
-		rules,
+		products,
+		rules: toRules(ruleRows),
 		today,
 		maxDate: maxOrderDate(today),
 		preselected,

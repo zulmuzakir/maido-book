@@ -43,6 +43,15 @@ export interface ProductFields {
 	price: number;
 }
 
+/** A customer in the new-order picker. `lastOrderDate` warns about a backdated order. */
+export interface CustomerOption {
+	id: string;
+	name: string;
+	phone: string;
+	dosePerDay: number;
+	lastOrderDate: string | null;
+}
+
 /** What the customer forms' side panel shows about one customer (the duplicate, or the one being edited). */
 export interface CustomerSnapshot {
 	id: string;

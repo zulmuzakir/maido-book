@@ -10,7 +10,12 @@ import {
 } from '#lib/server/db/schema.ts';
 import { todayIso } from '#lib/domain/dates.ts';
 import { searchDigits } from '#lib/domain/phone.ts';
-import type { CustomerSnapshot, CustomerStatus, FollowUpKind } from '#lib/domain/types.ts';
+import type {
+	CustomerOption,
+	CustomerSnapshot,
+	CustomerStatus,
+	FollowUpKind
+} from '#lib/domain/types.ts';
 import { batchSafe, runBatch } from './batch.ts';
 
 /** False only before the first import or customer: the queue shows how to get started instead. */
@@ -182,6 +187,39 @@ export function toCustomerList(
 			})
 		}))
 	};
+}
+
+const customerOptionFields = {
+	id: customer.id,
+	name: customer.name,
+	phone: customer.phone,
+	dosePerDay: customer.dosePerDay,
+	// Spelled out as "customer"."id": in a single-table select drizzle writes a bare "id", which
+	// inside the subquery would mean customer_order.id and never match.
+	lastOrderDate: sql<
+		string | null
+	>`(select max(o.order_date) from customer_order o where o.customer_id = ${customer}.${sql.identifier('id')})`
+};
+
+/** Results per search in the new-order picker. */
+export const CUSTOMER_SEARCH_LIMIT = 20;
+
+/** One customer as a picker option (none for an unknown id). */
+export const customerOptionQuery = (db: Db, id: string) =>
+	db.select(batchSafe(customerOptionFields)).from(customer).where(eq(customer.id, id)).limit(1);
+
+/** The new-order picker's search: first matches by name, and whether there are more. */
+export async function searchCustomerOptions(
+	db: Db,
+	q: string
+): Promise<{ items: CustomerOption[]; more: boolean }> {
+	const rows = await db
+		.select(customerOptionFields)
+		.from(customer)
+		.where(searchCondition(q))
+		.orderBy(asc(customer.name))
+		.limit(CUSTOMER_SEARCH_LIMIT + 1);
+	return { items: rows.slice(0, CUSTOMER_SEARCH_LIMIT), more: rows.length > CUSTOMER_SEARCH_LIMIT };
 }
 
 export const customerStatusCountsQuery = (db: Db) =>
