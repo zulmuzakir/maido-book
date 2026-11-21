@@ -30,8 +30,8 @@ worker-configuration.d.ts
 src/lib/paraglide
 project.inlang/cache/
 
-# Design tooling
-.impeccable/
+# Local working docs (never committed)
+/docs/
 
 # Agent tooling: .claude/ is shared, these stay local
 /.claude/settings.local.json
