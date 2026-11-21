@@ -1,5 +1,21 @@
+<script module lang="ts">
+	const PRESETS = ['1', '2', '3'] as const;
+
+	/** Dose per day from the picked chip and the "other" input; null while it is not a whole ≥ 1. */
+	export function doseOf(preset: string, other: unknown): number | null {
+		const n = preset === 'other' ? Number(other) : Number(preset);
+		return Number.isInteger(n) && n >= 1 ? n : null;
+	}
+
+	/** The dose a stored or returned `dosePerDay` value stands for. */
+	export const seedDose = (dosePerDay: string | undefined) =>
+		doseOf(dosePerDay ?? '1', dosePerDay ?? '');
+
+	/** The field shows +62 as a fixed prefix, so a stored or typed "0812…" drops its leading 0. */
+	export const national = (p: string | undefined) => (p ?? '').trim().replace(/^(\+?62|0)\s*/, '');
+</script>
+
 <script lang="ts">
-	import { untrack } from 'svelte';
 	import { resolve } from '$app/paths';
 	import DoseField from '#lib/components/dose-field.svelte';
 	import FieldError from '#lib/components/field-error.svelte';
@@ -30,33 +46,39 @@
 		liveDose?: number | null;
 	} = $props();
 
-	// The field shows +62 as a fixed prefix, so a stored or typed "0812…" drops its leading 0.
-	const national = (p: string | undefined) => (p ?? '').trim().replace(/^(\+?62|0)\s*/, '');
-	let name = $state(untrack(() => values.name ?? ''));
-	let phone = $state(untrack(() => national(values.phone)));
-	// A failed save hands back what was sent; show that.
-	$effect(() => {
-		name = values.name ?? '';
-		phone = national(values.phone);
-	});
-	$effect(() => {
-		liveName = name;
-		livePhone = phone;
-	});
-
-	const PRESETS = ['1', '2', '3'] as const;
+	// Seeded from `values` (saved data, or what a failed save sent back); typing overrides until the
+	// next `values`. The live* props mirror what is typed for the preview beside the form; they are
+	// written in the input handlers, not synced in effects.
+	let name = $derived(values.name ?? '');
+	let phone = $derived(national(values.phone));
 
 	const dose = $derived(values.dosePerDay ?? '1');
 	const isPreset = $derived((PRESETS as readonly string[]).includes(dose));
 
-	// The user's own pick wins; otherwise the saved or returned dose decides.
-	let picked = $state<string | null>(null);
-	const preset = $derived(picked ?? (isPreset ? dose : 'other'));
-	let otherDose = $state<string | number | null>(untrack(() => (isPreset ? '' : dose)));
-	$effect(() => {
-		const n = preset === 'other' ? Number(otherDose) : Number(preset);
-		liveDose = Number.isInteger(n) && n >= 1 ? n : null;
+	// The user's own pick wins until new `values` arrive; otherwise the saved or returned dose decides.
+	let picked = $derived.by<string | null>(() => {
+		void values;
+		return null;
 	});
+	const preset = $derived(picked ?? (isPreset ? dose : 'other'));
+	let otherDose = $derived<string | number | null>(isPreset ? '' : dose);
+
+	function setName(v: string) {
+		name = v;
+		liveName = v;
+	}
+	function setPhone(v: string) {
+		phone = v;
+		livePhone = v;
+	}
+	function pickDose(opt: string) {
+		picked = opt;
+		liveDose = doseOf(opt, otherDose);
+	}
+	function setOtherDose(v: string | number | null | undefined) {
+		otherDose = v ?? null;
+		liveDose = doseOf(preset, otherDose);
+	}
 </script>
 
 <div class="space-y-[22px]">
@@ -65,7 +87,7 @@
 		<Input
 			id="{idPrefix}-name"
 			name="name"
-			bind:value={name}
+			bind:value={() => name, setName}
 			placeholder={m.customer_form_name_placeholder()}
 			required
 			maxlength={100}
@@ -94,7 +116,7 @@
 				inputmode="tel"
 				autocomplete="tel-national"
 				placeholder={m.customer_form_phone_placeholder()}
-				bind:value={phone}
+				bind:value={() => phone, setPhone}
 				required
 				aria-invalid={errors.phone || duplicateOf ? 'true' : undefined}
 				aria-describedby="{idPrefix}-phone-hint"
@@ -126,8 +148,8 @@
 		{idPrefix}
 		name="dosePreset"
 		selected={preset}
-		onselect={(opt) => (picked = opt)}
-		bind:otherValue={otherDose}
+		onselect={pickDose}
+		bind:otherValue={() => otherDose, setOtherDose}
 		otherName="dosePerDayOther"
 		error={errors.dosePerDay ? fieldError('dosePerDay', errors.dosePerDay) : null}
 	/>

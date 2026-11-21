@@ -3,7 +3,7 @@
 	import { resolve } from '$app/paths';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import { FormAction } from '#lib/form-action.svelte.ts';
-	import CustomerForm from '#lib/components/customer-form.svelte';
+	import CustomerForm, { national, seedDose } from '#lib/components/customer-form.svelte';
 	import CustomerSidePanel from '#lib/components/customer-side-panel.svelte';
 	import FormActions from '#lib/components/form-actions.svelte';
 	import PageHeader from '#lib/components/page-header.svelte';
@@ -15,14 +15,21 @@
 
 	const save = new FormAction(({ update }) => update({ reset: false }));
 
-	const values = $derived(form?.values ?? { name: '', phone: '', dosePerDay: '1', notes: '' });
+	const values = $derived(
+		(form?.values ?? { name: '', phone: '', dosePerDay: '1', notes: '' }) as Record<
+			string,
+			string | undefined
+		>
+	);
 
 	const errors = $derived((form?.errors ?? {}) as Record<string, string | undefined>);
 	const duplicateOf = $derived(form?.duplicateOf ?? null);
 
-	let liveName = $state('');
-	let livePhone = $state('');
-	let liveDose = $state<number | null>(1);
+	// The preview starts from the same values as the form (a failed save sends them back); the form
+	// writes what is typed.
+	let liveName = $derived(values.name ?? '');
+	let livePhone = $derived(national(values.phone));
+	let liveDose = $derived(seedDose(values.dosePerDay));
 </script>
 
 <!-- Desktop: a 560px form and a 360px panel (a live preview, or the customer who already has this

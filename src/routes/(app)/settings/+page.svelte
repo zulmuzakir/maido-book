@@ -4,7 +4,6 @@
 	import { enhance } from '$app/forms';
 	import { FormAction } from '#lib/form-action.svelte.ts';
 	import { resolve } from '$app/paths';
-	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { m } from '#lib/paraglide/messages.js';
 	import { fieldError, followUpKindLabel } from '#lib/labels.ts';
@@ -68,14 +67,17 @@
 	const createErrors = $derived(errorsFor('createProduct'));
 
 	// Rules
-	let rules = $state(
-		untrack(() => ({
+	// Seeded from the server; a new load (after a save, or data changed elsewhere) replaces the copy.
+	// $state inside the derived keeps the fields deeply reactive for bind:value.
+	const rules = $derived.by(() => {
+		const r = $state({
 			leadDays: String(data.rules.leadDays),
 			retryDays: String(data.rules.retryDays),
 			maxAttempts: String(data.rules.maxAttempts),
 			winbackDays: String(data.rules.winbackDays)
-		}))
-	);
+		});
+		return r;
+	});
 	const rulesErrors = $derived(errorsFor('rules'));
 
 	const ruleFields = $derived([
@@ -90,7 +92,10 @@
 	]);
 
 	// Templates
-	let templates = $state<Record<TemplateKind, string>>(untrack(() => ({ ...data.templates })));
+	const templates = $derived.by(() => {
+		const t = $state<Record<TemplateKind, string>>({ ...data.templates });
+		return t;
+	});
 	const templateErrors = $derived(errorsFor('templates'));
 	const sample = $derived({
 		nama: m.settings_sample_name(),
