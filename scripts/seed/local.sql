@@ -10,7 +10,7 @@
 --   014–022 due today
 --   023–030 upcoming within 7 days
 --   031–036 waiting for a reply (033–036 stale)
---   037–100 later (037–040 handled today)
+--   037–100 later, due within the order's supply (037–040 handled today)
 --   101–106 new leads, 107–112 dormant with a win-back
 
 DELETE FROM activity WHERE id LIKE 'seed_%';
@@ -61,7 +61,8 @@ p AS (
 			WHEN i <= 22 THEN 0
 			WHEN i <= 30 THEN i - 22
 			WHEN i <= 36 THEN -(i - 30)
-			ELSE 8 + (i - 37)
+			-- Spread over 8 … units − 3 days, so the order date never lands after today.
+			ELSE 8 + (i - 37) % ((CASE WHEN i % 3 = 0 THEN 60 ELSE 30 END) - 10)
 		END AS due_offset
 	FROM n
 )
@@ -169,6 +170,23 @@ FROM customer_order WHERE id LIKE 'seed_o%';
 INSERT INTO activity (id, customer_id, type, follow_up_id, created_at)
 SELECT 'seed_a_wa_' || substr(id, 6), customer_id, 'wa_sent', id, contacted_at
 FROM follow_up WHERE id LIKE 'seed_f%' AND contacted_at IS NOT NULL;
+
+-- A reminder that worked: a send at 09:00 Jakarta two days before every repeat order.
+INSERT INTO activity (id, customer_id, type, created_at)
+SELECT 'seed_a_wa_o_' || substr(o.id, 7), o.customer_id, 'wa_sent',
+	(cast(unixepoch(date(o.order_date, '-2 days'), '+2 hours') AS integer) * 1000)
+FROM customer_order o
+WHERE o.id LIKE 'seed_o%' AND EXISTS (
+	SELECT 1 FROM customer_order e
+	WHERE e.customer_id = o.customer_id AND e.order_date < o.order_date
+);
+
+-- Sends that have not turned into an order yet: every third customer in 061–100, five days ago.
+WITH RECURSIVE n(i) AS (SELECT 61 UNION ALL SELECT i + 1 FROM n WHERE i < 100)
+INSERT INTO activity (id, customer_id, type, created_at)
+SELECT 'seed_a_wa_open_' || printf('%03d', i), 'seed_c' || printf('%03d', i), 'wa_sent',
+	(cast(unixepoch('now', '-5 days') AS integer) * 1000)
+FROM n WHERE i % 3 = 0;
 
 INSERT INTO activity (id, customer_id, type, outcome, follow_up_id, created_at)
 SELECT 'seed_a_out_' || substr(id, 6), customer_id, 'outcome', outcome, id, completed_at
