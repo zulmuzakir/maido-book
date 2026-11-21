@@ -7,6 +7,10 @@ import type { FollowUpOutcome } from '#lib/domain/types.ts';
 import { customerCountsByStatus } from './customers.ts';
 import { getQueue } from './follow-ups.ts';
 
+/** An order counts toward the conversion if its customer got a WhatsApp message in the 14 days
+ * up to and including its order date (Asia/Jakarta). */
+const CONVERSION_WINDOW_DAYS = 14;
+
 const jakartaMidnight = (iso: string) => new Date(Date.parse(iso + 'T00:00:00+07:00'));
 
 /** First day of the month `n` months away from the month containing `iso`. */
@@ -34,6 +38,7 @@ export async function getInsights(db: Db, today: string, month: string) {
 		monthRow,
 		previousRow,
 		repeatRow,
+		convertedRow,
 		custRows,
 		contactRow,
 		outcomeRows,
@@ -62,6 +67,17 @@ export async function getInsights(db: Db, today: string, month: string) {
 				and(
 					inMonth,
 					sql`exists (select 1 from customer_order o2 where o2.customer_id = ${customerOrder.customerId} and (o2.order_date < ${customerOrder.orderDate} or (o2.order_date = ${customerOrder.orderDate} and o2.created_at < ${customerOrder.createdAt})))`
+				)
+			)
+			.get(),
+		db
+			.select({ n: sql<number>`count(*)` })
+			.from(customerOrder)
+			.where(
+				and(
+					inMonth,
+					// created_at is epoch ms; 25200 s shifts UTC midnight to Jakarta midnight.
+					sql`exists (select 1 from activity a where a.customer_id = ${customerOrder.customerId} and a.type = 'wa_sent' and a.created_at >= (unixepoch(${customerOrder.orderDate}, ${`-${CONVERSION_WINDOW_DAYS} days`}) - 25200) * 1000 and a.created_at < (unixepoch(${customerOrder.orderDate}, '+1 day') - 25200) * 1000)`
 				)
 			)
 			.get(),
@@ -133,6 +149,7 @@ export async function getInsights(db: Db, today: string, month: string) {
 
 	const ordersThisMonth = monthRow?.n ?? 0;
 	const contactsThisMonth = contactRow?.n ?? 0;
+	const convertedOrdersThisMonth = convertedRow?.n ?? 0;
 
 	const winback = [...queue.overdue, ...queue.today]
 		.filter((item) => item.kind === 'winback')
@@ -169,7 +186,8 @@ export async function getInsights(db: Db, today: string, month: string) {
 		repeatCustomerRate: buyers ? repeaters / buyers : null,
 		contactsThisMonth,
 		outcomesThisMonth: outcomes,
-		conversion: contactsThisMonth ? ordersThisMonth / contactsThisMonth : null,
+		convertedOrdersThisMonth,
+		conversion: contactsThisMonth ? convertedOrdersThisMonth / contactsThisMonth : null,
 		dailyRevenue,
 		winback,
 		customersByStatus: byStatus,

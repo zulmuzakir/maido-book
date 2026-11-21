@@ -196,9 +196,12 @@
 				m.insights_conversion(),
 				m.insights_conversion_short(),
 				pct(ins.conversion),
-				m.insights_conversion_sub({ orders: ins.ordersThisMonth, messages: ins.contactsThisMonth }),
+				m.insights_conversion_sub({
+					orders: ins.convertedOrdersThisMonth,
+					messages: ins.contactsThisMonth
+				}),
 				m.insights_conversion_sub_short({
-					orders: ins.ordersThisMonth,
+					orders: ins.convertedOrdersThisMonth,
 					messages: ins.contactsThisMonth
 				})
 			)}
