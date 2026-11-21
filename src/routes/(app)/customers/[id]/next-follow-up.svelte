@@ -222,7 +222,7 @@
 				invalid={!!scheduleDateError}
 				describedby={dateDescribedBy}
 			/>
-			<p id="schedule-date-hint" class="text-xs leading-4 text-muted-foreground">
+			<p id="schedule-date-hint" class="text-ui text-muted-foreground">
 				{m.customer_schedule_helper()}
 			</p>
 			<FieldError id="schedule-date-error" message={scheduleDateError} />

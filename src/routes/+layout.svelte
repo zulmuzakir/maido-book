@@ -28,7 +28,7 @@
 			'!w-[376px] !items-start !gap-4 !rounded-[6px] !border-alert-border !bg-alert !px-4 !py-[14px] !text-[14px] !leading-5 !text-alert-foreground !shadow-[0_8px_24px_color-mix(in_oklch,var(--shadow-tint)_14%,transparent)] [&_[data-icon]]:!hidden [&_[data-title]]:!leading-5',
 		title: '!font-normal !leading-[18px]',
 		actionButton:
-			'!h-auto !ml-auto !px-3 !py-2 !rounded-[6px] !bg-[rgb(128_128_128/0.18)] !text-[14px] !leading-[18px] !font-semibold !text-background'
+			'!h-auto !ml-auto !px-3 !py-2 !rounded-[6px] !bg-background/20 !text-[14px] !leading-[18px] !font-semibold !text-background'
 	};
 </script>
 

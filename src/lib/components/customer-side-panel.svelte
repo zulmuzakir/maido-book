@@ -109,13 +109,8 @@
 </script>
 
 <!-- Desktop only: a 360px panel beside the 560px form. -->
-<aside
-	class={cn(
-		'flex flex-col gap-3.5 self-start rounded-[12px] bg-background p-5 dark:bg-secondary',
-		props.class
-	)}
->
-	<h2 class="text-xs font-bold tracking-[0.04em] text-muted-foreground uppercase">{heading}</h2>
+<aside class={cn('flex flex-col gap-3.5 self-start rounded-[12px] bg-inset p-5', props.class)}>
+	<h2 class="text-ui font-semibold text-muted-foreground">{heading}</h2>
 
 	<div class="flex items-center gap-3 rounded-[10px] border border-rule bg-card p-3">
 		{#if props.kind === 'preview'}

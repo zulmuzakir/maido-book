@@ -230,7 +230,7 @@
 						rows={5}
 						maxlength={1000}
 						aria-label={m.queue_message_label()}
-						class="h-[132px] min-h-0 resize-none rounded-[8px] border-primary px-3.5 py-3 text-[14.5px] leading-[22px] ring-3 ring-ring focus-visible:ring-3 dark:border-selected-ring"
+						class="h-[132px] min-h-0 resize-none rounded-[8px] border-field-active px-3.5 py-3 text-[14.5px] leading-[22px] ring-3 ring-ring focus-visible:ring-3"
 					/>
 					<div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
 						<span class="text-ui text-muted-foreground num">
@@ -257,7 +257,7 @@
 						</div>
 					</div>
 					<p
-						class="flex items-start gap-2.5 rounded-[8px] bg-background px-3.5 py-3 text-sm leading-[21px] text-foreground dark:bg-secondary"
+						class="flex items-start gap-2.5 rounded-[8px] bg-inset px-3.5 py-3 text-sm leading-[21px] text-foreground"
 					>
 						<InfoIcon class="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
 						<span class="flex-1">

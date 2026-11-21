@@ -81,7 +81,7 @@
 	}
 </script>
 
-<div class="space-y-[22px]">
+<div class="flex flex-col gap-[18px]">
 	<div class={fieldStack}>
 		<Label for="{idPrefix}-name" class={fieldLabel}>{m.customer_form_name()}</Label>
 		<Input

@@ -228,12 +228,7 @@
 										{m.settings_product_active_hint()}
 									</p>
 								</div>
-								<Switch
-									id={`product-${p.id}-active`}
-									name="active"
-									checked={p.active}
-									class="dark:[&>[data-slot=switch-thumb]]:bg-card"
-								/>
+								<Switch id={`product-${p.id}-active`} name="active" checked={p.active} />
 							</div>
 							<FieldError message={errs.active} />
 
@@ -302,7 +297,7 @@
 							{#each FOLLOW_UP_KINDS as kind (kind)}
 								<Tabs.Trigger
 									value={kind}
-									class="h-11 flex-none px-0 text-sm group-data-horizontal/tabs:after:bottom-0 dark:after:bg-accent-foreground data-active:font-bold"
+									class="h-11 flex-none px-0 text-sm group-data-horizontal/tabs:after:bottom-0 data-active:font-bold"
 									>{templateTabLabel(kind)}</Tabs.Trigger
 								>
 							{/each}

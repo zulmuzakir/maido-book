@@ -60,6 +60,12 @@
 	--avatar: #eee8f5;
 	--avatar-foreground: #3f1f5e;
 	--selected-ring: #cbbce0;
+	/* Roles that differ by mode, so components need no dark: variants. */
+	--band-title: var(--accent-foreground);
+	--inset: var(--background);
+	--field-active: var(--primary);
+	--thumb: #ffffff;
+	--tab-active: var(--primary);
 	--alert: #fbeee8;
 	--alert-border: #ebc7b8;
 	--alert-foreground: #8a3a22;
@@ -138,6 +144,11 @@
 	--avatar: #332341;
 	--avatar-foreground: #f0e8f8;
 	--selected-ring: #cfb6e7;
+	--band-title: var(--primary-text);
+	--inset: var(--secondary);
+	--field-active: var(--selected-ring);
+	--thumb: var(--card);
+	--tab-active: var(--accent-foreground);
 	--alert: #3a1e14;
 	--alert-border: #5a2a1e;
 	--alert-foreground: #f6b49c;
@@ -235,6 +246,11 @@
 	--color-subtle-foreground: var(--subtle-foreground);
 	--color-hint-foreground: var(--hint-foreground);
 	--color-primary-text: var(--primary-text);
+	--color-band-title: var(--band-title);
+	--color-inset: var(--inset);
+	--color-field-active: var(--field-active);
+	--color-thumb: var(--thumb);
+	--color-tab-active: var(--tab-active);
 	--color-chart-axis: var(--chart-axis);
 	--color-warning: var(--warning);
 	--color-warning-foreground: var(--warning-foreground);

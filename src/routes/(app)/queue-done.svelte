@@ -33,7 +33,7 @@
 		class="flex flex-wrap items-center gap-x-3.5 gap-y-3 border-b border-rule bg-background px-4 py-[18px] md:flex-nowrap md:px-6 xl:px-8"
 	>
 		<span
-			class="grid size-10 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground"
+			class="grid size-10 shrink-0 place-items-center rounded-full bg-success-tint text-status-done"
 			aria-hidden="true"
 		>
 			<CheckIcon class="size-5" />
@@ -79,7 +79,7 @@
 		</p>
 		{#if next}
 			<div class="rounded-[8px] bg-background px-[18px] py-4 shadow-[inset_0_0_0_1px_var(--rule)]">
-				<p class="text-ui font-semibold text-accent-foreground dark:text-primary-text">
+				<p class="text-ui font-semibold text-band-title">
 					{m.queue_done_next_label()}
 				</p>
 				<p class="mt-1 text-base font-bold text-foreground num">

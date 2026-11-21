@@ -62,7 +62,7 @@
 		{#each TEMPLATE_PLACEHOLDERS as ph (ph)}
 			<button
 				type="button"
-				class="inline-flex h-11 items-center rounded-full border border-border bg-card px-3.5 font-mono text-[13px] font-semibold text-accent-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring desk:h-[34px]"
+				class="inline-flex h-11 items-center rounded-lg border border-border bg-card px-3.5 font-mono text-[13px] font-semibold text-accent-foreground outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring desk:h-[34px]"
 				aria-label={m.settings_insert({ name: `{${ph}}` })}
 				onclick={() => insert(ph)}
 			>

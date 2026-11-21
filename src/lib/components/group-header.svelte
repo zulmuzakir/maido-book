@@ -37,9 +37,7 @@
 
 {#snippet content()}
 	{#if icon}{@render icon()}{/if}
-	<span class={cn('text-ui font-bold text-accent-foreground dark:text-primary-text', labelClass)}
-		>{label}</span
-	>
+	<span class={cn('text-ui font-bold text-band-title', labelClass)}>{label}</span>
 	{#if count !== undefined}
 		<span
 			class={cn(
