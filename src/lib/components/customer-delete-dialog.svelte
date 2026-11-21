@@ -3,6 +3,7 @@
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import ResponsiveDialog from '#lib/components/responsive-dialog.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
+	import { FormAction } from '#lib/form-action.svelte.ts';
 	import { m } from '#lib/paraglide/messages.js';
 
 	let {
@@ -15,6 +16,9 @@
 		/** The delete form action, e.g. `/customers/x/edit?/delete`. */
 		action: string;
 	} = $props();
+
+	// Blocks a second tap while the delete is in flight; errors become a toast, not the error page.
+	const del = new FormAction();
 </script>
 
 <!-- One confirmation for deleting a customer, from the edit page or the detail page's menu. -->
@@ -37,10 +41,11 @@
 			>
 				{m.cancel()}
 			</Button>
-			<form method="post" {action} use:enhance class="contents">
+			<form method="post" {action} use:enhance={del.enhance} class="contents">
 				<Button
 					type="submit"
 					variant="destructive-solid"
+					disabled={del.pending}
 					class="h-12 w-full font-semibold md:h-11 md:w-auto desk:h-11"
 				>
 					{m.customer_delete()}
