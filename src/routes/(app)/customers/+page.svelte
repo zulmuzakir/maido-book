@@ -30,7 +30,8 @@
 			dormant: m.status_dormant
 		})[s]();
 
-	let q = $state(page.url.searchParams.get('q') ?? '');
+	// Follows the URL (clear search, Back/Forward, tabs); typing overrides it until the next load.
+	let q = $derived(data.q);
 	// The search sits in the header from lg; below that it has its own full-width row.
 	const wide = new MediaQuery('(min-width: 1024px)');
 	let timer: ReturnType<typeof setTimeout> | undefined;
