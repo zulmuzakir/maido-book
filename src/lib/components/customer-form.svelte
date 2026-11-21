@@ -93,9 +93,13 @@
 			maxlength={100}
 			autocomplete="off"
 			aria-invalid={errors.name ? 'true' : undefined}
+			aria-describedby={errors.name ? `${idPrefix}-name-error` : undefined}
 			class="text-base desk:h-11 desk:text-[15px]"
 		/>
-		<FieldError message={errors.name ? fieldError('name', errors.name) : null} />
+		<FieldError
+			id="{idPrefix}-name-error"
+			message={errors.name ? fieldError('name', errors.name) : null}
+		/>
 	</div>
 
 	<div class={fieldStack}>
@@ -119,7 +123,11 @@
 				bind:value={() => phone, setPhone}
 				required
 				aria-invalid={errors.phone || duplicateOf ? 'true' : undefined}
-				aria-describedby="{idPrefix}-phone-hint"
+				aria-describedby={duplicateOf
+					? `${idPrefix}-phone-error`
+					: errors.phone
+						? `${idPrefix}-phone-hint ${idPrefix}-phone-error`
+						: `${idPrefix}-phone-hint`}
 				class="pl-3 text-base num desk:text-[15px]"
 			/>
 		</InputGroup.Root>
@@ -131,7 +139,10 @@
 		{#if duplicateOf}
 			<!-- Desktop shows the existing customer in the side panel; smaller screens link inline. -->
 			<p class="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-ui text-destructive">
-				<FieldError message={m.customer_duplicate({ name: duplicateOf.name })} />
+				<FieldError
+					id="{idPrefix}-phone-error"
+					message={m.customer_duplicate({ name: duplicateOf.name })}
+				/>
 				<a
 					href={resolve('/(app)/customers/[id]', { id: duplicateOf.id })}
 					class="font-semibold text-primary-text underline-offset-4 hover:underline xl:hidden"
@@ -140,7 +151,7 @@
 				</a>
 			</p>
 		{:else if errors.phone}
-			<FieldError message={fieldError('phone', errors.phone)} />
+			<FieldError id="{idPrefix}-phone-error" message={fieldError('phone', errors.phone)} />
 		{/if}
 	</div>
 
@@ -165,8 +176,13 @@
 			maxlength={1000}
 			placeholder={m.customer_note_placeholder()}
 			value={values.notes ?? ''}
+			aria-invalid={errors.notes ? 'true' : undefined}
+			aria-describedby={errors.notes ? `${idPrefix}-notes-error` : undefined}
 			class="field-sizing-fixed h-24 resize-none py-2.5 text-base leading-[22px] desk:text-[15px]"
 		/>
-		<FieldError message={errors.notes ? fieldError('notes', errors.notes) : null} />
+		<FieldError
+			id="{idPrefix}-notes-error"
+			message={errors.notes ? fieldError('notes', errors.notes) : null}
+		/>
 	</div>
 </div>

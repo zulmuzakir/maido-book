@@ -326,7 +326,8 @@
 							{/each}
 						</Tabs.List>
 
-						<!-- Every field stays in the form; inactive ones are hidden, so all five bodies post. -->
+						<!-- Every panel stays in the form (Tabs.Content only hides inactive ones), so all five
+						     bodies post; each is a tabpanel labelled by its trigger. -->
 						<form
 							method="post"
 							action="?/templates"
@@ -334,7 +335,10 @@
 							class="flex flex-col gap-[18px]"
 						>
 							{#each FOLLOW_UP_KINDS as kind (kind)}
-								<div hidden={activeKind !== kind}>
+								<Tabs.Content
+									value={kind}
+									class="rounded-lg focus-visible:ring-3 focus-visible:ring-ring"
+								>
 									<SettingsTemplateField
 										id={`template-${kind}`}
 										name={kind}
@@ -342,7 +346,7 @@
 										error={templateErrors[kind]}
 										{sample}
 									/>
-								</div>
+								</Tabs.Content>
 							{/each}
 
 							<div class="flex justify-end">

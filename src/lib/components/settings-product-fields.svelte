@@ -44,8 +44,9 @@
 			autocomplete="off"
 			class={INPUT}
 			aria-invalid={!!errors.name}
+			aria-describedby={errors.name ? `${idPrefix}-name-error` : undefined}
 		/>
-		<FieldError message={errors.name} />
+		<FieldError id="{idPrefix}-name-error" message={errors.name} />
 	</div>
 
 	<div class="space-y-1.5">
@@ -59,8 +60,9 @@
 			autocomplete="off"
 			class={INPUT}
 			aria-invalid={!!errors.unitLabel}
+			aria-describedby={errors.unitLabel ? `${idPrefix}-unitLabel-error` : undefined}
 		/>
-		<FieldError message={errors.unitLabel} />
+		<FieldError id="{idPrefix}-unitLabel-error" message={errors.unitLabel} />
 	</div>
 
 	<div class="space-y-1.5">
@@ -73,8 +75,9 @@
 			required
 			class="{INPUT} num"
 			aria-invalid={!!errors.servingsPerUnit}
+			aria-describedby={errors.servingsPerUnit ? `${idPrefix}-servingsPerUnit-error` : undefined}
 		/>
-		<FieldError message={errors.servingsPerUnit} />
+		<FieldError id="{idPrefix}-servingsPerUnit-error" message={errors.servingsPerUnit} />
 	</div>
 
 	<div class="space-y-1.5">
@@ -96,7 +99,9 @@
 				value={group(String(product?.price ?? 0))}
 				oninput={onPriceInput}
 				required
-				aria-describedby="{idPrefix}-price-hint"
+				aria-describedby={errors.price
+					? `${idPrefix}-price-hint ${idPrefix}-price-error`
+					: `${idPrefix}-price-hint`}
 				aria-invalid={!!errors.price}
 				class="pl-3 text-base num md:text-[15px]"
 			/>
@@ -104,6 +109,6 @@
 		<p id="{idPrefix}-price-hint" class="text-[13px] leading-[19px] text-muted-foreground">
 			{m.settings_product_price_hint()}
 		</p>
-		<FieldError message={errors.price} />
+		<FieldError id="{idPrefix}-price-error" message={errors.price} />
 	</div>
 </div>

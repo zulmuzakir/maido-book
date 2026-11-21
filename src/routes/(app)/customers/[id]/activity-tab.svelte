@@ -10,6 +10,7 @@
 	import ShoppingBagIcon from '@lucide/svelte/icons/shopping-bag';
 	import StickyNoteIcon from '@lucide/svelte/icons/sticky-note';
 	import UserPlusIcon from '@lucide/svelte/icons/user-plus';
+	import FieldError from '#lib/components/field-error.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
 	import { Textarea } from '#lib/components/ui/textarea/index.js';
@@ -40,6 +41,10 @@
 	const act = $derived(form && 'action' in form ? form.action : null);
 	const formErrors = $derived(
 		form && 'errors' in form && form.errors ? (form.errors as Record<string, string>) : {}
+	);
+
+	const noteError = $derived(
+		act === 'note' && formErrors.body ? fieldError('body', formErrors.body) : null
 	);
 
 	const noteAction = new FormAction(async ({ result, update }) => {
@@ -143,11 +148,11 @@
 			required
 			maxlength={1000}
 			placeholder={m.customer_note_placeholder()}
+			aria-invalid={noteError ? 'true' : undefined}
+			aria-describedby={noteError ? 'customer-note-error' : undefined}
 			class="h-20 resize-none px-3 py-2.5 text-base leading-5 desk:text-[15px]"
 		/>
-		{#if act === 'note' && formErrors.body}
-			<p class="text-sm text-destructive">{fieldError('body', formErrors.body)}</p>
-		{/if}
+		<FieldError id="customer-note-error" message={noteError} />
 		<div class="flex justify-end">
 			<Button type="submit" variant="outline" class="font-semibold" disabled={noteAction.pending}>
 				{m.customer_note_save()}

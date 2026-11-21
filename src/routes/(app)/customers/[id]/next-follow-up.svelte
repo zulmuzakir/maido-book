@@ -4,6 +4,7 @@
 	import { toast } from 'svelte-sonner';
 	import CalendarIcon from '@lucide/svelte/icons/calendar';
 	import { FormAction } from '#lib/form-action.svelte.ts';
+	import FieldError from '#lib/components/field-error.svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Label } from '#lib/components/ui/label/index.js';
 	import ResponsiveDialog from '#lib/components/responsive-dialog.svelte';
@@ -46,11 +47,27 @@
 		form && 'errors' in form && form.errors ? (form.errors as Record<string, string>) : {}
 	);
 
+	// The page's `form` outlives the dialog, so errors show only after a failed submit from this
+	// opening of the dialog; reopening starts clean.
+	let showErrors = $state(false);
 	const scheduleDateError = $derived(
-		act === 'schedule' ? fieldError('scheduleDate', formErrors.dueDate) : undefined
+		showErrors && act === 'schedule' ? fieldError('scheduleDate', formErrors.dueDate) : undefined
 	);
 	const scheduleConflict = $derived(
-		act === 'schedule' && !!form && !('ok' in form) && Object.keys(formErrors).length === 0
+		showErrors &&
+			act === 'schedule' &&
+			!!form &&
+			!('ok' in form) &&
+			Object.keys(formErrors).length === 0
+	);
+	const dateDescribedBy = $derived(
+		[
+			'schedule-date-hint',
+			scheduleDateError && 'schedule-date-error',
+			scheduleConflict && 'schedule-conflict'
+		]
+			.filter(Boolean)
+			.join(' ')
 	);
 
 	const newest = $derived(
@@ -106,12 +123,13 @@
 		if (result.type === 'success') {
 			scheduleOpen = false;
 			toast.success(m.customer_schedule_saved());
-		}
+		} else if (result.type === 'failure') showErrors = true;
 		await update({ reset: false });
 	});
 
 	function openSchedule() {
 		scheduleDate = addDays(today, 3);
+		showErrors = false;
 		scheduleOpen = true;
 	}
 </script>
@@ -204,16 +222,19 @@
 					required
 					min={today}
 					bind:value={scheduleDate}
+					aria-invalid={scheduleDateError ? 'true' : undefined}
+					aria-describedby={dateDescribedBy}
 					class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
 				/>
 			</div>
-			<p class="text-xs leading-4 text-muted-foreground">{m.customer_schedule_helper()}</p>
-			{#if scheduleDateError}
-				<p class="text-sm text-destructive">{scheduleDateError}</p>
-			{/if}
-			{#if scheduleConflict}
-				<p class="text-sm text-destructive">{m.customer_schedule_exists()}</p>
-			{/if}
+			<p id="schedule-date-hint" class="text-xs leading-4 text-muted-foreground">
+				{m.customer_schedule_helper()}
+			</p>
+			<FieldError id="schedule-date-error" message={scheduleDateError} />
+			<FieldError
+				id="schedule-conflict"
+				message={scheduleConflict ? m.customer_schedule_exists() : null}
+			/>
 		</form>
 		{#snippet footer()}
 			<div class="flex w-full flex-col-reverse gap-2 md:flex-row md:justify-end">
