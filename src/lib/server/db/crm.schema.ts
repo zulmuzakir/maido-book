@@ -70,7 +70,8 @@ export const customerOrder = sqliteTable(
 		createdAt: createdAt()
 	},
 	(t) => [
-		index('customer_order_customer_idx').on(t.customerId, t.orderDate),
+		// Covers the "latest order" lookup (order_date desc, created_at desc) without a sort.
+		index('customer_order_customer_idx').on(t.customerId, t.orderDate, t.createdAt),
 		index('customer_order_date_idx').on(t.orderDate)
 	]
 );
@@ -94,6 +95,7 @@ export const followUp = sqliteTable(
 	},
 	(t) => [
 		index('follow_up_status_due_idx').on(t.status, t.dueDate),
+		index('follow_up_completed_idx').on(t.completedAt),
 		uniqueIndex('follow_up_one_open_idx')
 			.on(t.customerId)
 			.where(sql`status = 'open'`)
@@ -115,7 +117,11 @@ export const activity = sqliteTable(
 		userId: text('user_id').references(() => user.id, { onDelete: 'set null' }),
 		createdAt: createdAt()
 	},
-	(t) => [index('activity_customer_idx').on(t.customerId, t.createdAt)]
+	(t) => [
+		index('activity_customer_idx').on(t.customerId, t.createdAt),
+		// Today's and this month's activity by type: the queue progress and insights counts.
+		index('activity_type_created_idx').on(t.type, t.createdAt)
+	]
 );
 
 export const setting = sqliteTable('setting', {
