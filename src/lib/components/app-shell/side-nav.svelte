@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import { DURATION, EASE, motionMs } from '#lib/motion.ts';
 	import { m } from '#lib/paraglide/messages.js';
+	import { scale } from 'svelte/transition';
 	import { cn } from '#lib/utils.js';
 	import UserMenu from './user-menu.svelte';
 	import { badgeCount, isActive, primaryNav, secondaryNav, type NavItem } from './nav-items.js';
@@ -24,7 +26,7 @@
 	>
 		<span
 			class={cn(
-				'grid h-8 w-14 place-items-center rounded-2xl transition-colors group-hover:bg-sidebar-accent/60 xl:contents',
+				'grid h-8 w-14 place-items-center rounded-2xl transition-colors duration-(--motion-fast) group-hover:bg-sidebar-accent/60 xl:contents',
 				active && 'bg-sidebar-accent group-hover:bg-sidebar-accent'
 			)}
 		>
@@ -37,11 +39,15 @@
 			)}>{item.label()}</span
 		>
 		{#if item.href === '/' && queueCount > 0}
-			<span
-				class="absolute top-0.5 left-12 inline-flex h-[18px] min-w-5 items-center justify-center rounded-[9px] bg-sidebar-primary px-[5px] text-[11px] font-extrabold text-sidebar-primary-foreground num xl:static xl:h-5 xl:min-w-6 xl:rounded-[10px] xl:px-[7px] xl:text-xs xl:font-bold"
-			>
-				{badgeCount(queueCount)}
-			</span>
+			<!-- Keyed on the number: the badge pops when the queue count changes. -->
+			{#key badgeCount(queueCount)}
+				<span
+					class="absolute top-0.5 left-12 inline-flex h-[18px] min-w-5 items-center justify-center rounded-[9px] bg-sidebar-primary px-[5px] text-[11px] font-extrabold text-sidebar-primary-foreground num xl:static xl:h-5 xl:min-w-6 xl:rounded-[10px] xl:px-[7px] xl:text-xs xl:font-bold"
+					in:scale={{ start: 0.6, duration: motionMs(DURATION.base), easing: EASE }}
+				>
+					{badgeCount(queueCount)}
+				</span>
+			{/key}
 		{/if}
 	</a>
 {/snippet}

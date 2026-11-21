@@ -2,10 +2,13 @@
 	import { afterNavigate, beforeNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import BottomNav from '#lib/components/app-shell/bottom-nav.svelte';
+	import NavProgress from '#lib/components/app-shell/nav-progress.svelte';
 	import SideNav from '#lib/components/app-shell/side-nav.svelte';
 	import ErrorState from '#lib/components/error-state.svelte';
 	import FlashToast from '#lib/components/flash-toast.svelte';
+	import { DURATION, motionMs } from '#lib/motion.ts';
 	import { m } from '#lib/paraglide/messages.js';
+	import { fade } from 'svelte/transition';
 	import type { LayoutProps } from './$types';
 
 	let { data, children }: LayoutProps = $props();
@@ -45,6 +48,7 @@
 	<title>{title}</title>
 </svelte:head>
 
+<NavProgress />
 <FlashToast />
 <SideNav queueCount={data.queueCount} user={data.user} />
 <main
@@ -55,7 +59,13 @@
 			<ErrorState onretry={retryOffline} />
 		</div>
 	{:else}
-		{@render children()}
+		<!-- A new screen fades in. Keyed on the route, so search, filters and paging (query changes
+		     on the same route) do not fade. No exit: the old page goes at once. -->
+		{#key page.route.id}
+			<div in:fade={{ duration: motionMs(DURATION.fast) }}>
+				{@render children()}
+			</div>
+		{/key}
 	{/if}
 </main>
 

@@ -3,7 +3,9 @@
 	import { page } from '$app/state';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Menu from '@lucide/svelte/icons/menu';
+	import { DURATION, EASE, motionMs } from '#lib/motion.ts';
 	import { m } from '#lib/paraglide/messages.js';
+	import { scale } from 'svelte/transition';
 	import { cn } from '#lib/utils.js';
 	import { badgeCount, isActive, primaryNav, type NavItem } from './nav-items.js';
 
@@ -15,7 +17,7 @@
 	);
 
 	const slotClass =
-		'relative flex h-full flex-col items-center justify-center gap-[3px] text-[11px] leading-[14px] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset';
+		'relative flex transition-colors duration-(--motion-fast) h-full flex-col items-center justify-center gap-[3px] text-[11px] leading-[14px] outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset';
 	const stateClass = (active: boolean) =>
 		// The active tab's icon is drawn at 2, the rest at the app-wide 1.7.
 		active ? 'font-bold text-primary-text [&_svg]:stroke-2' : 'font-medium text-sidebar-muted';
@@ -31,11 +33,15 @@
 		<span class="relative">
 			<item.icon class="size-[22px]" aria-hidden="true" />
 			{#if item.href === '/' && queueCount > 0}
-				<span
-					class="absolute -top-1 left-1/2 ml-1.5 inline-flex h-4 min-w-[18px] items-center justify-center rounded-lg bg-sidebar-primary px-1 text-[10px] leading-none font-extrabold text-sidebar-primary-foreground num"
-				>
-					{badgeCount(queueCount)}
-				</span>
+				<!-- Keyed on the number: the badge pops when the queue count changes. -->
+				{#key badgeCount(queueCount)}
+					<span
+						class="absolute -top-1 left-1/2 ml-1.5 inline-flex h-4 min-w-[18px] items-center justify-center rounded-lg bg-sidebar-primary px-1 text-[10px] leading-none font-extrabold text-sidebar-primary-foreground num"
+						in:scale={{ start: 0.6, duration: motionMs(DURATION.base), easing: EASE }}
+					>
+						{badgeCount(queueCount)}
+					</span>
+				{/key}
 			{/if}
 		</span>
 		<span>{item.label()}</span>
@@ -55,7 +61,7 @@
 			<a
 				href={resolve('/(app)/orders/new')}
 				aria-label={m.new_order()}
-				class="-mt-6 grid size-[52px] place-items-center rounded-2xl bg-sidebar-primary text-sidebar-primary-foreground shadow-[0_6px_16px_color-mix(in_oklch,var(--sidebar-primary)_35%,transparent)] outline-none focus-visible:ring-3 focus-visible:ring-ring"
+				class="-mt-6 grid size-[52px] place-items-center rounded-2xl bg-sidebar-primary text-sidebar-primary-foreground shadow-[0_6px_16px_color-mix(in_oklch,var(--sidebar-primary)_35%,transparent)] transition-transform duration-(--motion-fast) outline-none focus-visible:ring-3 focus-visible:ring-ring active:scale-95"
 			>
 				<Plus class="size-6 stroke-[2.2]" aria-hidden="true" />
 			</a>
