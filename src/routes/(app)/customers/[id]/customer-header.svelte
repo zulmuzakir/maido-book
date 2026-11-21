@@ -155,7 +155,7 @@
 			</div>
 		</div>
 		<div
-			class="fixed inset-x-0 bottom-[calc(72px+env(safe-area-inset-bottom))] z-10 flex gap-2 border-t border-rule bg-card px-4 py-2.5 shadow-[0_-6px_16px_rgb(36_20_32/0.05)] *:h-12 *:flex-1 md:static md:z-auto md:gap-2.5 md:border-0 md:p-0 md:shadow-none md:*:h-11 xl:shrink-0 xl:*:flex-none desk:*:h-11"
+			class="fixed inset-x-0 bottom-[calc(72px+env(safe-area-inset-bottom))] z-10 flex gap-2 border-t border-rule bg-card px-4 py-2.5 shadow-[0_-6px_16px_color-mix(in_oklch,var(--shadow-tint)_5%,transparent)] *:h-12 *:flex-1 md:static md:z-auto md:gap-2.5 md:border-0 md:p-0 md:shadow-none md:*:h-11 xl:shrink-0 xl:*:flex-none desk:*:h-11"
 		>
 			<Button variant="whatsapp" class="px-2 font-semibold md:px-4" onclick={openWhatsApp}>
 				<MessageCircleIcon class="size-[18px]" aria-hidden="true" />
