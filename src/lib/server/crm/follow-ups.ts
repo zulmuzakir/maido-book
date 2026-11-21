@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, isNotNull, isNull, lt, lte, ne, or, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNotNull, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
 import type { Db } from '#lib/server/db/index.ts';
 import {
@@ -7,7 +7,8 @@ import {
 	customerOrder,
 	followUp,
 	messageTemplate,
-	product
+	product,
+	setting
 } from '#lib/server/db/schema.ts';
 import { addDays } from '#lib/domain/dates.ts';
 import { pickHandled, type HandledOutcome } from '#lib/domain/handled.ts';
@@ -98,10 +99,12 @@ export async function getQueue(db: Db, today: string): Promise<Record<QueueBucke
 /**
  * The queue's "Perlu dihubungi" count: follow-ups due today or earlier and not yet sent (win-backs
  * wait in their own fold), plus messages left without a reply for `retryDays` calendar days.
+ * One query: `retryDays` is read from the setting row inside it.
  */
-export async function queueCount(db: Db, today: string, retryDays: number): Promise<number> {
-	// A message sent on or before this Jakarta day has waited `retryDays` days by today.
-	const staleBefore = new Date(Date.parse(addDays(today, 1 - retryDays) + 'T00:00:00+07:00'));
+export async function queueCount(db: Db, today: string): Promise<number> {
+	// A message sent on or before Jakarta day `today + 1 - retryDays` has waited `retryDays` days by
+	// today. unixepoch(today) is UTC midnight; 25200 s earlier is Jakarta midnight.
+	const staleBefore = sql`(unixepoch(${today}) + (1 - (select ${setting.retryDays} from ${setting} where ${setting.id} = 1)) * 86400 - 25200) * 1000`;
 	const row = await db
 		.select({ n: sql<number>`count(*)` })
 		.from(followUp)
@@ -114,7 +117,7 @@ export async function queueCount(db: Db, today: string, retryDays: number): Prom
 						lte(followUp.dueDate, today),
 						ne(followUp.kind, 'winback')
 					),
-					lt(followUp.contactedAt, staleBefore)
+					sql`${followUp.contactedAt} < ${staleBefore}`
 				)
 			)
 		)
