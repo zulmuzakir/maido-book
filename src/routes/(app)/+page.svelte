@@ -4,10 +4,9 @@
 	import QueueHandled from './queue-handled.svelte';
 	import QueueProgress from './queue-progress.svelte';
 	import QueueSection, { type Section, type Tab } from './queue-section.svelte';
-	import { untrack } from 'svelte';
 	import { MediaQuery } from 'svelte/reactivity';
 	import { resolve } from '$app/paths';
-	import { goto } from '$app/navigation';
+	import { afterNavigate, goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import ChevronLeftIcon from '@lucide/svelte/icons/chevron-left';
 	import ChevronRightIcon from '@lucide/svelte/icons/chevron-right';
@@ -24,6 +23,7 @@
 	import * as Drawer from '#lib/components/ui/drawer/index.js';
 	import { Button, buttonVariants } from '#lib/components/ui/button/index.js';
 	import { searchDigits } from '#lib/domain/phone.ts';
+	import { resolveSelection } from '#lib/domain/queue-selection.ts';
 	import { dueState, type QueueRowItem } from '#lib/queue.ts';
 	import { m } from '#lib/paraglide/messages.js';
 	import { cn } from '#lib/utils.js';
@@ -54,8 +54,12 @@
 
 	// `?tab=winback` (from Ringkasan's "Buka di antrian") opens on that section.
 	const TABS: Tab[] = ['all', 'overdue', 'today', 'waiting', 'winback'];
-	const tabParam = page.url.searchParams.get('tab') as Tab | null;
-	let tab = $state<Tab>(tabParam && TABS.includes(tabParam) ? tabParam : 'all');
+	const parseTab = (v: string | null): Tab =>
+		v !== null && (TABS as string[]).includes(v) ? (v as Tab) : 'all';
+	// A derived string, so `tab` below re-derives only when the tab param itself changes (Back,
+	// Forward, a link), not when `?item=` does; picking a chip overrides it until then.
+	const tabParam = $derived(page.url.searchParams.get('tab'));
+	let tab = $derived(parseTab(tabParam));
 	// One tab per section. The week ahead has no tab: it only closes the "Semua" list.
 	const tabItems = $derived([
 		{
@@ -110,7 +114,9 @@
 	// In "Semua" every section shows its first three rows, then "Lihat N lainnya". A single tab
 	// shows its whole list.
 	const COLLAPSED_ROWS = 3;
-	const collapses = (s: Section) => tab === 'all' && !expanded[s.id];
+	// A selection that lands past the first rows (a fallback, a deep link) keeps its section open.
+	const collapses = (s: Section) =>
+		tab === 'all' && !expanded[s.id] && !(selected && s.items.indexOf(selected) >= COLLAPSED_ROWS);
 	let expanded = $state<Record<string, boolean>>({});
 	const visibleRows = (s: Section) => (collapses(s) ? s.items.slice(0, COLLAPSED_ROWS) : s.items);
 	const hiddenRows = (s: Section) =>
@@ -125,15 +131,29 @@
 	const flat = $derived(shown.flatMap((s) => s.items));
 	const pool = $derived(allSections.flatMap((s) => s.items));
 	let selectedId = $state<string | null>(null);
-	let lastIndex = 0;
+	let lastIndex = $state(0);
 	// A send moves the customer to the end of "Menunggu balasan", far from where the agent was
 	// working. Stepping then continues from the neighbours they had in the list when it was sent.
 	let sentFrom = $state<{ id: string; prev: string | null; next: string | null } | null>(null);
 	let sheetOpen = $state(false);
-	const selected = $derived(pool.find((i) => i.followUpId === selectedId) ?? null);
+	const presentIds = $derived(new Set(pool.map((i) => i.followUpId)));
+	// What the detail shows: the pick while it is open, else whoever took its slot, else (desktop,
+	// "Semua") the first row. Derived, so nothing has to repair `selectedId` after a reload.
+	const currentId = $derived(
+		resolveSelection({
+			order: flat.map((i) => i.followUpId),
+			present: presentIds,
+			selectedId,
+			lastIndex,
+			dayDone,
+			autoFirst: wide.current && tab === 'all'
+		})
+	);
+	const selected = $derived(
+		currentId === null ? null : (pool.find((i) => i.followUpId === currentId) ?? null)
+	);
 	const position = $derived(selected ? flat.indexOf(selected) : -1);
-	const displayed = $derived(selected);
-	const sentHere = $derived(sentFrom && sentFrom.id === selectedId ? sentFrom : null);
+	const sentHere = $derived(sentFrom && sentFrom.id === currentId ? sentFrom : null);
 	const inFlat = (id: string | null) => !!id && flat.some((i) => i.followUpId === id);
 	const canPrev = $derived(
 		sentHere ? inFlat(sentHere.prev) : position >= 0 ? position > 0 : lastIndex > 0
@@ -160,46 +180,42 @@
 	// it does not reload anything.
 	const urlItem = $derived(page.url.searchParams.get('item'));
 	const phoneDetail = $derived(!tablet.current && urlItem !== null && !!selected);
-	const itemHref = (id: string) => `${resolve('/(app)')}?item=${encodeURIComponent(id)}`;
+	// The list URL, keeping a `?tab=` the page was opened with so the detail does not reset the tab.
+	const listHref = (item?: string) => {
+		const query = [
+			tabParam !== null ? `tab=${encodeURIComponent(tabParam)}` : null,
+			item !== undefined ? `item=${encodeURIComponent(item)}` : null
+		].filter((part) => part !== null);
+		return query.length ? `${resolve('/(app)')}?${query.join('&')}` : resolve('/(app)');
+	};
 	// Whether the open detail has a list entry behind it in this tab's history.
 	let pushed = false;
 
 	// The selection follows `?item=`: a deep link, or Back/Forward between details.
-	$effect(() => {
-		const id = urlItem;
-		if (!id) return;
-		untrack(() => {
-			const item = pool.find((i) => i.followUpId === id);
-			if (!item || item.followUpId === selectedId) return;
-			reveal(item);
-			selectedId = item.followUpId;
-			if (tablet.current && !wide.current) sheetOpen = true;
-		});
+	afterNavigate(() => {
+		const id = page.url.searchParams.get('item');
+		if (!id || id === currentId) return;
+		const item = pool.find((i) => i.followUpId === id);
+		if (!item) return;
+		reveal(item);
+		selectedId = item.followUpId;
+		lastIndex = Math.max(0, flat.indexOf(item));
+		if (tablet.current && !wide.current) sheetOpen = true;
 	});
 
 	function closePhone() {
 		if (pushed) {
 			pushed = false;
 			history.back();
-		} else void goto(resolve('/(app)'), { replace: true, reset: false });
+		} else {
+			// eslint-disable-next-line svelte/no-navigation-without-resolve -- listHref() wraps resolve()
+			void goto(listHref(), { replace: true, reset: false });
+		}
 	}
 
 	function onpopstate() {
 		pushed = new URL(location.href).searchParams.has('item') && pushed;
 	}
-
-	$effect(() => {
-		if (selectedId && !selected) {
-			// A finished day has no next follow-up to select; the summary aside takes its place.
-			const next = dayDone ? undefined : flat[Math.min(lastIndex, flat.length - 1)];
-			if (next) untrack(() => reveal(next));
-			selectedId = next?.followUpId ?? null;
-			if (!next) sheetOpen = false;
-		} else if (!selectedId && wide.current && tab === 'all' && !dayDone && flat.length > 0) {
-			// Only "Semua" opens on its first customer; a single tab waits for a pick.
-			selectedId = flat[0].followUpId;
-		}
-	});
 
 	/** Unfolds the rest of a section when the selection lands on one of its hidden rows. */
 	function reveal(item: QueueRowItem) {
@@ -222,8 +238,8 @@
 		// Stepping inside the open phone detail replaces the entry, so Back still means "list".
 		const replace = urlItem !== null;
 		if (!replace) pushed = true;
-		// eslint-disable-next-line svelte/no-navigation-without-resolve -- itemHref() wraps resolve()
-		void goto(itemHref(item.followUpId), { replace, reset: false });
+		// eslint-disable-next-line svelte/no-navigation-without-resolve -- listHref() wraps resolve()
+		void goto(listHref(item.followUpId), { replace, reset: false });
 	}
 
 	function step(by: 1 | -1) {
@@ -240,9 +256,9 @@
 
 	/** Called before the reload that moves the customer to "Menunggu balasan". */
 	function cardSent() {
-		if (!selectedId || position < 0) return;
+		if (!currentId || position < 0) return;
 		sentFrom = {
-			id: selectedId,
+			id: currentId,
 			prev: flat[position - 1]?.followUpId ?? null,
 			next: flat[position + 1]?.followUpId ?? null
 		};
@@ -412,7 +428,7 @@
 				onshowmore={() => (expanded = { ...expanded, [section.id]: true })}
 				today={data.today}
 				rules={data.rules}
-				{selectedId}
+				selectedId={currentId}
 				onselect={select}
 			/>
 		{/each}
@@ -428,10 +444,10 @@
 			class="flex min-h-0 flex-col overflow-hidden border-l border-rule bg-card"
 			aria-label={m.queue_card_label()}
 		>
-			{#if displayed}
+			{#if selected}
 				<div class="min-h-0 flex-1 overflow-y-auto">
 					<FollowUpCard
-						item={displayed}
+						item={selected}
 						today={data.today}
 						rules={data.rules}
 						onsaved={outcomeSaved}
@@ -464,14 +480,18 @@
 </div>
 
 {#if tablet.current && !wide.current}
-	<Drawer.Root bind:open={sheetOpen} direction="right">
+	<Drawer.Root
+		open={sheetOpen && !!selected}
+		onOpenChange={(open) => (sheetOpen = open)}
+		direction="right"
+	>
 		<Drawer.Content
 			class="data-[vaul-drawer-direction=right]:w-[480px] data-[vaul-drawer-direction=right]:max-w-full data-[vaul-drawer-direction=right]:rounded-none data-[vaul-drawer-direction=right]:shadow-[-12px_0_40px_color-mix(in_oklch,var(--shadow-tint)_16%,transparent)] data-[vaul-drawer-direction=right]:sm:max-w-full"
 		>
 			<Drawer.Header
 				class="flex-row items-center gap-2 border-b border-rule py-2.5 pr-6 pl-3 text-left"
 			>
-				<Drawer.Title class="sr-only">{displayed?.customer.name ?? ''}</Drawer.Title>
+				<Drawer.Title class="sr-only">{selected?.customer.name ?? ''}</Drawer.Title>
 				<Drawer.Close
 					class={buttonVariants({ variant: 'ghost', size: 'icon' })}
 					aria-label={m.close()}
@@ -482,9 +502,9 @@
 				{@render stepButtons()}
 			</Drawer.Header>
 			<div class="min-h-0 flex-1 overflow-y-auto">
-				{#if displayed}
+				{#if selected}
 					<FollowUpCard
-						item={displayed}
+						item={selected}
 						today={data.today}
 						rules={data.rules}
 						onsaved={outcomeSaved}
@@ -496,11 +516,11 @@
 	</Drawer.Root>
 {/if}
 
-{#if phoneDetail && displayed}
+{#if phoneDetail && selected}
 	<!-- Full-screen above the list, below the bottom nav (which stays visible). -->
 	<section
 		class="fixed inset-x-0 top-0 bottom-[calc(72px+env(safe-area-inset-bottom))] z-20 flex flex-col bg-card md:hidden"
-		aria-label={displayed.customer.name}
+		aria-label={selected.customer.name}
 	>
 		<div class="flex min-h-14 shrink-0 items-center gap-1 border-b border-rule pr-3 pl-1">
 			<button
@@ -516,7 +536,7 @@
 		</div>
 		<div class="min-h-0 flex-1 overflow-y-auto">
 			<FollowUpCard
-				item={displayed}
+				item={selected}
 				today={data.today}
 				rules={data.rules}
 				onsaved={outcomeSaved}
