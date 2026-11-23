@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Maido Book** (package `maido-book`; the worker is still `crm-app` and the D1 database `crm-db`) is an early-stage CRM. It is a SvelteKit 3 / Svelte 5 app deployed to **Cloudflare Workers** with a **D1** (SQLite) database. It has Google sign-in (better-auth) and two locales, Indonesian (default) and English, through Paraglide. It is a CS follow-up CRM for a consumable product: daily follow-up queue (`/`), customers, orders (each order schedules the next reorder follow-up), insights, settings (products, rules, WhatsApp templates), Excel import (`/import`) and `/more` (the phone's "Lainnya" page: remaining nav items and preferences). WhatsApp messages are sent through `wa.me` links (`waLink()` in `src/lib/domain/phone.ts`); there is no WhatsApp API integration. Sign-in is limited to the `ALLOWED_EMAILS` allowlist.
+**Maido Book** (package `maido-book`; the Worker is `maido-book` and the D1 database `maido-book-db`) is an early-stage CRM. It is a SvelteKit 3 / Svelte 5 app deployed to **Cloudflare Workers** with a **D1** (SQLite) database. It has Google sign-in (better-auth) and two locales, Indonesian (default) and English, through Paraglide. It is a CS follow-up CRM for a consumable product: daily follow-up queue (`/`), customers, orders (each order schedules the next reorder follow-up), insights, settings (products, rules, WhatsApp templates), Excel import (`/import`) and `/more` (the phone's "Lainnya" page: remaining nav items and preferences). WhatsApp messages are sent through `wa.me` links (`waLink()` in `src/lib/domain/phone.ts`); there is no WhatsApp API integration. Sign-in is limited to the `ALLOWED_EMAILS` allowlist.
 
 ## Architecture & Data Flow
 
@@ -75,7 +75,7 @@ pnpm deploy             # build + wrangler deploy
 
 pnpm gen                # regenerate worker-configuration.d.ts after editing wrangler.jsonc
 pnpm db:generate        # drizzle-kit generate → drizzle/NNNN_*.sql
-pnpm db:migrate:local   # apply to local D1 (crm-db)
+pnpm db:migrate:local   # apply to local D1 (maido-book-db)
 pnpm db:migrate:remote  # apply to remote D1
 pnpm db:seed:local      # load scripts/seed/local.sql into local D1
 pnpm auth:schema        # regenerate src/lib/server/db/auth.schema.ts from auth config
@@ -110,7 +110,7 @@ pnpm paraglide          # recompile messages (the vite plugin also does this on 
 - `src/app.d.ts`: `App.Locals` (`user?`, `session?`, `db`, `auth`) and `App.PageState` (`item?`, the follow-up open in the phone's shallow-routed queue detail)
 - `src/env.ts`: env var declarations (`ORIGIN`, `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ALLOWED_EMAILS`)
 - `vite.config.ts`: SvelteKit plugin and adapter (there is **no** `svelte.config.js`), Paraglide plugin, Vitest config
-- `wrangler.jsonc`: worker `crm-app`, D1 binding `DB` → `crm-db`, `nodejs_als` flag
+- `wrangler.jsonc`: worker `maido-book`, D1 binding `DB` → `maido-book-db`, `nodejs_als` flag
 - `drizzle.config.ts`: sqlite dialect, schema `src/lib/server/db/schema.ts`, out `drizzle/`
 - `src/lib/server/db/crm.schema.ts`: CRM tables (`product`, `customer`, `customer_order`, `follow_up`, `activity`, `setting`, `message_template`)
 - `project.inlang/settings.json`: locales `["id","en"]`, base `id`

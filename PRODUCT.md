@@ -35,7 +35,7 @@ Run-out prediction plus a WhatsApp-first workflow. The follow-up date is derived
 
 ## Brand Commitments
 
-The product name is **Maido Book** (confirmed; in `messages/{id,en}.json` as `app_name`). The worker `crm-app` and database `crm-db` keep their old internal names. No logo, voice guide, or other brand assets exist yet.
+The product name is **Maido Book** (confirmed; in `messages/{id,en}.json` as `app_name`). The Worker is `maido-book` and the D1 database `maido-book-db`. No logo, voice guide, or other brand assets exist yet.
 
 ## Evidence on Hand
 

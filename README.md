@@ -72,16 +72,16 @@ A customer-service follow-up CRM for a consumable product. It has a daily follow
 | `pnpm build`             | `wrangler types` and `vite build`                                       |
 | `pnpm preview`           | `wrangler dev` on the built worker, port 4173                           |
 | `pnpm db:generate`       | `drizzle-kit generate`: new SQL migration in `drizzle/` from the schema |
-| `pnpm db:migrate:local`  | Apply migrations to the local `crm-db`                                  |
-| `pnpm db:migrate:remote` | Apply migrations to the remote `crm-db`                                 |
-| `pnpm db:seed:local`     | Load `scripts/seed/local.sql` into the local `crm-db`                   |
+| `pnpm db:migrate:local`  | Apply migrations to the local `maido-book-db`                           |
+| `pnpm db:migrate:remote` | Apply migrations to the remote `maido-book-db`                          |
+| `pnpm db:seed:local`     | Load `scripts/seed/local.sql` into the local `maido-book-db`            |
 | `pnpm deploy`            | `pnpm build` and `wrangler deploy`                                      |
 
 Run `pnpm check`, `pnpm lint` and `pnpm test` before committing.
 
 ## Deploy
 
-The worker is `crm-app`. `wrangler.jsonc` binds `DB` to the D1 database `crm-db` and applies migrations from `drizzle/`.
+The worker is `maido-book`. `wrangler.jsonc` binds `DB` to the D1 database `maido-book-db` and applies migrations from `drizzle/`.
 
 1. Apply the migrations to the remote database:
 
@@ -118,3 +118,7 @@ drizzle/          SQL migrations applied by wrangler D1
 ```
 
 See [AGENTS.md](AGENTS.md) for architecture and conventions, [PRODUCT.md](PRODUCT.md) for product context and [DESIGN.md](DESIGN.md) for the design system.
+
+## License
+
+[MIT](LICENSE)
