@@ -1,5 +1,5 @@
 import { and, eq, gte, isNotNull, lt, sql } from 'drizzle-orm';
-import type { Db } from '#lib/server/db/index.ts';
+import { owned, type CrmScope } from './scope.ts';
 import { activity, customerOrder, followUp } from '#lib/server/db/schema.ts';
 import { addDays, monthKey, monthStart, nextMonthStart } from '#lib/domain/dates.ts';
 import { supplyStatus } from '#lib/domain/follow-up.ts';
@@ -19,14 +19,20 @@ const shiftMonth = (iso: string, n: number) => {
 	return new Date(Date.UTC(y, m - 1 + n, 1)).toISOString().slice(0, 10);
 };
 
-export async function getInsights(db: Db, today: string, month: string) {
+export async function getInsights(crm: CrmScope, today: string, month: string) {
+	const { db } = crm;
 	const anchor = month + '-01';
 	const start = monthStart(anchor);
 	const end = nextMonthStart(anchor);
 	const prevStart = shiftMonth(anchor, -1);
 	const startMs = jakartaMidnight(start);
 	const endMs = jakartaMidnight(end);
-	const inMonth = and(gte(customerOrder.orderDate, start), lt(customerOrder.orderDate, end));
+	const inMonth = owned(
+		crm,
+		customerOrder.ownerId,
+		gte(customerOrder.orderDate, start),
+		lt(customerOrder.orderDate, end)
+	);
 
 	// six months window, newest first
 	const months: string[] = [];
@@ -37,6 +43,7 @@ export async function getInsights(db: Db, today: string, month: string) {
 	const perBuyer = db
 		.select({ c: sql<number>`count(*)`.as('c') })
 		.from(customerOrder)
+		.where(owned(crm, customerOrder.ownerId))
 		.groupBy(customerOrder.customerId)
 		.as('per_buyer');
 
@@ -54,7 +61,7 @@ export async function getInsights(db: Db, today: string, month: string) {
 		history,
 		dailyRows
 	] = await db.batch([
-		queueQuery(db, today),
+		queueQuery(crm, today),
 		db
 			.select({
 				n: sql<number>`count(*)`,
@@ -65,14 +72,21 @@ export async function getInsights(db: Db, today: string, month: string) {
 		db
 			.select({ revenue: sql<number>`coalesce(sum(${customerOrder.totalPaid}), 0)` })
 			.from(customerOrder)
-			.where(and(gte(customerOrder.orderDate, prevStart), lt(customerOrder.orderDate, start))),
+			.where(
+				owned(
+					crm,
+					customerOrder.ownerId,
+					gte(customerOrder.orderDate, prevStart),
+					lt(customerOrder.orderDate, start)
+				)
+			),
 		db
 			.select({ n: sql<number>`count(*)` })
 			.from(customerOrder)
 			.where(
 				and(
 					inMonth,
-					sql`exists (select 1 from customer_order o2 where o2.customer_id = ${customerOrder.customerId} and (o2.order_date < ${customerOrder.orderDate} or (o2.order_date = ${customerOrder.orderDate} and o2.created_at < ${customerOrder.createdAt})))`
+					sql`exists (select 1 from customer_order o2 where o2.owner_id = ${customerOrder}.${sql.identifier('owner_id')} and o2.customer_id = ${customerOrder}.${sql.identifier('customer_id')} and (o2.order_date < ${customerOrder}.${sql.identifier('order_date')} or (o2.order_date = ${customerOrder}.${sql.identifier('order_date')} and o2.created_at < ${customerOrder}.${sql.identifier('created_at')})))`
 				)
 			),
 		db
@@ -82,7 +96,7 @@ export async function getInsights(db: Db, today: string, month: string) {
 				and(
 					inMonth,
 					// created_at is epoch ms; 25200 s shifts UTC midnight to Jakarta midnight.
-					sql`exists (select 1 from activity a where a.customer_id = ${customerOrder.customerId} and a.type = 'wa_sent' and a.created_at >= (unixepoch(${customerOrder.orderDate}, ${`-${CONVERSION_WINDOW_DAYS} days`}) - 25200) * 1000 and a.created_at < (unixepoch(${customerOrder.orderDate}, '+1 day') - 25200) * 1000)`
+					sql`exists (select 1 from activity a where a.owner_id = ${customerOrder}.${sql.identifier('owner_id')} and a.customer_id = ${customerOrder}.${sql.identifier('customer_id')} and a.type = 'wa_sent' and a.created_at >= (unixepoch(${customerOrder}.${sql.identifier('order_date')}, ${`-${CONVERSION_WINDOW_DAYS} days`}) - 25200) * 1000 and a.created_at < (unixepoch(${customerOrder}.${sql.identifier('order_date')}, '+1 day') - 25200) * 1000)`
 				)
 			),
 		db
@@ -95,7 +109,9 @@ export async function getInsights(db: Db, today: string, month: string) {
 			.select({ n: sql<number>`count(*)` })
 			.from(activity)
 			.where(
-				and(
+				owned(
+					crm,
+					activity.ownerId,
 					eq(activity.type, 'wa_sent'),
 					gte(activity.createdAt, startMs),
 					lt(activity.createdAt, endMs)
@@ -105,14 +121,16 @@ export async function getInsights(db: Db, today: string, month: string) {
 			.select({ outcome: followUp.outcome, n: sql<number>`count(*)` })
 			.from(followUp)
 			.where(
-				and(
+				owned(
+					crm,
+					followUp.ownerId,
 					isNotNull(followUp.outcome),
 					gte(followUp.completedAt, startMs),
 					lt(followUp.completedAt, endMs)
 				)
 			)
 			.groupBy(followUp.outcome),
-		customerStatusCountsQuery(db),
+		customerStatusCountsQuery(crm),
 		db
 			.select({
 				month: sql<string>`substr(${customerOrder.orderDate}, 1, 7)`,
@@ -120,7 +138,7 @@ export async function getInsights(db: Db, today: string, month: string) {
 				revenue: sql<number>`coalesce(sum(${customerOrder.totalPaid}), 0)`
 			})
 			.from(customerOrder)
-			.where(gte(customerOrder.orderDate, oldest + '-01'))
+			.where(owned(crm, customerOrder.ownerId, gte(customerOrder.orderDate, oldest + '-01')))
 			.groupBy(sql`substr(${customerOrder.orderDate}, 1, 7)`),
 		db
 			.select({

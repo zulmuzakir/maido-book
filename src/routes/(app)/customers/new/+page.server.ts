@@ -7,6 +7,7 @@ import { parseForm } from '#lib/server/crm/form.ts';
 import { customerSchema } from '#lib/server/crm/schemas.ts';
 import { createCustomer, customerSnapshot } from '#lib/server/crm/customers.ts';
 import { m } from '#lib/paraglide/messages.js';
+import { requireCrm } from '#lib/server/crm/scope.ts';
 
 export const load: PageServerLoad = async ({ url }) => {
 	const next = url.searchParams.get('next') === 'order' ? 'order' : '';
@@ -15,6 +16,7 @@ export const load: PageServerLoad = async ({ url }) => {
 
 export const actions: Actions = {
 	default: async ({ request, locals }) => {
+		const crm = requireCrm(locals);
 		const fd = await request.formData();
 		fd.set('dosePerDay', resolveDose(fd));
 		const parsed = parseForm(fd, customerSchema);
@@ -22,9 +24,9 @@ export const actions: Actions = {
 			return fail(400, { errors: parsed.errors, values: parsed.values });
 		}
 
-		const result = await createCustomer(locals.db, parsed.data, locals.user!.id, todayIso());
+		const result = await createCustomer(crm, parsed.data, todayIso());
 		if ('duplicateOf' in result) {
-			const existing = await customerSnapshot(locals.db, result.duplicateOf.id);
+			const existing = await customerSnapshot(crm, result.duplicateOf.id);
 			const phone = normalizePhone(fd.get('phone'));
 			return fail(400, {
 				errors: { phone: 'duplicate' },

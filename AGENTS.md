@@ -19,46 +19,47 @@ flowchart LR
 ```
 
 - **Single hook pipeline:** `src/hooks.server.ts` runs `sequence(handleParaglide, handleAuth)`.
-- **Per-request services:** the hook creates the DB and auth instances on every request and stores them on `locals`. Use `locals.db` and `locals.auth` in server code. Do not create module-level singletons, because the D1 binding is only available per request.
+- **Per-request services:** the hook creates the DB and auth instances and stores them on `locals`. Do not create module-level singletons: the D1 binding is only available per request.
+  For CRM code, use `requireCrm(locals)`. The hook derives the scope from the accepted session's immutable `user.id`. All CRM reads and mutations are owner-scoped; the allowlist only grants sign-in, not shared access. Authenticated app responses are `private, no-store`.
 - **Auth gating is centralized in the hook.** Only `/api/auth/*` and route id `/login` are public. Everything else redirects to `/login` when there is no session. A session only counts if its email passes `isAllowedEmail()` (`src/lib/server/allowed-emails.ts`); a valid Google session whose email is not allowed is sent to `/login?error=not_allowed`. `(app)/+layout.server.ts` relies on this and uses `locals.user!`. If you add a public route, update `isPublic` in the hook.
 - **Bindings:** read them with `import { env } from 'cloudflare:workers'`, not `event.platform`. Secrets come from `$app/env/private` and are declared in `src/env.ts` with `defineEnvVars`. When you add a new env var, declare it there and in `.env.example`.
 - **Auth:** `src/lib/server/auth.ts` defines `createAuth(db)`, which wires better-auth (`better-auth/minimal`) with the drizzle sqlite adapter and Google. A `user.create.before` database hook rejects emails outside the allowlist. `validateSchema: false` skips per-request schema introspection. `session.cookieCache` (5 minutes) serves the session from a signed `session_data` cookie instead of D1; the hook still checks the allowlist on every request. The `sveltekitCookies` plugin must stay **last**. `export const auth = createAuth(null!)` exists only for the `auth` CLI.
 - **Mutations:** use form actions (`+page.server.ts`) with `fail()`/`redirect()` from `@sveltejs/kit`. Logout is `POST /logout` (`src/routes/logout/+server.ts`). There is no `handleError`; `src/routes/+error.svelte` and `src/routes/(app)/+error.svelte` render `ErrorState`. The catch-all `(app)/[...rest]` throws 404 so unknown URLs render inside the app shell.
 - **Atomic writes:** D1 has no interactive transactions. Multi-statement writes go through `runBatch()` (`src/lib/server/crm/batch.ts`, a D1 batch).
-- **Batched reads:** each D1 query is a network round trip, so a page load sends all its reads in one `locals.db.batch([...])`. Reads are split into a query builder (`queueQuery`, `rulesQuery`, `customerDetailQueries`, ...) and a pure mapper (`toQueue`, `toRules`, `toCustomerDetail`, ...). Batch results are row arrays, so use `rows[0]` where you would use `.get()`. **Wrap the fields of every joined select that goes into a batch in `batchSafe()`**: D1 batch rows are keyed by column name, so same-named columns (`customer.id`, `follow_up.id`) collide and the values shift into the wrong fields. In a single-table select, drizzle writes a column in a raw `sql` field as a bare `"id"`, so name the table in correlated subqueries (`${customer}.${sql.identifier('id')}`).
+- **Batched reads:** each D1 query is a network round trip, so a page load sends all its reads in one `crm.db.batch([...])`. Reads are split into a query builder (`queueQuery`, `rulesQuery`, `customerDetailQueries`, ...) and a pure mapper (`toQueue`, `toRules`, `toCustomerDetail`, ...). Batch results are row arrays, so use `rows[0]` where you would use `.get()`. **Wrap the fields of every joined select that goes into a batch in `batchSafe()`**: D1 batch rows are keyed by column name, so same-named columns (`customer.id`, `follow_up.id`) collide and the values shift into the wrong fields. In a single-table select, drizzle writes a column in a raw `sql` field as a bare `"id"`, so name the table in correlated subqueries (`${customer}.${sql.identifier('id')}`).
 - **Server-Timing:** every response reports `auth-init`, `session` (D1 trips), `db` (trip count and summed wait) and `total` (`src/lib/server/db/timing.ts`). Check the trip count in DevTools after you change a load.
 
 ## CRM Domain
 
 - Core rule: `followUpDue = orderDate + max(0, ceil(qty × servingsPerUnit / dosePerDay) − leadDays)` (`daysOfSupply` and `reorderDueDate` in `src/lib/domain/follow-up.ts`). Pure client-safe domain code lives in `src/lib/domain/` (unit-tested); DB access in `src/lib/server/crm/`.
 - After a manual outcome, `planAfterOutcome()` decides the next follow-up: `retry`/`closing` after `retryDays`, up to `maxAttempts`, then the customer goes `dormant` with a `winback` after `winbackDays`. `planImportedCustomer()` maps the Excel "last action" column the same way.
-- One open follow-up per customer (partial unique index `follow_up_one_open_idx` on `customer_id` where `status = 'open'`). Dates are `YYYY-MM-DD` strings in Asia/Jakarta (`todayIso()`, `src/lib/domain/dates.ts`); timestamps are epoch ms.
-- Rules live in the single `setting` row (`id = 1`). WhatsApp templates are one `message_template` row per follow-up kind, with placeholders `{nama}`, `{cs}`, `{produk}` (`src/lib/domain/template.ts`). Default product, rules and templates are inserted by migrations `0002`/`0003`.
+- One open follow-up per customer (partial unique index `follow_up_one_open_idx` on `(owner_id, customer_id)` where `status = 'open'`). Dates are `YYYY-MM-DD` strings in Asia/Jakarta (`todayIso()`, `src/lib/domain/dates.ts`); timestamps are epoch ms.
+- Each owner has one `setting` row and one `message_template` row per follow-up kind. Template placeholders: `{nama}`, `{cs}`, `{produk}` (`src/lib/domain/template.ts`). Migration `0005` provisions the default product, rules and templates on account insertion and backfills existing auth users. It refuses to migrate non-default legacy CRM data instead of assigning it to an account.
 - Insights (`src/lib/server/crm/insights.ts`): an order counts toward conversion only if its customer got a `wa_sent` activity in the 14 days up to its order date.
 - `resolve()` takes route ids including the group: `resolve('/(app)/customers')`.
 - Add env var `ALLOWED_EMAILS` (comma-separated, case-insensitive); production: `wrangler secret put ALLOWED_EMAILS`.
 
 ## Key Directories
 
-| Path                                      | Purpose                                                                                                                                                    |
-| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/routes/(app)/`                       | Authenticated area (layout with `side-nav` on desktop, `bottom-nav` on phone; language and theme in the user menu and `/more`)                             |
-| `src/routes/login/`, `src/routes/logout/` | Public sign-in (form action `?/google`), sign-out endpoint                                                                                                 |
-| `src/lib/server/`                         | Server-only: `auth.ts`, `allowed-emails.ts`, `db/index.ts` (`getDb`, `Db` type), `db/schema.ts` (re-exports `auth.schema.ts` and `crm.schema.ts`)          |
-| `src/lib/server/crm/`                     | CRM queries and mutations, valibot form schemas (`schemas.ts`, `form.ts`), shared follow-up actions (`follow-up-actions.ts`)                               |
-| `src/lib/server/db/auth.schema.ts`        | **Generated** by `pnpm auth:schema`. Do not hand-edit                                                                                                      |
-| `src/lib/domain/`                         | Pure, client-safe domain logic and enums (`types.ts`), with colocated tests                                                                                |
-| `src/lib/components/ui/`                  | shadcn-svelte components (generated, excluded from ESLint)                                                                                                 |
-| `src/lib/components/`                     | App components (e.g. `page-header.svelte`); `app-shell/` holds the nav, user menu and `nav-items.ts`                                                       |
-| `src/routes/**/<name>.svelte`             | Route-only sections, colocated with their page and typed from `./$types`. Shared components go in `src/lib/components/`                                    |
-| `src/lib/paraglide/`                      | **Generated** i18n runtime (gitignored)                                                                                                                    |
-| `messages/{id,en}.json`                   | Translation source of truth                                                                                                                                |
-| `drizzle/`                                | SQL migrations, applied by wrangler D1 (`migrations_dir`)                                                                                                  |
-| `static/templates/`                       | Import template `.xlsx` linked from `/import`, built by `pnpm template:build`; `import-template.test.ts` checks it against the parser                      |
-| `scripts/seed/local.sql`                  | Local demo data (`pnpm db:seed:local`). Idempotent, only touches ids starting with `seed_`, dates relative to today. Never run against the remote database |
-| `.agents/skills/`, `.claude/skills/`      | Vendored agent skills and their Claude Code symlinks (see Agent Skills)                                                                                    |
-| `DESIGN.md`, `PRODUCT.md`                 | Design system (colors, type, components) and product context. Read before UI work                                                                          |
-| `docs/`                                   | Local working docs (plans, gap lists). Gitignored; never commit them                                                                                       |
+| Path                                      | Purpose                                                                                                                                           |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/routes/(app)/`                       | Authenticated area (layout with `side-nav` on desktop, `bottom-nav` on phone; language and theme in the user menu and `/more`)                    |
+| `src/routes/login/`, `src/routes/logout/` | Public sign-in (form action `?/google`), sign-out endpoint                                                                                        |
+| `src/lib/server/`                         | Server-only: `auth.ts`, `allowed-emails.ts`, `db/index.ts` (`getDb`, `Db` type), `db/schema.ts` (re-exports `auth.schema.ts` and `crm.schema.ts`) |
+| `src/lib/server/crm/`                     | CRM queries and mutations, valibot form schemas (`schemas.ts`, `form.ts`), shared follow-up actions (`follow-up-actions.ts`)                      |
+| `src/lib/server/db/auth.schema.ts`        | **Generated** by `pnpm auth:schema`. Do not hand-edit                                                                                             |
+| `src/lib/domain/`                         | Pure, client-safe domain logic and enums (`types.ts`), with colocated tests                                                                       |
+| `src/lib/components/ui/`                  | shadcn-svelte components (generated, excluded from ESLint)                                                                                        |
+| `src/lib/components/`                     | App components (e.g. `page-header.svelte`); `app-shell/` holds the nav, user menu and `nav-items.ts`                                              |
+| `src/routes/**/<name>.svelte`             | Route-only sections, colocated with their page and typed from `./$types`. Shared components go in `src/lib/components/`                           |
+| `src/lib/paraglide/`                      | **Generated** i18n runtime (gitignored)                                                                                                           |
+| `messages/{id,en}.json`                   | Translation source of truth                                                                                                                       |
+| `drizzle/`                                | SQL migrations, applied by wrangler D1 (`migrations_dir`)                                                                                         |
+| `static/templates/`                       | Import template `.xlsx` linked from `/import`, built by `pnpm template:build`; `import-template.test.ts` checks it against the parser             |
+| `scripts/seed/local.sql`                  | Local demo data (`pnpm db:seed:local <email>`). Replaces only the selected account's fixtures; never run against the remote database.             |
+| `.agents/skills/`, `.claude/skills/`      | Vendored agent skills and their Claude Code symlinks (see Agent Skills)                                                                           |
+| `DESIGN.md`, `PRODUCT.md`                 | Design system (colors, type, components) and product context. Read before UI work                                                                 |
+| `docs/`                                   | Local working docs (plans, gap lists). Gitignored; never commit them                                                                              |
 
 ## Development Commands
 
@@ -77,7 +78,7 @@ pnpm gen                # regenerate worker-configuration.d.ts after editing wra
 pnpm db:generate        # drizzle-kit generate → drizzle/NNNN_*.sql
 pnpm db:migrate:local   # apply to local D1 (maido-book-db)
 pnpm db:migrate:remote  # apply to remote D1
-pnpm db:seed:local      # load scripts/seed/local.sql into local D1
+pnpm db:seed:local <email> # load demo data for an existing local account
 pnpm auth:schema        # regenerate src/lib/server/db/auth.schema.ts from auth config
 pnpm template:build     # rebuild the import template (after changing import headers, LAST_ACTIONS or limits)
 pnpm paraglide          # recompile messages (the vite plugin also does this on dev/build)

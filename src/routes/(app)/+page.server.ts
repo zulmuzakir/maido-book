@@ -18,20 +18,22 @@ import { hasCustomersQuery } from '#lib/server/crm/customers.ts';
 import { followUpActions } from '#lib/server/crm/follow-up-actions.ts';
 import { m } from '#lib/paraglide/messages.js';
 import type { PageServerLoad } from './$types';
+import { requireCrm } from '#lib/server/crm/scope.ts';
 
 export const load: PageServerLoad = async ({ locals }) => {
+	const crm = requireCrm(locals);
 	const today = todayIso();
-	const db = locals.db;
+
 	// One D1 round trip for the whole page.
 	const [queueRows, ruleRows, doneRows, handledRows, templateRows, productRows, customerRows] =
-		await db.batch([
-			queueQuery(db, today),
-			rulesQuery(db),
-			doneTodayQuery(db, today),
-			handledQuery(db, today),
-			templatesQuery(db),
-			defaultProductQuery(db),
-			hasCustomersQuery(db)
+		await crm.db.batch([
+			queueQuery(crm, today),
+			rulesQuery(crm),
+			doneTodayQuery(crm, today),
+			handledQuery(crm, today),
+			templatesQuery(crm),
+			defaultProductQuery(crm),
+			hasCustomersQuery(crm)
 		]);
 	const queue = toQueue(queueRows, today);
 	const rules = toRules(ruleRows);

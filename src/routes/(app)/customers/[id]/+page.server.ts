@@ -14,16 +14,18 @@ import {
 import { deleteOrder } from '#lib/server/crm/orders.ts';
 import { noteSchema } from '#lib/server/crm/schemas.ts';
 import { rulesQuery, templatesQuery, toRules } from '#lib/server/crm/settings.ts';
+import { requireCrm } from '#lib/server/crm/scope.ts';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-	const db = locals.db;
+	const crm = requireCrm(locals);
+
 	// One D1 round trip: the customer's detail, the rules and the message context.
 	const [c0, fu, last, orderRows, activityRows, ruleRows, templateRows, productRows] =
-		await db.batch([
-			...customerDetailQueries(db, params.id),
-			rulesQuery(db),
-			templatesQuery(db),
-			defaultProductQuery(db)
+		await crm.db.batch([
+			...customerDetailQueries(crm, params.id),
+			rulesQuery(crm),
+			templatesQuery(crm),
+			defaultProductQuery(crm)
 		]);
 	const detail = toCustomerDetail([c0, fu, last, orderRows, activityRows]);
 	if (!detail) error(404, 'Not found');
@@ -81,18 +83,20 @@ export const actions: Actions = {
 	...followUpActions,
 
 	note: async ({ params, request, locals }) => {
+		const crm = requireCrm(locals);
 		const parsed = parseForm(await request.formData(), noteSchema);
 		if (!parsed.ok) return fail(400, { action: 'note', errors: parsed.errors });
-		await addNote(locals.db, params.id, parsed.data.body, locals.user!.id);
+		await addNote(crm, params.id, parsed.data.body);
 		return { ok: true, action: 'note' };
 	},
 
-	deleteOrder: async ({ request, locals }) => {
+	deleteOrder: async ({ params, request, locals }) => {
+		const crm = requireCrm(locals);
 		const orderId = (await request.formData()).get('orderId');
 		if (typeof orderId !== 'string' || !orderId) {
 			return fail(400, { action: 'deleteOrder', errors: { orderId: 'required' } });
 		}
-		await deleteOrder(locals.db, orderId);
+		await deleteOrder(crm, params.id, orderId);
 		return { ok: true, action: 'deleteOrder' };
 	}
 };

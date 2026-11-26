@@ -9,6 +9,7 @@ import {
 import { rulesQuery, toRules } from '#lib/server/crm/settings.ts';
 import { m } from '#lib/paraglide/messages.js';
 import type { PageServerLoad } from './$types';
+import { requireCrm } from '#lib/server/crm/scope.ts';
 
 const STATUSES = ['all', 'interested', 'lead', 'active', 'dormant'] as const;
 const PAGE_SIZE = 30;
@@ -16,6 +17,7 @@ const PAGE_SIZE = 30;
 const MAX_ROWS = 300;
 
 export const load: PageServerLoad = async ({ locals, url }) => {
+	const crm = requireCrm(locals);
 	const rawStatus = url.searchParams.get('status');
 	const status = STATUSES.find((s) => s === rawStatus) ?? 'all';
 	const q = (url.searchParams.get('q') ?? '').trim().slice(0, 60);
@@ -26,11 +28,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		n > PAGE_SIZE ? Math.min(MAX_ROWS, Math.ceil(n / PAGE_SIZE) * PAGE_SIZE) : PAGE_SIZE;
 	const today = todayIso();
 
-	const db = locals.db;
-	const [totalRows, rows, countRows, ruleRows] = await db.batch([
-		...listCustomersQueries(db, { q, status, page, pageSize }),
-		customerFilterCountsQuery(db, q),
-		rulesQuery(db)
+	const [totalRows, rows, countRows, ruleRows] = await crm.db.batch([
+		...listCustomersQueries(crm, { q, status, page, pageSize }),
+		customerFilterCountsQuery(crm, q),
+		rulesQuery(crm)
 	]);
 	const result = toCustomerList(totalRows, rows);
 	const counts = toCustomerFilterCounts(countRows);

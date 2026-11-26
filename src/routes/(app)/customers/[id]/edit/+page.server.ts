@@ -13,9 +13,11 @@ import {
 import { parseForm } from '#lib/server/crm/form.ts';
 import { customerSchema } from '#lib/server/crm/schemas.ts';
 import { m } from '#lib/paraglide/messages.js';
+import { requireCrm } from '#lib/server/crm/scope.ts';
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-	const detail = await getCustomerDetail(locals.db, params.id);
+	const crm = requireCrm(locals);
+	const detail = await getCustomerDetail(crm, params.id);
 	if (!detail) error(404, 'Not found');
 
 	const c = detail.customer;
@@ -35,6 +37,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 export const actions: Actions = {
 	update: async ({ params, request, locals }) => {
+		const crm = requireCrm(locals);
 		const fd = await request.formData();
 		fd.set('dosePerDay', resolveDose(fd));
 		const parsed = parseForm(fd, customerSchema);
@@ -42,9 +45,9 @@ export const actions: Actions = {
 			return fail(400, { action: 'update', errors: parsed.errors, values: parsed.values });
 		}
 
-		const result = await updateCustomer(locals.db, params.id, parsed.data);
+		const result = await updateCustomer(crm, params.id, parsed.data);
 		if ('duplicateOf' in result) {
-			const existing = await customerSnapshot(locals.db, result.duplicateOf.id);
+			const existing = await customerSnapshot(crm, result.duplicateOf.id);
 			const phone = normalizePhone(fd.get('phone'));
 			return fail(400, {
 				action: 'update',
@@ -60,7 +63,8 @@ export const actions: Actions = {
 	},
 
 	delete: async ({ params, locals }) => {
-		await deleteCustomer(locals.db, params.id);
+		const crm = requireCrm(locals);
+		await deleteCustomer(crm, params.id);
 		redirect(303, '/customers?toast=customer_deleted');
 	}
 };
