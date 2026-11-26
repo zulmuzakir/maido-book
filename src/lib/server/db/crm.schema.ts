@@ -1,5 +1,14 @@
 import { relations, sql } from 'drizzle-orm';
-import { sqliteTable, text, integer, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import {
+	sqliteTable,
+	text,
+	integer,
+	index,
+	uniqueIndex,
+	foreignKey,
+	primaryKey,
+	check
+} from 'drizzle-orm/sqlite-core';
 import {
 	ACTIVITY_TYPES,
 	CUSTOMER_STATUSES,
@@ -25,41 +34,55 @@ const updatedAt = () =>
 		.$onUpdate(() => /* @__PURE__ */ new Date())
 		.notNull();
 
-export const product = sqliteTable('product', {
-	id: id(),
-	name: text('name').notNull().unique(),
-	unitLabel: text('unit_label').notNull().default('sachet'),
-	servingsPerUnit: integer('servings_per_unit').notNull().default(1),
-	price: integer('price').notNull().default(0),
-	active: integer('active', { mode: 'boolean' }).notNull().default(true),
-	createdAt: createdAt()
-});
+const ownerId = () => text('owner_id').notNull();
+const accountOwnerId = () => ownerId().references(() => user.id, { onDelete: 'cascade' });
+
+export const product = sqliteTable(
+	'product',
+	{
+		id: id(),
+		ownerId: accountOwnerId(),
+		name: text('name').notNull(),
+		unitLabel: text('unit_label').notNull().default('sachet'),
+		servingsPerUnit: integer('servings_per_unit').notNull().default(1),
+		price: integer('price').notNull().default(0),
+		active: integer('active', { mode: 'boolean' }).notNull().default(true),
+		createdAt: createdAt()
+	},
+	(t) => [
+		uniqueIndex('product_owner_id_idx').on(t.ownerId, t.id),
+		uniqueIndex('product_owner_name_idx').on(t.ownerId, sql`lower(${t.name})`),
+		index('product_owner_active_created_idx').on(t.ownerId, t.active, t.createdAt)
+	]
+);
 
 export const customer = sqliteTable(
 	'customer',
 	{
 		id: id(),
+		ownerId: accountOwnerId(),
 		name: text('name').notNull(),
-		phone: text('phone').notNull().unique(),
+		phone: text('phone').notNull(),
 		dosePerDay: integer('dose_per_day').notNull().default(1),
 		status: text('status', { enum: CUSTOMER_STATUSES }).notNull().default('lead'),
 		notes: text('notes'),
 		createdAt: createdAt(),
 		updatedAt: updatedAt()
 	},
-	(t) => [index('customer_status_idx').on(t.status)]
+	(t) => [
+		uniqueIndex('customer_owner_id_idx').on(t.ownerId, t.id),
+		uniqueIndex('customer_owner_phone_idx').on(t.ownerId, t.phone),
+		index('customer_status_idx').on(t.ownerId, t.status)
+	]
 );
 
 export const customerOrder = sqliteTable(
 	'customer_order',
 	{
 		id: id(),
-		customerId: text('customer_id')
-			.notNull()
-			.references(() => customer.id, { onDelete: 'cascade' }),
-		productId: text('product_id')
-			.notNull()
-			.references(() => product.id, { onDelete: 'restrict' }),
+		ownerId: ownerId(),
+		customerId: text('customer_id').notNull(),
+		productId: text('product_id').notNull(),
 		orderDate: text('order_date').notNull(),
 		qty: integer('qty').notNull(),
 		dosePerDay: integer('dose_per_day').notNull(),
@@ -70,9 +93,22 @@ export const customerOrder = sqliteTable(
 		createdAt: createdAt()
 	},
 	(t) => [
+		foreignKey({
+			columns: [t.ownerId, t.customerId],
+			foreignColumns: [customer.ownerId, customer.id]
+		}).onDelete('cascade'),
+		foreignKey({
+			columns: [t.ownerId, t.productId],
+			foreignColumns: [product.ownerId, product.id]
+		}).onDelete('no action'),
+		check(
+			'customer_order_owned_actor',
+			sql`${t.createdBy} IS NULL OR ${t.createdBy} = ${t.ownerId}`
+		),
 		// Covers the "latest order" lookup (order_date desc, created_at desc) without a sort.
-		index('customer_order_customer_idx').on(t.customerId, t.orderDate, t.createdAt),
-		index('customer_order_date_idx').on(t.orderDate)
+		index('customer_order_customer_idx').on(t.ownerId, t.customerId, t.orderDate, t.createdAt),
+		index('customer_order_date_idx').on(t.ownerId, t.orderDate),
+		index('customer_order_product_idx').on(t.ownerId, t.productId)
 	]
 );
 
@@ -80,9 +116,8 @@ export const followUp = sqliteTable(
 	'follow_up',
 	{
 		id: id(),
-		customerId: text('customer_id')
-			.notNull()
-			.references(() => customer.id, { onDelete: 'cascade' }),
+		ownerId: ownerId(),
+		customerId: text('customer_id').notNull(),
 		kind: text('kind', { enum: FOLLOW_UP_KINDS }).notNull(),
 		dueDate: text('due_date').notNull(),
 		attempt: integer('attempt').notNull().default(1),
@@ -94,10 +129,14 @@ export const followUp = sqliteTable(
 		createdAt: createdAt()
 	},
 	(t) => [
-		index('follow_up_status_due_idx').on(t.status, t.dueDate),
-		index('follow_up_completed_idx').on(t.completedAt),
+		foreignKey({
+			columns: [t.ownerId, t.customerId],
+			foreignColumns: [customer.ownerId, customer.id]
+		}).onDelete('cascade'),
+		index('follow_up_status_due_idx').on(t.ownerId, t.status, t.dueDate),
+		index('follow_up_completed_idx').on(t.ownerId, t.completedAt),
 		uniqueIndex('follow_up_one_open_idx')
-			.on(t.customerId)
+			.on(t.ownerId, t.customerId)
 			.where(sql`status = 'open'`)
 	]
 );
@@ -106,9 +145,8 @@ export const activity = sqliteTable(
 	'activity',
 	{
 		id: id(),
-		customerId: text('customer_id')
-			.notNull()
-			.references(() => customer.id, { onDelete: 'cascade' }),
+		ownerId: ownerId(),
+		customerId: text('customer_id').notNull(),
 		type: text('type', { enum: ACTIVITY_TYPES }).notNull(),
 		outcome: text('outcome', { enum: FOLLOW_UP_OUTCOMES }),
 		body: text('body'),
@@ -118,14 +156,19 @@ export const activity = sqliteTable(
 		createdAt: createdAt()
 	},
 	(t) => [
-		index('activity_customer_idx').on(t.customerId, t.createdAt),
+		foreignKey({
+			columns: [t.ownerId, t.customerId],
+			foreignColumns: [customer.ownerId, customer.id]
+		}).onDelete('cascade'),
+		check('activity_owned_actor', sql`${t.userId} IS NULL OR ${t.userId} = ${t.ownerId}`),
+		index('activity_customer_idx').on(t.ownerId, t.customerId, t.createdAt),
 		// Today's and this month's activity by type: the queue progress and insights counts.
-		index('activity_type_created_idx').on(t.type, t.createdAt)
+		index('activity_type_created_idx').on(t.ownerId, t.type, t.createdAt)
 	]
 );
 
 export const setting = sqliteTable('setting', {
-	id: integer('id').primaryKey(),
+	ownerId: accountOwnerId().primaryKey(),
 	leadDays: integer('lead_days').notNull().default(3),
 	retryDays: integer('retry_days').notNull().default(2),
 	maxAttempts: integer('max_attempts').notNull().default(3),
@@ -133,11 +176,16 @@ export const setting = sqliteTable('setting', {
 	updatedAt: updatedAt()
 });
 
-export const messageTemplate = sqliteTable('message_template', {
-	kind: text('kind', { enum: FOLLOW_UP_KINDS }).primaryKey(),
-	body: text('body').notNull(),
-	updatedAt: updatedAt()
-});
+export const messageTemplate = sqliteTable(
+	'message_template',
+	{
+		ownerId: accountOwnerId(),
+		kind: text('kind', { enum: FOLLOW_UP_KINDS }).notNull(),
+		body: text('body').notNull(),
+		updatedAt: updatedAt()
+	},
+	(t) => [primaryKey({ columns: [t.ownerId, t.kind] })]
+);
 
 export const customerRelations = relations(customer, ({ many }) => ({
 	orders: many(customerOrder),
@@ -146,14 +194,26 @@ export const customerRelations = relations(customer, ({ many }) => ({
 }));
 
 export const customerOrderRelations = relations(customerOrder, ({ one }) => ({
-	customer: one(customer, { fields: [customerOrder.customerId], references: [customer.id] }),
-	product: one(product, { fields: [customerOrder.productId], references: [product.id] })
+	customer: one(customer, {
+		fields: [customerOrder.ownerId, customerOrder.customerId],
+		references: [customer.ownerId, customer.id]
+	}),
+	product: one(product, {
+		fields: [customerOrder.ownerId, customerOrder.productId],
+		references: [product.ownerId, product.id]
+	})
 }));
 
 export const followUpRelations = relations(followUp, ({ one }) => ({
-	customer: one(customer, { fields: [followUp.customerId], references: [customer.id] })
+	customer: one(customer, {
+		fields: [followUp.ownerId, followUp.customerId],
+		references: [customer.ownerId, customer.id]
+	})
 }));
 
 export const activityRelations = relations(activity, ({ one }) => ({
-	customer: one(customer, { fields: [activity.customerId], references: [customer.id] })
+	customer: one(customer, {
+		fields: [activity.ownerId, activity.customerId],
+		references: [customer.ownerId, customer.id]
+	})
 }));

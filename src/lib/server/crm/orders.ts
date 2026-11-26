@@ -1,11 +1,12 @@
 import { and, desc, eq, gte, lt, sql } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
-import type { Db } from '#lib/server/db/index.ts';
+import { owned, type CrmScope } from './scope.ts';
 import { activity, customer, customerOrder, followUp, product } from '#lib/server/db/schema.ts';
 import { nextMonthStart } from '#lib/domain/dates.ts';
 import { daysOfSupply, reorderDueDate } from '#lib/domain/follow-up.ts';
 import { runBatch, type Stmt } from './batch.ts';
 import { getRules } from './settings.ts';
+import { productOrderOn } from './customers.ts';
 
 export interface OrderInput {
 	customerId: string;
@@ -18,23 +19,38 @@ export interface OrderInput {
 }
 
 export async function createOrder(
-	db: Db,
-	input: OrderInput,
-	userId: string
+	crm: CrmScope,
+	input: OrderInput
 ): Promise<{ orderId: string; nextDueDate: string | null }> {
+	const { db, ownerId } = crm;
 	const [prod, cust, rules, latest, open] = await Promise.all([
-		db.select().from(product).where(eq(product.id, input.productId)).get(),
-		db.select({ id: customer.id }).from(customer).where(eq(customer.id, input.customerId)).get(),
-		getRules(db),
+		db
+			.select()
+			.from(product)
+			.where(owned(crm, product.ownerId, eq(product.id, input.productId)))
+			.get(),
+		db
+			.select({ id: customer.id })
+			.from(customer)
+			.where(owned(crm, customer.ownerId, eq(customer.id, input.customerId)))
+			.get(),
+		getRules(crm),
 		db
 			.select({ d: sql<string | null>`max(${customerOrder.orderDate})` })
 			.from(customerOrder)
-			.where(eq(customerOrder.customerId, input.customerId))
+			.where(owned(crm, customerOrder.ownerId, eq(customerOrder.customerId, input.customerId)))
 			.get(),
 		db
 			.select({ id: followUp.id })
 			.from(followUp)
-			.where(and(eq(followUp.customerId, input.customerId), eq(followUp.status, 'open')))
+			.where(
+				owned(
+					crm,
+					followUp.ownerId,
+					eq(followUp.customerId, input.customerId),
+					eq(followUp.status, 'open')
+				)
+			)
 			.get()
 	]);
 	if (!prod || !cust) error(404);
@@ -48,6 +64,7 @@ export async function createOrder(
 	const stmts: Stmt[] = [
 		db.insert(customerOrder).values({
 			id: orderId,
+			ownerId,
 			customerId: input.customerId,
 			productId: input.productId,
 			orderDate: input.orderDate,
@@ -56,14 +73,15 @@ export async function createOrder(
 			daysSupply,
 			totalPaid: input.totalPaid,
 			note: input.note,
-			createdBy: userId
+			createdBy: ownerId
 		}),
 		db.insert(activity).values({
+			ownerId,
 			customerId: input.customerId,
 			type: 'order',
 			body: `${input.qty} ${prod.unitLabel} ${prod.name}`,
 			orderId,
-			userId
+			userId: ownerId
 		})
 	];
 
@@ -75,7 +93,7 @@ export async function createOrder(
 				db
 					.update(followUp)
 					.set({ status: 'done', outcome: 'ordered', completedAt: new Date(), orderId })
-					.where(eq(followUp.id, open.id))
+					.where(owned(crm, followUp.ownerId, eq(followUp.id, open.id)))
 			);
 		nextDueDate = reorderDueDate({
 			orderDate: input.orderDate,
@@ -86,8 +104,9 @@ export async function createOrder(
 			db
 				.update(customer)
 				.set({ status: 'active', dosePerDay: input.dosePerDay })
-				.where(eq(customer.id, input.customerId)),
+				.where(owned(crm, customer.ownerId, eq(customer.id, input.customerId))),
 			db.insert(followUp).values({
+				ownerId,
 				customerId: input.customerId,
 				kind: 'reorder',
 				attempt: 1,
@@ -99,15 +118,31 @@ export async function createOrder(
 	return { orderId, nextDueDate };
 }
 
-export async function deleteOrder(db: Db, orderId: string) {
-	await db.delete(customerOrder).where(eq(customerOrder.id, orderId));
+export async function deleteOrder(crm: CrmScope, customerId: string, orderId: string) {
+	const [removed] = await crm.db
+		.delete(customerOrder)
+		.where(
+			owned(
+				crm,
+				customerOrder.ownerId,
+				eq(customerOrder.customerId, customerId),
+				eq(customerOrder.id, orderId)
+			)
+		)
+		.returning({ id: customerOrder.id });
+	if (!removed) error(404);
 }
 
-export async function listOrders(db: Db, opts: { month: string }) {
+export async function listOrders(crm: CrmScope, opts: { month: string }) {
 	const start = `${opts.month}-01`;
 	const end = nextMonthStart(start);
-	const where = and(gte(customerOrder.orderDate, start), lt(customerOrder.orderDate, end));
-	const items = await db
+	const where = owned(
+		crm,
+		customerOrder.ownerId,
+		gte(customerOrder.orderDate, start),
+		lt(customerOrder.orderDate, end)
+	);
+	const items = await crm.db
 		.select({
 			id: customerOrder.id,
 			orderDate: customerOrder.orderDate,
@@ -119,8 +154,11 @@ export async function listOrders(db: Db, opts: { month: string }) {
 			totalPaid: customerOrder.totalPaid
 		})
 		.from(customerOrder)
-		.innerJoin(customer, eq(customer.id, customerOrder.customerId))
-		.innerJoin(product, eq(product.id, customerOrder.productId))
+		.innerJoin(
+			customer,
+			and(eq(customer.ownerId, customerOrder.ownerId), eq(customer.id, customerOrder.customerId))
+		)
+		.innerJoin(product, productOrderOn)
 		.where(where)
 		.orderBy(desc(customerOrder.orderDate), desc(customerOrder.createdAt));
 	return {

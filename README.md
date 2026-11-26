@@ -2,6 +2,9 @@
 
 A customer-service follow-up CRM for a consumable product. It has a daily follow-up queue, customers, orders that schedule the next reorder follow-up, insights, settings (products, rules, WhatsApp templates) and Excel import. WhatsApp messages are sent through `wa.me` links. The UI is in Indonesian (default) and English.
 
+Each allowlisted Google account has a private CRM. Products, follow-up rules and WhatsApp templates
+start with defaults and can be edited independently.
+
 ## Stack
 
 - SvelteKit 3 / Svelte 5 (runes)
@@ -48,34 +51,41 @@ A customer-service follow-up CRM for a consumable product. It has a daily follow
    pnpm db:migrate:local
    ```
 
-4. Optional: load demo data (customers, orders and follow-ups in every queue state, ids prefixed `seed_`). It is idempotent. Never run it against the remote database.
+   If `0005_personal_crm` reports `legacy_crm_requires_explicit_ownership`, keep that database
+   intact. Shared CRM records are not assigned to any account automatically. To use a separate
+   local database, apply migrations with
+   `pnpm db:migrate:local --persist-to <directory>` and pass the same `--persist-to` to Wrangler dev.
 
-   ```sh
-   pnpm db:seed:local
-   ```
-
-5. Start the dev server at http://localhost:5173:
+4. Start the dev server at http://localhost:5173:
 
    ```sh
    pnpm dev
    ```
 
+5. Optional: after signing in once, load demo customers, orders and follow-ups into that account.
+   Reseeding replaces only that account's fixtures and refuses to overwrite linked non-demo work.
+   Set `D1_LOCAL_PERSIST_TO` if you used a separate persistence directory.
+
+   ```sh
+   pnpm db:seed:local you@example.com
+   ```
+
 ## Common scripts
 
-| Script                   | Runs                                                                    |
-| ------------------------ | ----------------------------------------------------------------------- |
-| `pnpm dev`               | `vite dev`                                                              |
-| `pnpm check`             | `wrangler types`, `svelte-kit sync`, `svelte-check` (type check)        |
-| `pnpm lint`              | `prettier --check .` and `eslint .`                                     |
-| `pnpm format`            | `prettier --write .`                                                    |
-| `pnpm test`              | `vitest --run` (`pnpm test:unit` for watch mode)                        |
-| `pnpm build`             | `wrangler types` and `vite build`                                       |
-| `pnpm preview`           | `wrangler dev` on the built worker, port 4173                           |
-| `pnpm db:generate`       | `drizzle-kit generate`: new SQL migration in `drizzle/` from the schema |
-| `pnpm db:migrate:local`  | Apply migrations to the local `maido-book-db`                           |
-| `pnpm db:migrate:remote` | Apply migrations to the remote `maido-book-db`                          |
-| `pnpm db:seed:local`     | Load `scripts/seed/local.sql` into the local `maido-book-db`            |
-| `pnpm deploy`            | `pnpm build` and `wrangler deploy`                                      |
+| Script                       | Runs                                                                    |
+| ---------------------------- | ----------------------------------------------------------------------- |
+| `pnpm dev`                   | `vite dev`                                                              |
+| `pnpm check`                 | `wrangler types`, `svelte-kit sync`, `svelte-check` (type check)        |
+| `pnpm lint`                  | `prettier --check .` and `eslint .`                                     |
+| `pnpm format`                | `prettier --write .`                                                    |
+| `pnpm test`                  | `vitest --run` (`pnpm test:unit` for watch mode)                        |
+| `pnpm build`                 | `wrangler types` and `vite build`                                       |
+| `pnpm preview`               | `wrangler dev` on the built worker, port 4173                           |
+| `pnpm db:generate`           | `drizzle-kit generate`: new SQL migration in `drizzle/` from the schema |
+| `pnpm db:migrate:local`      | Apply migrations to the local `maido-book-db`                           |
+| `pnpm db:migrate:remote`     | Apply migrations to the remote `maido-book-db`                          |
+| `pnpm db:seed:local <email>` | Load demo data for an existing local account                            |
+| `pnpm deploy`                | `pnpm build` and `wrangler deploy`                                      |
 
 Run `pnpm check`, `pnpm lint` and `pnpm test` before committing.
 

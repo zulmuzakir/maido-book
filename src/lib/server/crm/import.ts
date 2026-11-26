@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import type { Db } from '#lib/server/db/index.ts';
+import { owned, type CrmScope } from './scope.ts';
 import { activity, customer, customerOrder, followUp, product } from '#lib/server/db/schema.ts';
 import { isIsoDate } from '#lib/domain/dates.ts';
 import { normalizePhone } from '#lib/domain/phone.ts';
@@ -30,15 +30,15 @@ export const importRowsSchema = v.pipe(
 export type ImportRowInput = v.InferOutput<typeof importRowsSchema>[number];
 
 export async function importCustomers(
-	db: Db,
+	crm: CrmScope,
 	rows: ImportRowInput[],
-	userId: string,
 	today: string
 ): Promise<{ imported: number; skippedExisting: number; skippedInvalid: number }> {
+	const { db, ownerId } = crm;
 	const [rules, products, existing] = await Promise.all([
-		getRules(db),
-		listProducts(db),
-		db.select({ phone: customer.phone }).from(customer)
+		getRules(crm),
+		listProducts(crm),
+		customerPhonesQuery(crm)
 	]);
 	const taken = new Set(existing.map((e) => e.phone));
 	const byName = new Map(products.map((p) => [p.name.trim().toLowerCase(), p.id]));
@@ -65,6 +65,7 @@ export async function importCustomers(
 		const customerId = crypto.randomUUID();
 		stmts.push(
 			db.insert(customer).values({
+				ownerId,
 				id: customerId,
 				name: row.name,
 				phone,
@@ -81,6 +82,7 @@ export async function importCustomers(
 				byName.set(key, productId);
 				stmts.push(
 					db.insert(product).values({
+						ownerId,
 						id: productId,
 						name: row.productName!.trim(),
 						unitLabel: 'sachet',
@@ -91,6 +93,7 @@ export async function importCustomers(
 			}
 			stmts.push(
 				db.insert(customerOrder).values({
+					ownerId,
 					customerId,
 					productId,
 					orderDate: plan.order.orderDate,
@@ -98,13 +101,14 @@ export async function importCustomers(
 					dosePerDay: plan.order.dosePerDay,
 					daysSupply: plan.order.daysSupply,
 					totalPaid: null,
-					createdBy: userId
+					createdBy: ownerId
 				})
 			);
 		}
 		if (plan.followUp)
 			stmts.push(
 				db.insert(followUp).values({
+					ownerId,
 					customerId,
 					kind: plan.followUp.kind,
 					dueDate: plan.followUp.dueDate,
@@ -114,10 +118,11 @@ export async function importCustomers(
 			);
 		stmts.push(
 			db.insert(activity).values({
+				ownerId,
 				customerId,
 				type: 'import',
 				body: `Excel: ${row.lastAction ?? '-'}`,
-				userId
+				userId: ownerId
 			})
 		);
 		imported++;
@@ -126,4 +131,5 @@ export async function importCustomers(
 	return { imported, skippedExisting, skippedInvalid };
 }
 
-export const customerPhonesQuery = (db: Db) => db.select({ phone: customer.phone }).from(customer);
+export const customerPhonesQuery = (crm: CrmScope) =>
+	crm.db.select({ phone: customer.phone }).from(customer).where(owned(crm, customer.ownerId));

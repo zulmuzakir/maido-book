@@ -7,15 +7,17 @@ import { productsQuery, rulesQuery, toRules } from '#lib/server/crm/settings.ts'
 import { orderSchema } from '#lib/server/crm/schemas.ts';
 import { m } from '#lib/paraglide/messages.js';
 import type { Actions, PageServerLoad } from './$types';
+import { requireCrm } from '#lib/server/crm/scope.ts';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
+	const crm = requireCrm(locals);
 	const today = todayIso();
-	const db = locals.db;
+
 	// Customers are searched from the picker (orders/new/customers); only a preselected one loads here.
-	const [products, ruleRows, preselectedRows] = await db.batch([
-		productsQuery(db, { activeOnly: true }),
-		rulesQuery(db),
-		customerOptionQuery(db, url.searchParams.get('customer') ?? '')
+	const [products, ruleRows, preselectedRows] = await crm.db.batch([
+		productsQuery(crm, { activeOnly: true }),
+		rulesQuery(crm),
+		customerOptionQuery(crm, url.searchParams.get('customer') ?? '')
 	]);
 	const preselected = preselectedRows[0] ?? null;
 	// Opened from the queue's "Sudah order": saving and going back both return to the queue.
@@ -34,6 +36,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 export const actions: Actions = {
 	default: async ({ request, locals }) => {
+		const crm = requireCrm(locals);
 		const today = todayIso();
 		const formData = await request.formData();
 		const parsed = parseForm(formData, orderSchema);
@@ -54,7 +57,7 @@ export const actions: Actions = {
 			return fail(400, { errors, values });
 		}
 
-		await createOrder(locals.db, parsed.data, locals.user!.id);
+		await createOrder(crm, parsed.data);
 		if (formData.get('from') === 'queue') redirect(303, '/?toast=order_saved');
 		redirect(303, `/customers/${parsed.data.customerId}?toast=order_saved`);
 	}

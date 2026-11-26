@@ -6,12 +6,10 @@ import { toRules, toTemplates } from './settings.ts';
 describe('toRules', () => {
 	it('reads the setting row', () => {
 		const row = {
-			id: 1,
 			leadDays: 3,
 			retryDays: 2,
 			maxAttempts: 3,
-			winbackDays: 30,
-			updatedAt: new Date(0)
+			winbackDays: 30
 		};
 		expect(toRules([row])).toEqual({ leadDays: 3, retryDays: 2, maxAttempts: 3, winbackDays: 30 });
 	});

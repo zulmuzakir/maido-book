@@ -70,6 +70,7 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 	if (session) {
 		event.locals.session = session.session;
 		event.locals.user = session.user;
+		event.locals.crm = { db: event.locals.db, ownerId: session.user.id };
 	}
 
 	const isPublic = event.url.pathname.startsWith('/api/auth/') || event.route.id === '/login';
@@ -79,7 +80,13 @@ const handleAuth: Handle = async ({ event, resolve }) => {
 		return timed(new Response(null, { status: 303, headers: { location } }));
 	}
 
-	return timed(await svelteKitHandler({ event, resolve, auth: event.locals.auth, building }));
+	const response = await svelteKitHandler({ event, resolve, auth: event.locals.auth, building });
+	const route = event.route.id;
+	return timed(
+		session && (route === '/(app)' || route?.startsWith('/(app)/'))
+			? withHeader(response, 'Cache-Control', 'private, no-store')
+			: response
+	);
 };
 
 export const handle: Handle = sequence(handleParaglide, handleAuth);

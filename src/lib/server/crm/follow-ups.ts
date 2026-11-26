@@ -1,6 +1,6 @@
 import { and, asc, eq, gte, inArray, isNotNull, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import { error } from '@sveltejs/kit';
-import type { Db } from '#lib/server/db/index.ts';
+import { owned, type CrmScope } from './scope.ts';
 import {
 	activity,
 	customer,
@@ -15,7 +15,7 @@ import { planAfterOutcome, queueBucket, type QueueBucket } from '#lib/domain/fol
 import { renderTemplate, type TemplateVars } from '#lib/domain/template.ts';
 import type { CustomerStatus, FollowUpKind, ManualOutcome } from '#lib/domain/types.ts';
 import { batchSafe, runBatch, type Stmt } from './batch.ts';
-import { latestOrderOn, toLastOrder, type LastOrder } from './customers.ts';
+import { latestOrderOn, productOrderOn, toLastOrder, type LastOrder } from './customers.ts';
 import { getRules, templatesQuery } from './settings.ts';
 
 const jakartaMidnight = (iso: string) => new Date(Date.parse(iso + 'T00:00:00+07:00'));
@@ -31,8 +31,8 @@ export interface QueueItem {
 }
 
 /** Open follow-ups due within a week, or sent and waiting, with customer and latest order. */
-export const queueQuery = (db: Db, today: string) =>
-	db
+export const queueQuery = (crm: CrmScope, today: string) =>
+	crm.db
 		.select(
 			batchSafe({
 				followUpId: followUp.id,
@@ -53,11 +53,16 @@ export const queueQuery = (db: Db, today: string) =>
 			})
 		)
 		.from(followUp)
-		.innerJoin(customer, eq(customer.id, followUp.customerId))
+		.innerJoin(
+			customer,
+			and(eq(customer.ownerId, followUp.ownerId), eq(customer.id, followUp.customerId))
+		)
 		.leftJoin(customerOrder, latestOrderOn)
-		.leftJoin(product, eq(product.id, customerOrder.productId))
+		.leftJoin(product, productOrderOn)
 		.where(
-			and(
+			owned(
+				crm,
+				followUp.ownerId,
 				eq(followUp.status, 'open'),
 				or(lte(followUp.dueDate, addDays(today, 7)), isNotNull(followUp.contactedAt))
 			)
@@ -109,15 +114,17 @@ export function toQueue(
  * wait in their own fold), plus messages left without a reply for `retryDays` calendar days.
  * One query: `retryDays` is read from the setting row inside it.
  */
-export async function queueCount(db: Db, today: string): Promise<number> {
+export async function queueCount(crm: CrmScope, today: string): Promise<number> {
 	// A message sent on or before Jakarta day `today + 1 - retryDays` has waited `retryDays` days by
 	// today. unixepoch(today) is UTC midnight; 25200 s earlier is Jakarta midnight.
-	const staleBefore = sql`(unixepoch(${today}) + (1 - (select ${setting.retryDays} from ${setting} where ${setting.id} = 1)) * 86400 - 25200) * 1000`;
-	const row = await db
+	const staleBefore = sql`(unixepoch(${today}) + (1 - (select ${setting.retryDays} from ${setting} where ${setting.ownerId} = ${crm.ownerId})) * 86400 - 25200) * 1000`;
+	const row = await crm.db
 		.select({ n: sql<number>`count(*)` })
 		.from(followUp)
 		.where(
-			and(
+			owned(
+				crm,
+				followUp.ownerId,
 				eq(followUp.status, 'open'),
 				or(
 					and(
@@ -146,8 +153,8 @@ export interface HandledItem {
  * "Dihubungi hari ini" list. Plain sends count too ("contacted"); an outcome or order logged the
  * same day says more and wins (see `pickHandled`).
  */
-export const handledQuery = (db: Db, today: string) =>
-	db
+export const handledQuery = (crm: CrmScope, today: string) =>
+	crm.db
 		.select(
 			batchSafe({
 				id: activity.id,
@@ -163,11 +170,16 @@ export const handledQuery = (db: Db, today: string) =>
 			})
 		)
 		.from(activity)
-		.innerJoin(customer, eq(customer.id, activity.customerId))
+		.innerJoin(
+			customer,
+			and(eq(customer.ownerId, activity.ownerId), eq(customer.id, activity.customerId))
+		)
 		.leftJoin(customerOrder, latestOrderOn)
-		.leftJoin(product, eq(product.id, customerOrder.productId))
+		.leftJoin(product, productOrderOn)
 		.where(
-			and(
+			owned(
+				crm,
+				activity.ownerId,
 				inArray(activity.type, ['outcome', 'order', 'wa_sent']),
 				gte(activity.createdAt, jakartaMidnight(today))
 			)
@@ -198,12 +210,14 @@ export function toHandled(rows: Awaited<ReturnType<typeof handledQuery>>): Handl
  * snoozed or ordered. Each counts once, so a resend or a second tap does not move the progress, and
  * a customer closed without a message still counts as done.
  */
-export const doneTodayQuery = (db: Db, today: string) =>
-	db
+export const doneTodayQuery = (crm: CrmScope, today: string) =>
+	crm.db
 		.select({ n: sql<number>`count(distinct ${activity.customerId})` })
 		.from(activity)
 		.where(
-			and(
+			owned(
+				crm,
+				activity.ownerId,
 				inArray(activity.type, ['wa_sent', 'outcome', 'snooze', 'order']),
 				gte(activity.createdAt, jakartaMidnight(today))
 			)
@@ -212,11 +226,11 @@ export const doneTodayQuery = (db: Db, today: string) =>
 export const csFirstName = (name: string) => name.trim().split(/\s+/)[0] ?? '';
 
 /** The first active product: the `{produk}` fallback for customers without an order. */
-export const defaultProductQuery = (db: Db) =>
-	db
+export const defaultProductQuery = (crm: CrmScope) =>
+	crm.db
 		.select({ name: product.name })
 		.from(product)
-		.where(eq(product.active, true))
+		.where(owned(crm, product.ownerId, eq(product.active, true)))
 		.orderBy(asc(product.createdAt))
 		.limit(1);
 
@@ -231,8 +245,11 @@ export function toMessageContext(
 	};
 }
 
-export async function messageContext(db: Db) {
-	const [templates, firstProduct] = await db.batch([templatesQuery(db), defaultProductQuery(db)]);
+export async function messageContext(crm: CrmScope) {
+	const [templates, firstProduct] = await crm.db.batch([
+		templatesQuery(crm),
+		defaultProductQuery(crm)
+	]);
 	return toMessageContext(templates, firstProduct);
 }
 export type MessageContext = ReturnType<typeof toMessageContext>;
@@ -263,11 +280,11 @@ export function messageFor(
 	);
 }
 
-async function getOpen(db: Db, followUpId: string) {
-	const row = await db
+async function getOpen(crm: CrmScope, followUpId: string) {
+	const row = await crm.db
 		.select()
 		.from(followUp)
-		.where(and(eq(followUp.id, followUpId), eq(followUp.status, 'open')))
+		.where(owned(crm, followUp.ownerId, eq(followUp.id, followUpId), eq(followUp.status, 'open')))
 		.get();
 	if (!row) error(404);
 	return row;
@@ -275,36 +292,44 @@ async function getOpen(db: Db, followUpId: string) {
 
 /** Logs the exact message the UI opened in WhatsApp. */
 export async function markSent(
-	db: Db,
+	crm: CrmScope,
 	followUpId: string,
-	userId: string,
 	csName: string,
 	body?: string | null
 ) {
-	const fu = await getOpen(db, followUpId);
+	const { db, ownerId } = crm;
+	const fu = await getOpen(crm, followUpId);
 	const [cust, last, ctx] = await Promise.all([
-		db.select().from(customer).where(eq(customer.id, fu.customerId)).get(),
+		db
+			.select()
+			.from(customer)
+			.where(owned(crm, customer.ownerId, eq(customer.id, fu.customerId)))
+			.get(),
 		db
 			.select({ productName: product.name })
 			.from(customerOrder)
-			.innerJoin(product, eq(product.id, customerOrder.productId))
-			.where(eq(customerOrder.customerId, fu.customerId))
+			.innerJoin(product, productOrderOn)
+			.where(owned(crm, customerOrder.ownerId, eq(customerOrder.customerId, fu.customerId)))
 			.orderBy(sql`${customerOrder.orderDate} desc, ${customerOrder.createdAt} desc`)
 			.limit(1)
 			.get(),
-		messageContext(db)
+		messageContext(crm)
 	]);
 	if (!cust) error(404);
 	const activityId = crypto.randomUUID();
 	await runBatch(db, [
-		db.update(followUp).set({ contactedAt: new Date() }).where(eq(followUp.id, fu.id)),
+		db
+			.update(followUp)
+			.set({ contactedAt: new Date() })
+			.where(owned(crm, followUp.ownerId, eq(followUp.id, fu.id))),
 		db.insert(activity).values({
 			id: activityId,
+			ownerId,
 			customerId: fu.customerId,
 			type: 'wa_sent',
 			body: body ?? messageFor(ctx, fu, cust, last ?? null, csName),
 			followUpId: fu.id,
-			userId
+			userId: ownerId
 		})
 	]);
 	const undo: SentUndo = {
@@ -324,41 +349,55 @@ export interface SentUndo {
 }
 
 /** Removes the logged send and puts the follow-up back where it was, if it is still open. */
-export async function undoSent(db: Db, u: SentUndo): Promise<{ ok: boolean }> {
-	const fu = await getOpen(db, u.followUpId);
+export async function undoSent(crm: CrmScope, u: SentUndo): Promise<{ ok: boolean }> {
+	const { db } = crm;
+	const fu = await getOpen(crm, u.followUpId);
 	const logged = await db
 		.select({ id: activity.id })
 		.from(activity)
-		.where(and(eq(activity.id, u.activityId), eq(activity.followUpId, fu.id)))
+		.where(
+			owned(
+				crm,
+				activity.ownerId,
+				eq(activity.id, u.activityId),
+				eq(activity.followUpId, fu.id),
+				eq(activity.type, 'wa_sent')
+			)
+		)
 		.get();
 	if (!logged) return { ok: false };
 	await runBatch(db, [
 		db
 			.update(followUp)
 			.set({ contactedAt: u.previousContactedAt === null ? null : new Date(u.previousContactedAt) })
-			.where(eq(followUp.id, fu.id)),
-		db.delete(activity).where(eq(activity.id, logged.id))
+			.where(owned(crm, followUp.ownerId, eq(followUp.id, fu.id))),
+		db.delete(activity).where(owned(crm, activity.ownerId, eq(activity.id, logged.id)))
 	]);
 	return { ok: true };
 }
 
 /** Logs a re-sent message for a follow-up already closed, used by the queue's saved state. */
 export async function logResend(
-	db: Db,
+	crm: CrmScope,
 	followUpId: string,
-	userId: string,
 	body: string
 ): Promise<ResendUndo> {
-	const fu = await db.select().from(followUp).where(eq(followUp.id, followUpId)).get();
+	const { db, ownerId } = crm;
+	const fu = await db
+		.select()
+		.from(followUp)
+		.where(owned(crm, followUp.ownerId, eq(followUp.id, followUpId)))
+		.get();
 	if (!fu) error(404);
 	const activityId = crypto.randomUUID();
 	await db.insert(activity).values({
 		id: activityId,
+		ownerId,
 		customerId: fu.customerId,
 		type: 'wa_sent',
 		body,
 		followUpId: fu.id,
-		userId
+		userId: ownerId
 	});
 	return { followUpId: fu.id, activityId };
 }
@@ -370,11 +409,13 @@ export interface ResendUndo {
 }
 
 /** Removes a logged resend. The follow-up itself is closed, so only the log entry changes. */
-export async function undoResend(db: Db, u: ResendUndo): Promise<{ ok: boolean }> {
-	const removed = await db
+export async function undoResend(crm: CrmScope, u: ResendUndo): Promise<{ ok: boolean }> {
+	const removed = await crm.db
 		.delete(activity)
 		.where(
-			and(
+			owned(
+				crm,
+				activity.ownerId,
 				eq(activity.id, u.activityId),
 				eq(activity.followUpId, u.followUpId),
 				eq(activity.type, 'wa_sent')
@@ -402,28 +443,28 @@ export interface SnoozeUndo {
 }
 
 export async function recordOutcome(
-	db: Db,
+	crm: CrmScope,
 	followUpId: string,
 	input: {
 		outcome: ManualOutcome;
 		nextDate: string | null;
 		note: string | null;
 	},
-	userId: string,
 	today: string
 ): Promise<
 	| { ok: true; nextDate: string | null; undo: OutcomeUndo }
 	| { ok: false; errors: Record<string, string> }
 > {
-	const fu = await getOpen(db, followUpId);
+	const { db, ownerId } = crm;
+	const fu = await getOpen(crm, followUpId);
 	if (input.nextDate && input.nextDate < addDays(today, 1))
 		return { ok: false, errors: { nextDate: 'out_of_range' } };
 	const [rules, cust] = await Promise.all([
-		getRules(db),
+		getRules(crm),
 		db
 			.select({ status: customer.status })
 			.from(customer)
-			.where(eq(customer.id, fu.customerId))
+			.where(owned(crm, customer.ownerId, eq(customer.id, fu.customerId)))
 			.get()
 	]);
 	const plan = planAfterOutcome({
@@ -440,25 +481,30 @@ export async function recordOutcome(
 		db
 			.update(followUp)
 			.set({ status: 'done', outcome: input.outcome, completedAt: new Date() })
-			.where(eq(followUp.id, fu.id)),
+			.where(owned(crm, followUp.ownerId, eq(followUp.id, fu.id))),
 		db.insert(activity).values({
 			id: activityId,
+			ownerId,
 			customerId: fu.customerId,
 			type: 'outcome',
 			outcome: input.outcome,
 			body: input.note,
 			followUpId: fu.id,
-			userId
+			userId: ownerId
 		})
 	];
 	if (plan.customerStatus)
 		stmts.push(
-			db.update(customer).set({ status: plan.customerStatus }).where(eq(customer.id, fu.customerId))
+			db
+				.update(customer)
+				.set({ status: plan.customerStatus })
+				.where(owned(crm, customer.ownerId, eq(customer.id, fu.customerId)))
 		);
 	if (plan.next && nextFollowUpId)
 		stmts.push(
 			db.insert(followUp).values({
 				id: nextFollowUpId,
+				ownerId,
 				customerId: fu.customerId,
 				kind: plan.next.kind,
 				dueDate: plan.next.dueDate,
@@ -482,11 +528,12 @@ export async function recordOutcome(
  * Reopens a follow-up closed by `recordOutcome`. Refuses when the follow-up it scheduled has since
  * been contacted or closed, because undoing then would erase real work.
  */
-export async function undoOutcome(db: Db, u: OutcomeUndo): Promise<{ ok: boolean }> {
+export async function undoOutcome(crm: CrmScope, u: OutcomeUndo): Promise<{ ok: boolean }> {
+	const { db } = crm;
 	const fu = await db
 		.select()
 		.from(followUp)
-		.where(and(eq(followUp.id, u.followUpId), eq(followUp.status, 'done')))
+		.where(owned(crm, followUp.ownerId, eq(followUp.id, u.followUpId), eq(followUp.status, 'done')))
 		.get();
 	// Only a manual outcome logged here can be undone, never a follow-up closed by an order.
 	if (!fu || fu.outcome === 'ordered' || fu.orderId) return { ok: false };
@@ -494,7 +541,9 @@ export async function undoOutcome(db: Db, u: OutcomeUndo): Promise<{ ok: boolean
 		.select({ id: activity.id })
 		.from(activity)
 		.where(
-			and(
+			owned(
+				crm,
+				activity.ownerId,
 				eq(activity.id, u.activityId),
 				eq(activity.followUpId, fu.id),
 				eq(activity.type, 'outcome')
@@ -507,7 +556,9 @@ export async function undoOutcome(db: Db, u: OutcomeUndo): Promise<{ ok: boolean
 			.select({ id: followUp.id })
 			.from(followUp)
 			.where(
-				and(
+				owned(
+					crm,
+					followUp.ownerId,
 					eq(followUp.id, u.nextFollowUpId),
 					eq(followUp.customerId, fu.customerId),
 					eq(followUp.status, 'open'),
@@ -519,7 +570,7 @@ export async function undoOutcome(db: Db, u: OutcomeUndo): Promise<{ ok: boolean
 		const touched = await db
 			.select({ id: activity.id })
 			.from(activity)
-			.where(eq(activity.followUpId, u.nextFollowUpId))
+			.where(owned(crm, activity.ownerId, eq(activity.followUpId, u.nextFollowUpId)))
 			.get();
 		if (touched) return { ok: false };
 	} else {
@@ -527,19 +578,29 @@ export async function undoOutcome(db: Db, u: OutcomeUndo): Promise<{ ok: boolean
 		const other = await db
 			.select({ id: followUp.id })
 			.from(followUp)
-			.where(and(eq(followUp.customerId, fu.customerId), eq(followUp.status, 'open')))
+			.where(
+				owned(
+					crm,
+					followUp.ownerId,
+					eq(followUp.customerId, fu.customerId),
+					eq(followUp.status, 'open')
+				)
+			)
 			.get();
 		if (other) return { ok: false };
 	}
 	// One open follow-up per customer: the scheduled one must go before the original reopens.
 	const stmts: Stmt[] = [];
-	if (u.nextFollowUpId) stmts.push(db.delete(followUp).where(eq(followUp.id, u.nextFollowUpId)));
+	if (u.nextFollowUpId)
+		stmts.push(
+			db.delete(followUp).where(owned(crm, followUp.ownerId, eq(followUp.id, u.nextFollowUpId)))
+		);
 	stmts.push(
 		db
 			.update(followUp)
 			.set({ status: 'open', outcome: null, completedAt: null })
-			.where(eq(followUp.id, fu.id)),
-		db.delete(activity).where(eq(activity.id, u.activityId))
+			.where(owned(crm, followUp.ownerId, eq(followUp.id, fu.id))),
+		db.delete(activity).where(owned(crm, activity.ownerId, eq(activity.id, u.activityId)))
 	);
 	// Only undo the dormant status this outcome set; a later order may have reactivated them.
 	if (u.previousStatus)
@@ -547,31 +608,42 @@ export async function undoOutcome(db: Db, u: OutcomeUndo): Promise<{ ok: boolean
 			db
 				.update(customer)
 				.set({ status: u.previousStatus })
-				.where(and(eq(customer.id, fu.customerId), eq(customer.status, 'dormant')))
+				.where(
+					owned(
+						crm,
+						customer.ownerId,
+						eq(customer.id, fu.customerId),
+						eq(customer.status, 'dormant')
+					)
+				)
 		);
 	await runBatch(db, stmts);
 	return { ok: true };
 }
 
 export async function snooze(
-	db: Db,
+	crm: CrmScope,
 	followUpId: string,
 	dueDate: string,
-	userId: string,
 	today: string
 ): Promise<{ ok: true; undo: SnoozeUndo } | { ok: false; errors: Record<string, string> }> {
-	const fu = await getOpen(db, followUpId);
+	const { db, ownerId } = crm;
+	const fu = await getOpen(crm, followUpId);
 	if (dueDate < addDays(today, 1)) return { ok: false, errors: { dueDate: 'out_of_range' } };
 	const activityId = crypto.randomUUID();
 	await runBatch(db, [
-		db.update(followUp).set({ dueDate }).where(eq(followUp.id, fu.id)),
+		db
+			.update(followUp)
+			.set({ dueDate })
+			.where(owned(crm, followUp.ownerId, eq(followUp.id, fu.id))),
 		db.insert(activity).values({
 			id: activityId,
+			ownerId,
 			customerId: fu.customerId,
 			type: 'snooze',
 			body: dueDate,
 			followUpId: fu.id,
-			userId
+			userId: ownerId
 		})
 	]);
 	return {
@@ -581,50 +653,69 @@ export async function snooze(
 }
 
 /** Restores the old date only while the snooze being undone is still the current one. */
-export async function undoSnooze(db: Db, u: SnoozeUndo): Promise<{ ok: boolean }> {
-	const fu = await getOpen(db, u.followUpId);
+export async function undoSnooze(crm: CrmScope, u: SnoozeUndo): Promise<{ ok: boolean }> {
+	const { db } = crm;
+	const fu = await getOpen(crm, u.followUpId);
 	if (fu.dueDate !== u.dueDate) return { ok: false };
+	const logged = owned(
+		crm,
+		activity.ownerId,
+		eq(activity.id, u.activityId),
+		eq(activity.followUpId, fu.id),
+		eq(activity.type, 'snooze'),
+		eq(activity.body, u.dueDate)
+	);
+	if (!(await db.select({ id: activity.id }).from(activity).where(logged).get()))
+		return { ok: false };
 	await runBatch(db, [
 		db
 			.update(followUp)
 			.set({ dueDate: u.previousDueDate })
-			.where(and(eq(followUp.id, fu.id), eq(followUp.dueDate, u.dueDate))),
-		db.delete(activity).where(and(eq(activity.id, u.activityId), eq(activity.followUpId, fu.id)))
+			.where(owned(crm, followUp.ownerId, eq(followUp.id, fu.id), eq(followUp.dueDate, u.dueDate))),
+		db.delete(activity).where(logged)
 	]);
 	return { ok: true };
 }
 
 export async function schedule(
-	db: Db,
+	crm: CrmScope,
 	customerId: string,
 	dueDate: string,
-	userId: string,
 	today: string
 ): Promise<{ ok: true } | { ok: false; status: 409 | 400; errors: Record<string, string> }> {
-	const cust = await db.select().from(customer).where(eq(customer.id, customerId)).get();
+	const { db, ownerId } = crm;
+	const cust = await db
+		.select()
+		.from(customer)
+		.where(owned(crm, customer.ownerId, eq(customer.id, customerId)))
+		.get();
 	if (!cust) error(404);
 	if (dueDate < today) return { ok: false, status: 400, errors: { dueDate: 'out_of_range' } };
 	const open = await db
 		.select({ id: followUp.id })
 		.from(followUp)
-		.where(and(eq(followUp.customerId, customerId), eq(followUp.status, 'open')))
+		.where(
+			owned(crm, followUp.ownerId, eq(followUp.customerId, customerId), eq(followUp.status, 'open'))
+		)
 		.get();
 	if (open) return { ok: false, status: 409, errors: {} };
 	const id = crypto.randomUUID();
 	await runBatch(db, [
 		db.insert(followUp).values({
 			id,
+			ownerId,
 			customerId,
 			kind: cust.status === 'lead' ? 'lead' : 'retry',
 			dueDate,
 			attempt: 1
 		}),
 		db.insert(activity).values({
+			ownerId,
 			customerId,
 			type: 'scheduled',
 			body: dueDate,
 			followUpId: id,
-			userId
+			userId: ownerId
 		})
 	]);
 	return { ok: true };

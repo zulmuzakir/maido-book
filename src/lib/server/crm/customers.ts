@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, ne, sql, type SQL } from 'drizzle-orm';
-import type { Db } from '#lib/server/db/index.ts';
+import { error } from '@sveltejs/kit';
 import {
 	activity,
 	customer,
@@ -17,9 +17,11 @@ import type {
 	FollowUpKind
 } from '#lib/domain/types.ts';
 import { batchSafe, runBatch } from './batch.ts';
+import { owned, type CrmScope } from './scope.ts';
 
 /** False only before the first import or customer: the queue shows how to get started instead. */
-export const hasCustomersQuery = (db: Db) => db.select({ id: customer.id }).from(customer).limit(1);
+export const hasCustomersQuery = (crm: CrmScope) =>
+	crm.db.select({ id: customer.id }).from(customer).where(owned(crm, customer.ownerId)).limit(1);
 
 export interface OpenFollowUp {
 	id: string;
@@ -45,9 +47,18 @@ export interface CustomerListItem {
 	lastOrder: LastOrder | null;
 }
 
+export const productOrderOn = and(
+	eq(product.ownerId, customerOrder.ownerId),
+	eq(product.id, customerOrder.productId)
+);
+
 /** Join condition: the customer's latest order. */
-export const latestOrderOn = sql`${customerOrder.id} = (select o.id from customer_order o where o.customer_id = ${customer.id} order by o.order_date desc, o.created_at desc limit 1)`;
+export const latestOrderOn = and(
+	eq(customerOrder.ownerId, customer.ownerId),
+	sql`${customerOrder.id} = (select o.id from customer_order o where o.owner_id = ${customer.ownerId} and o.customer_id = ${customer.id} order by o.order_date desc, o.created_at desc limit 1)`
+);
 export const openFollowUpOn = and(
+	eq(followUp.ownerId, customer.ownerId),
 	eq(followUp.customerId, customer.id),
 	eq(followUp.status, 'open')
 );
@@ -86,7 +97,7 @@ export const toLastOrder = (o: {
 			}
 		: null;
 
-export const interestedExists = sql`exists (select 1 from follow_up f where f.customer_id = ${customer.id} and f.status = 'open' and f.kind = 'closing')`;
+export const interestedExists = sql`exists (select 1 from follow_up f where f.owner_id = ${customer}.${sql.identifier('owner_id')} and f.customer_id = ${customer}.${sql.identifier('id')} and f.status = 'open' and f.kind = 'closing')`;
 
 /** Name or phone match for the search box; undefined when the box is empty. */
 function searchCondition(raw: string): SQL | undefined {
@@ -113,10 +124,16 @@ type CustomerListOpts = {
 };
 
 /** [total count, one page of rows]; read them with `toCustomerList`. */
-export function listCustomersQueries(db: Db, opts: CustomerListOpts) {
+export function listCustomersQueries(crm: CrmScope, opts: CustomerListOpts) {
+	const { db } = crm;
 	const pageSize = opts.pageSize ?? 30;
 	const page = Math.max(1, opts.page ?? 1);
-	const where = and(searchCondition(opts.q ?? ''), statusCondition(opts.status));
+	const where = owned(
+		crm,
+		customer.ownerId,
+		searchCondition(opts.q ?? ''),
+		statusCondition(opts.status)
+	);
 	return [
 		db
 			.select(batchSafe({ n: sql<number>`count(*)` }))
@@ -145,7 +162,7 @@ export function listCustomersQueries(db: Db, opts: CustomerListOpts) {
 			.from(customer)
 			.leftJoin(followUp, openFollowUpOn)
 			.leftJoin(customerOrder, latestOrderOn)
-			.leftJoin(product, eq(product.id, customerOrder.productId))
+			.leftJoin(product, productOrderOn)
 			.where(where)
 			.orderBy(
 				sql`case when ${followUp.dueDate} is null then 1 else 0 end`,
@@ -198,34 +215,39 @@ const customerOptionFields = {
 	// inside the subquery would mean customer_order.id and never match.
 	lastOrderDate: sql<
 		string | null
-	>`(select max(o.order_date) from customer_order o where o.customer_id = ${customer}.${sql.identifier('id')})`
+	>`(select max(o.order_date) from customer_order o where o.owner_id = ${customer}.${sql.identifier('owner_id')} and o.customer_id = ${customer}.${sql.identifier('id')})`
 };
 
 /** Results per search in the new-order picker. */
 export const CUSTOMER_SEARCH_LIMIT = 20;
 
 /** One customer as a picker option (none for an unknown id). */
-export const customerOptionQuery = (db: Db, id: string) =>
-	db.select(batchSafe(customerOptionFields)).from(customer).where(eq(customer.id, id)).limit(1);
+export const customerOptionQuery = (crm: CrmScope, id: string) =>
+	crm.db
+		.select(batchSafe(customerOptionFields))
+		.from(customer)
+		.where(owned(crm, customer.ownerId, eq(customer.id, id)))
+		.limit(1);
 
 /** The new-order picker's search: first matches by name, and whether there are more. */
 export async function searchCustomerOptions(
-	db: Db,
+	crm: CrmScope,
 	q: string
 ): Promise<{ items: CustomerOption[]; more: boolean }> {
-	const rows = await db
+	const rows = await crm.db
 		.select(customerOptionFields)
 		.from(customer)
-		.where(searchCondition(q))
+		.where(owned(crm, customer.ownerId, searchCondition(q)))
 		.orderBy(asc(customer.name))
 		.limit(CUSTOMER_SEARCH_LIMIT + 1);
 	return { items: rows.slice(0, CUSTOMER_SEARCH_LIMIT), more: rows.length > CUSTOMER_SEARCH_LIMIT };
 }
 
-export const customerStatusCountsQuery = (db: Db) =>
-	db
+export const customerStatusCountsQuery = (crm: CrmScope) =>
+	crm.db
 		.select({ status: customer.status, n: sql<number>`count(*)` })
 		.from(customer)
+		.where(owned(crm, customer.ownerId))
 		.groupBy(customer.status);
 
 export function toCustomerStatusCounts(
@@ -236,8 +258,8 @@ export function toCustomerStatusCounts(
 	return out;
 }
 
-export const customerFilterCountsQuery = (db: Db, q: string) =>
-	db
+export const customerFilterCountsQuery = (crm: CrmScope, q: string) =>
+	crm.db
 		.select({
 			all: sql<number>`count(*)`,
 			lead: sql<number>`coalesce(sum(${customer.status} = 'lead'), 0)`,
@@ -246,7 +268,7 @@ export const customerFilterCountsQuery = (db: Db, q: string) =>
 			interested: sql<number>`coalesce(sum(${interestedExists}), 0)`
 		})
 		.from(customer)
-		.where(searchCondition(q));
+		.where(owned(crm, customer.ownerId, searchCondition(q)));
 
 export function toCustomerFilterCounts(
 	rows: Awaited<ReturnType<typeof customerFilterCountsQuery>>
@@ -270,13 +292,28 @@ const ACTIVITY_HISTORY_CAP = 100;
  * [customer, open follow-up, latest order, order history, activity history] for one customer, as
  * batchable queries; read them with `toCustomerDetail`.
  */
-export const customerDetailQueries = (db: Db, id: string) =>
-	[
-		db.select().from(customer).where(eq(customer.id, id)),
+export const customerDetailQueries = (crm: CrmScope, id: string) => {
+	const { db } = crm;
+	return [
+		db
+			.select({
+				id: customer.id,
+				name: customer.name,
+				phone: customer.phone,
+				dosePerDay: customer.dosePerDay,
+				status: customer.status,
+				notes: customer.notes,
+				createdAt: customer.createdAt,
+				updatedAt: customer.updatedAt
+			})
+			.from(customer)
+			.where(owned(crm, customer.ownerId, eq(customer.id, id))),
 		db
 			.select()
 			.from(followUp)
-			.where(and(eq(followUp.customerId, id), eq(followUp.status, 'open'))),
+			.where(
+				owned(crm, followUp.ownerId, eq(followUp.customerId, id), eq(followUp.status, 'open'))
+			),
 		db
 			.select(
 				batchSafe({
@@ -288,8 +325,8 @@ export const customerDetailQueries = (db: Db, id: string) =>
 				})
 			)
 			.from(customerOrder)
-			.innerJoin(product, eq(product.id, customerOrder.productId))
-			.where(eq(customerOrder.customerId, id))
+			.innerJoin(product, productOrderOn)
+			.where(owned(crm, customerOrder.ownerId, eq(customerOrder.customerId, id)))
 			.orderBy(desc(customerOrder.orderDate), desc(customerOrder.createdAt))
 			.limit(1),
 		db
@@ -307,8 +344,8 @@ export const customerDetailQueries = (db: Db, id: string) =>
 				})
 			)
 			.from(customerOrder)
-			.innerJoin(product, eq(product.id, customerOrder.productId))
-			.where(eq(customerOrder.customerId, id))
+			.innerJoin(product, productOrderOn)
+			.where(owned(crm, customerOrder.ownerId, eq(customerOrder.customerId, id)))
 			.orderBy(desc(customerOrder.orderDate), desc(customerOrder.createdAt))
 			.limit(ORDER_HISTORY_CAP + 1),
 		db
@@ -329,14 +366,21 @@ export const customerDetailQueries = (db: Db, id: string) =>
 				})
 			)
 			.from(activity)
-			.leftJoin(user, eq(user.id, activity.userId))
-			.leftJoin(followUp, eq(followUp.id, activity.followUpId))
-			.leftJoin(customerOrder, eq(customerOrder.id, activity.orderId))
-			.leftJoin(product, eq(product.id, customerOrder.productId))
-			.where(eq(activity.customerId, id))
+			.leftJoin(user, and(eq(user.id, activity.userId), eq(user.id, activity.ownerId)))
+			.leftJoin(
+				followUp,
+				and(eq(followUp.ownerId, activity.ownerId), eq(followUp.id, activity.followUpId))
+			)
+			.leftJoin(
+				customerOrder,
+				and(eq(customerOrder.ownerId, activity.ownerId), eq(customerOrder.id, activity.orderId))
+			)
+			.leftJoin(product, productOrderOn)
+			.where(owned(crm, activity.ownerId, eq(activity.customerId, id)))
 			.orderBy(desc(activity.createdAt), desc(activity.id))
 			.limit(ACTIVITY_HISTORY_CAP + 1)
 	] as const;
+};
 
 type DetailRows<I extends number> = Awaited<ReturnType<typeof customerDetailQueries>[I]>;
 
@@ -371,19 +415,22 @@ export function toCustomerDetail([cs, fus, lasts, orders, activities]: [
 	};
 }
 
-export async function getCustomerDetail(db: Db, id: string) {
-	const [c, fu, last, orders, activities] = await db.batch(customerDetailQueries(db, id));
+export async function getCustomerDetail(crm: CrmScope, id: string) {
+	const [c, fu, last, orders, activities] = await crm.db.batch(customerDetailQueries(crm, id));
 	return toCustomerDetail([c, fu, last, orders, activities]);
 }
 
-export async function findByPhone(db: Db, phone: string, excludeId?: string) {
-	const row = await db
+export async function findByPhone(crm: CrmScope, phone: string, excludeId?: string) {
+	const row = await crm.db
 		.select({ id: customer.id, name: customer.name })
 		.from(customer)
 		.where(
-			excludeId
-				? and(eq(customer.phone, phone), ne(customer.id, excludeId))
-				: eq(customer.phone, phone)
+			owned(
+				crm,
+				customer.ownerId,
+				eq(customer.phone, phone),
+				excludeId ? ne(customer.id, excludeId) : undefined
+			)
 		)
 		.get();
 	return row ?? null;
@@ -397,50 +444,79 @@ export interface CustomerInput {
 }
 
 export async function createCustomer(
-	db: Db,
+	crm: CrmScope,
 	input: CustomerInput,
-	userId: string,
 	today: string
 ): Promise<{ id: string } | { duplicateOf: { id: string; name: string } }> {
-	const dup = await findByPhone(db, input.phone);
+	const { db, ownerId } = crm;
+	const dup = await findByPhone(crm, input.phone);
 	if (dup) return { duplicateOf: dup };
 	const id = crypto.randomUUID();
 	const fuId = crypto.randomUUID();
 	await runBatch(db, [
-		db.insert(customer).values({ id, ...input, status: 'lead' }),
+		db.insert(customer).values({ id, ...input, ownerId, status: 'lead' }),
 		db.insert(followUp).values({
 			id: fuId,
+			ownerId,
 			customerId: id,
 			kind: 'lead',
 			dueDate: today,
 			attempt: 1
 		}),
-		db.insert(activity).values({ customerId: id, type: 'customer_created', userId })
+		db
+			.insert(activity)
+			.values({ ownerId, customerId: id, type: 'customer_created', userId: ownerId })
 	]);
 	return { id };
 }
 
+async function requireCustomer(crm: CrmScope, id: string): Promise<void> {
+	const target = await crm.db
+		.select({ id: customer.id })
+		.from(customer)
+		.where(owned(crm, customer.ownerId, eq(customer.id, id)))
+		.get();
+	if (!target) error(404);
+}
+
 export async function updateCustomer(
-	db: Db,
+	crm: CrmScope,
 	id: string,
 	input: CustomerInput
 ): Promise<{ ok: true } | { duplicateOf: { id: string; name: string } }> {
-	const dup = await findByPhone(db, input.phone, id);
+	await requireCustomer(crm, id);
+	const dup = await findByPhone(crm, input.phone, id);
 	if (dup) return { duplicateOf: dup };
-	await db.update(customer).set(input).where(eq(customer.id, id));
+	const [updated] = await crm.db
+		.update(customer)
+		.set(input)
+		.where(owned(crm, customer.ownerId, eq(customer.id, id)))
+		.returning({ id: customer.id });
+	if (!updated) error(404);
 	return { ok: true };
 }
 
-export async function deleteCustomer(db: Db, id: string) {
-	await db.delete(customer).where(eq(customer.id, id));
+export async function deleteCustomer(crm: CrmScope, id: string) {
+	const [removed] = await crm.db
+		.delete(customer)
+		.where(owned(crm, customer.ownerId, eq(customer.id, id)))
+		.returning({ id: customer.id });
+	if (!removed) error(404);
 }
 
-export async function addNote(db: Db, customerId: string, body: string, userId: string) {
-	await db.insert(activity).values({ customerId, type: 'note', body, userId });
+export async function addNote(crm: CrmScope, customerId: string, body: string) {
+	await requireCustomer(crm, customerId);
+	const { ownerId } = crm;
+	await crm.db
+		.insert(activity)
+		.values({ ownerId, customerId, type: 'note', body, userId: ownerId });
 }
 
-export async function customerSnapshot(db: Db, id: string): Promise<CustomerSnapshot | null> {
-	const detail = await getCustomerDetail(db, id);
+export async function customerSnapshot(
+	crm: CrmScope,
+	id: string
+): Promise<CustomerSnapshot | null> {
+	const detail = await getCustomerDetail(crm, id);
 	return detail ? snapshotOf(detail) : null;
 }
 
